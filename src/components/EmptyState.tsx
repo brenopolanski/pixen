@@ -19,8 +19,7 @@ export const EmptyState = ({ busy, onOpenImage }: EmptyStateProps) => {
       <div className="flex flex-col gap-1.5">
         <p className="text-[15px] font-semibold text-foreground">No image open</p>
         <p className="max-w-sm text-[13px] leading-relaxed text-muted-foreground">
-          Open a PNG, JPEG or WebP image to start editing, then save it back out as PNG, JPEG or
-          WebP.
+          Open a PNG, JPEG or WebP image to start editing
         </p>
       </div>
 
