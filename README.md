@@ -29,8 +29,10 @@ keyboard shortcuts.
 - Copies the edited image to the system clipboard with `⌘⇧C` / `Ctrl+Shift+C`
 - Hides private data — an address, a token, a face — behind a mosaic, by dragging a box over it
 - Numbers a screenshot for a step-by-step guide: click each spot and the badge counts itself up
-- Puts Open, Screenshot, Copy Image, Pixelize, Numbered Steps, Save and Save As in the native menu
-  bar
+- Cuts the background away from the subject with a local segmentation model, previewing the result
+  before it is applied
+- Puts Open, Screenshot, Copy Image, Pixelize, Numbered Steps, Remove Background, Save and Save As
+  in the native menu bar
 - Opens an About window from the App menu on macOS, or the File menu on Windows and Linux
 - Shows a splash screen while the app and the editor engine start up
 - Tracks unsaved changes in the window title (`Pixen — my-image.png *`)
@@ -38,8 +40,9 @@ keyboard shortcuts.
 
 The image you opened is never written unless you pick it in the save dialog yourself.
 
-Not implemented: AI, plugins, accounts, cloud storage, batch processing, multiple documents,
-version history, crash recovery, telemetry.
+Not implemented: plugins, accounts, cloud storage, batch processing, multiple documents, version
+history, crash recovery, telemetry. The only model Pixen runs is the background segmentation one,
+and it runs on your machine.
 
 ## Tech stack
 
@@ -48,6 +51,8 @@ version history, crash recovery, telemetry.
 - Tailwind CSS 4, with [shadcn/ui](https://ui.shadcn.com) primitives in `src/components/ui/`
 - [`@unlayer/react-image-editor`](https://www.npmjs.com/package/@unlayer/react-image-editor) as the
   editing engine
+- [`@imgly/background-removal`](https://www.npmjs.com/package/@imgly/background-removal) on
+  `onnxruntime-web` for background removal — see [License](#license), it is AGPL
 - Vitest for unit tests
 
 ## Supported platforms
@@ -73,9 +78,14 @@ platform, and every path comes from Tauri.
 
 ```bash
 pnpm install
+pnpm assets:bg-removal
 source "$HOME/.cargo/env"
 pnpm tauri:dev
 ```
+
+`assets:bg-removal` downloads the segmentation model into `public/bg-removal/` (76 MB, gitignored).
+It is needed once per checkout, and only for the background removal tool — everything else works
+without it. `tauri:build` runs it for you.
 
 Rust must be on your `PATH`. If `cargo` is missing in an already-open terminal, run
 `source "$HOME/.cargo/env"` or open a new tab.
@@ -88,19 +98,20 @@ connection.
 
 ## Scripts
 
-| Script        | Description                                     |
-| ------------- | ----------------------------------------------- |
-| `tauri:dev`   | Run the desktop app                             |
-| `tauri:build` | Build the installers for the current platform   |
-| `dev`         | Vite UI only (no native shell)                  |
-| `build`       | Type-check and build the frontend               |
-| `test`        | Run Vitest                                      |
-| `typecheck`   | `tsc --noEmit`                                  |
-| `lint`        | ESLint                                          |
-| `format`      | Prettier                                        |
-| `icons`       | Regenerate app icons from the SVG               |
-| `clean`       | Remove `dist`, `node_modules`, Rust `target`, … |
-| `check:fix`   | Format, lint, type-check, and test              |
+| Script              | Description                                       |
+| ------------------- | ------------------------------------------------- |
+| `tauri:dev`         | Run the desktop app                               |
+| `tauri:build`       | Build the installers for the current platform     |
+| `dev`               | Vite UI only (no native shell)                    |
+| `build`             | Type-check and build the frontend                 |
+| `assets:bg-removal` | Download the background removal model to `public` |
+| `test`              | Run Vitest                                        |
+| `typecheck`         | `tsc --noEmit`                                    |
+| `lint`              | ESLint                                            |
+| `format`            | Prettier                                          |
+| `icons`             | Regenerate app icons from the SVG                 |
+| `clean`             | Remove `dist`, `node_modules`, Rust `target`, …   |
+| `check:fix`         | Format, lint, type-check, and test                |
 
 ## Build
 
@@ -129,7 +140,8 @@ confirms unsaved work, then loads. Only where the image comes from differs.
   — drag a region, or press Space to pick a window. Pixen hides itself for the duration and comes
   back whatever happens. A capture has no path either, so its first save offers `Screenshot.png`.
 - **The File menu** is built with `@tauri-apps/api/menu`, so its actions sit next to the session
-  rather than in Rust. Save, Save As and Copy Image are disabled until an image is open. On macOS a
+  rather than in Rust. Save, Save As, Copy Image and the three image tools are disabled until an
+  image is open. On macOS a
   menu replaces the entire bar, so the App, Edit and Window submenus are rebuilt too — without an
   Edit menu the system copy, paste and select-all shortcuts stop working in text fields.
 
@@ -224,6 +236,44 @@ last one back, Escape or **Cancel** throws the lot away, and **Done** writes the
 - **One size, one colour, starting at 1.** Shutter's tool has no settings either, and a screenshot
   wants the numbers to look the same as each other more than it wants them configurable.
 
+## Removing a background
+
+**Background** in the Tools menu — **Remove Background…** in the native menu — runs a segmentation
+model over the image and keeps only what it thinks is the subject. The overlay shows a progress bar
+while it works, then the cutout on a checkerboard. **Apply** writes it to the document, Escape or
+**Cancel** leaves the image exactly as it was.
+
+- **The model runs on your machine and the image goes nowhere.** `@imgly/background-removal` is
+  ONNX inference in the webview through `onnxruntime-web`, and `pnpm assets:bg-removal` vendors the
+  weights into `public/bg-removal/` so nothing is fetched at runtime either. The library would
+  otherwise pull them from `staticimgly.com` on first use; Pixen's CSP does not allow that origin,
+  and if the assets are missing the tool says to run the script rather than reaching for the CDN.
+- **It is the quantized ISNet, ~44 MB of the 76 MB the script downloads.** The rest is the
+  onnxruntime WASM, in both the WebGPU and CPU builds, because which one loads depends on the
+  machine. `isnet_fp16` is the same model at twice the size if edges ever need to be better; it is
+  one constant in `src/lib/image/cutout.ts` and one entry in the fetch script.
+- **The bundle carries a second, unused copy of that WASM.** `onnxruntime-web` references its own
+  `.wasm` through `import.meta.url`, so Vite emits it (~23 MB) even though the library overwrites
+  `ort.env.wasm.wasmPaths` with the vendored files before it creates a session. Dropping it would
+  mean deleting a bundle asset by name from the Vite config, which would break quietly the day that
+  override changes, so the weight is left in for now.
+- **Inference is single-threaded, on purpose.** Threading it would mean `SharedArrayBuffer`, which
+  needs COOP/COEP, which turns on cross-origin isolation — and that blocks every embed that does not
+  opt in, including the Unlayer editor iframe. A slower cutout beats no editor. Expect a few seconds
+  on a screenshot, and longer the first time while the model is read in.
+- **There is a preview because the model guesses.** Hair, glass and thin lines are where it goes
+  wrong, and applying reloads the editor, so a bad result has to be refusable while the original is
+  still there. Cancelling mid-run closes the overlay, though the inference already in flight cannot
+  be called back — the library offers no cancellation.
+- **Apply flattens**, on the same terms as Pixelize and Steps: the save path, file name and unsaved
+  marker survive, the editor's undo history does not. See
+  [flattening costs](#what-a-flattened-save-costs).
+- **The result is transparent, so save it as PNG.** The cutout is nothing but an alpha channel, and
+  JPEG has none — saving to JPEG composites the transparency onto white, exactly as it does for any
+  other transparent image. WebP keeps it. Pixen does not switch the format selector for you.
+- **No keyboard shortcut**, for the same reason as Pixelize: it opens a mode rather than finishing
+  on its own.
+
 ## Saving
 
 PNG, JPEG and WebP are picked from the selector in Pixen's own toolbar, not from the save dialog. A
@@ -284,13 +334,16 @@ and the worst case is that they reappear rather than stop working.
 
 ```text
 src/
-├── components/          # Toolbar, Editor, EmptyState, DropOverlay, PixelizeOverlay, IncrementOverlay, ErrorBanner, Splash, About
+├── components/          # Toolbar, Editor, EmptyState, DropOverlay, PixelizeOverlay, IncrementOverlay, CutoutOverlay, ErrorBanner, Splash, About
 │   └── ui/              # shadcn/ui primitives: Button, DropdownMenu, the Sonner toaster
 ├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch
 └── lib/
     ├── editor/          # engine preload, editor options, unsaved-edit detection
-    ├── image/           # paths and formats, clipboard, capture, pixelize and badge geometry, dialogs and I/O
+    ├── image/           # paths and formats, clipboard, capture, pixelize and badge geometry, cutout, dialogs and I/O
     └── menu.ts          # the native menu bar
+
+scripts/
+└── fetch-bg-removal-assets.mjs   # vendors the segmentation model into public/
 
 src-tauri/src/
 ├── image.rs             # image file I/O, PNG/JPEG/WebP encoding, the pixelize mosaic
@@ -327,3 +380,8 @@ existing file, and OS errors are mapped to short sentences instead of being forw
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
+
+Background removal uses [`@imgly/background-removal`](https://github.com/imgly/background-removal-js),
+which is **AGPL-3.0**. Pixen's own source stays MIT, but that dependency's terms apply to anyone
+distributing a build of Pixen that includes it — IMG.LY sells a commercial licence for use that AGPL
+does not cover. Nothing else in the dependency tree is copyleft.

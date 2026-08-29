@@ -73,6 +73,13 @@ export interface ImageSession extends SessionState {
   /** Bakes every badge in one pass and hands the result back to the editor. */
   applyIncrement: (stamps: Stamp[]) => void
   cancelIncrement: () => void
+  /** The flattened image the cutout overlay runs the model on; null when closed. */
+  cutoutPreview: string | null
+  /** Flattens the canvas and opens the background removal overlay. */
+  startCutout: () => void
+  /** Accepts the cutout the overlay produced and hands it to the editor. */
+  applyCutout: (dataUrl: string) => void
+  cancelCutout: () => void
   save: () => void
   saveAs: () => void
   discardEdits: () => void
@@ -92,6 +99,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   const [error, setError] = useState<string | null>(null)
   const [pixelizePreview, setPixelizePreview] = useState<string | null>(null)
   const [incrementPreview, setIncrementPreview] = useState<string | null>(null)
+  const [cutoutPreview, setCutoutPreview] = useState<string | null>(null)
   // Deliberately outside `session`: the chosen output format is the user's
   // preference, so opening another image must not reset it.
   const [format, setFormatState] = useState<SaveFormat>(DEFAULT_SAVE_FORMAT)
@@ -128,6 +136,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       setError(null)
       setPixelizePreview(null)
       setIncrementPreview(null)
+      setCutoutPreview(null)
     },
     [applySession],
   )
@@ -315,6 +324,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       // canvas, whose zoom and pan Unlayer does not report.
       setPixelizePreview(readCurrentImage())
       setIncrementPreview(null)
+      setCutoutPreview(null)
     })
   }, [readCurrentImage, run])
 
@@ -353,6 +363,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
 
       setIncrementPreview(readCurrentImage())
       setPixelizePreview(null)
+      setCutoutPreview(null)
     })
   }, [readCurrentImage, run])
 
@@ -380,6 +391,41 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       })
     },
     [applySession, incrementPreview, run],
+  )
+
+  const startCutout = useCallback(() => {
+    run(async () => {
+      if (!sessionRef.current.image) {
+        return
+      }
+
+      setCutoutPreview(readCurrentImage())
+      setPixelizePreview(null)
+      setIncrementPreview(null)
+    })
+  }, [readCurrentImage, run])
+
+  const cancelCutout = useCallback(() => {
+    setCutoutPreview(null)
+  }, [])
+
+  const applyCutout = useCallback(
+    (dataUrl: string) => {
+      run(async () => {
+        const current = sessionRef.current
+
+        // The overlay ran the model and already has the result, so unlike the
+        // other tools there is no work left here beyond taking it.
+        if (!current.image || !cutoutPreview) {
+          return
+        }
+
+        bakedRef.current = true
+        applySession({ ...current, image: dataUrl, dirty: true })
+        setCutoutPreview(null)
+      })
+    },
+    [applySession, cutoutPreview, run],
   )
 
   const save = useCallback(() => {
@@ -525,6 +571,10 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     startIncrement,
     applyIncrement,
     cancelIncrement,
+    cutoutPreview,
+    startCutout,
+    applyCutout,
+    cancelCutout,
     save,
     saveAs,
     discardEdits,

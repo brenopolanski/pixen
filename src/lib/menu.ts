@@ -10,6 +10,7 @@ export interface MenuHandlers {
   onCopyImage: () => void
   onPixelize: () => void
   onIncrement: () => void
+  onCutout: () => void
   onSave: () => void
   onSaveAs: () => void
   /** Opens the About window; replaces the predefined macOS About panel. */
@@ -74,6 +75,13 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
     action: handlers.onIncrement,
   })
 
+  const cutoutItem = await MenuItem.new({
+    id: 'pixen-cutout',
+    text: 'Remove Background…',
+    enabled: false,
+    action: handlers.onCutout,
+  })
+
   const saveItem = await MenuItem.new({
     id: 'pixen-save',
     text: 'Save',
@@ -119,6 +127,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
           copyImageItem,
           pixelizeItem,
           incrementItem,
+          cutoutItem,
           await separator(),
           aboutItem,
           quitItem,
@@ -155,6 +164,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
               copyImageItem,
               pixelizeItem,
               incrementItem,
+              cutoutItem,
             ],
           }),
           await Submenu.new({
@@ -183,6 +193,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
       await copyImageItem.setEnabled(hasImage)
       await pixelizeItem.setEnabled(hasImage)
       await incrementItem.setEnabled(hasImage)
+      await cutoutItem.setEnabled(hasImage)
     },
   }
 }

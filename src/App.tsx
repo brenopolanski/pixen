@@ -1,6 +1,7 @@
 import type { ImageEditorRef } from '@unlayer/react-image-editor'
 import { useRef } from 'react'
 
+import { CutoutOverlay } from '@/components/CutoutOverlay'
 import { DropOverlay } from '@/components/DropOverlay'
 import { Editor } from '@/components/Editor'
 import { EmptyState } from '@/components/EmptyState'
@@ -40,6 +41,7 @@ const App = () => {
       onCopyImage: session.copyImage,
       onPixelize: session.startPixelize,
       onIncrement: session.startIncrement,
+      onCutout: session.startCutout,
       onSave: session.save,
       onSaveAs: session.saveAs,
       onAbout: () => {
@@ -71,6 +73,7 @@ const App = () => {
         hasImage={hasImage}
         onCaptureScreen={isCaptureSupported() ? session.captureScreen : undefined}
         onCopyImage={session.copyImage}
+        onCutout={session.startCutout}
         onFormatChange={session.setFormat}
         onIncrement={session.startIncrement}
         onOpenImage={session.openImage}
@@ -109,6 +112,15 @@ const App = () => {
             image={session.incrementPreview}
             onApply={session.applyIncrement}
             onCancel={session.cancelIncrement}
+          />
+        )}
+
+        {session.cutoutPreview && (
+          <CutoutOverlay
+            image={session.cutoutPreview}
+            onApply={session.applyCutout}
+            onCancel={session.cancelCutout}
+            onError={session.reportError}
           />
         )}
       </main>

@@ -8,6 +8,7 @@ import {
   ListOrdered,
   Save,
   SaveAll,
+  WandSparkles,
   Wrench,
 } from 'lucide-react'
 import type { ReactNode } from 'react'
@@ -55,6 +56,7 @@ interface ToolsMenuProps {
   mac: boolean
   onCaptureScreen?: () => void
   onCopyImage: () => void
+  onCutout: () => void
   onIncrement: () => void
   onPixelize: () => void
 }
@@ -65,10 +67,17 @@ const ToolsMenu = ({
   mac,
   onCaptureScreen,
   onCopyImage,
+  onCutout,
   onIncrement,
   onPixelize,
 }: ToolsMenuProps) => {
   const items: ToolItem[] = [
+    {
+      label: 'Background',
+      disabled: busy || !hasImage,
+      icon: <WandSparkles className="size-3.5" />,
+      onSelect: onCutout,
+    },
     {
       label: 'Copy',
       disabled: busy || !hasImage,
@@ -183,6 +192,7 @@ interface ToolbarProps {
   /** Passed only where capture is supported, so the item is absent elsewhere. */
   onCaptureScreen?: () => void
   onCopyImage: () => void
+  onCutout: () => void
   onPixelize: () => void
   onIncrement: () => void
   onFormatChange: (format: SaveFormat) => void
@@ -199,6 +209,7 @@ export const Toolbar = ({
   hasImage,
   onCaptureScreen,
   onCopyImage,
+  onCutout,
   onPixelize,
   onIncrement,
   onFormatChange,
@@ -267,6 +278,7 @@ export const Toolbar = ({
           mac={mac}
           onCaptureScreen={onCaptureScreen}
           onCopyImage={onCopyImage}
+          onCutout={onCutout}
           onIncrement={onIncrement}
           onPixelize={onPixelize}
         />

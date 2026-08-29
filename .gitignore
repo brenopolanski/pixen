@@ -27,6 +27,9 @@ dist-ssr
 src-tauri/target
 src-tauri/gen
 
+# background removal model, vendored by pnpm assets:bg-removal
+public/bg-removal
+
 # env
 .env
 .env.*

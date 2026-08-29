@@ -16,6 +16,7 @@
   },
   "packageManager": "pnpm@10.28.1",
   "scripts": {
+    "assets:bg-removal": "node scripts/fetch-bg-removal-assets.mjs",
     "build": "tsc && vite build",
     "check:fix": "pnpm format && pnpm lint:fix && pnpm typecheck && pnpm test && pnpm test:rust",
     "clean": "/bin/bash scripts/clean.sh",
@@ -37,6 +38,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@imgly/background-removal": "^1.7.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2",
@@ -44,6 +46,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.33.0",
+    "onnxruntime-web": "1.21.0-dev.20250206-d981b153d3",
     "radix-ui": "^1.6.7",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",

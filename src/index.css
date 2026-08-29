@@ -107,6 +107,20 @@ textarea {
   user-select: text;
 }
 
+/* What transparency looks like, for the cutout preview. Two offset gradients
+   are the cheapest way to a checkerboard without shipping a tile. */
+.checkerboard {
+  --checker-size: 12px;
+  background-color: #2a2d33;
+  background-image:
+    linear-gradient(45deg, #3b3f47 25%, transparent 25%, transparent 75%, #3b3f47 75%),
+    linear-gradient(45deg, #3b3f47 25%, transparent 25%, transparent 75%, #3b3f47 75%);
+  background-position:
+    0 0,
+    calc(var(--checker-size)) calc(var(--checker-size));
+  background-size: calc(var(--checker-size) * 2) calc(var(--checker-size) * 2);
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .fade-in {
     animation: fade-in 120ms ease-out;
