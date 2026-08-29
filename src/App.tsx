@@ -17,6 +17,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useLaunchSequence } from '@/hooks/useLaunchSequence'
 import { useNativeMenu } from '@/hooks/useNativeMenu'
 import { useWindowTitle } from '@/hooks/useWindowTitle'
+import { showAboutWindow } from '@/lib/desktop'
 import { isCaptureSupported } from '@/lib/image/capture'
 import { fileNameOf } from '@/lib/image/image'
 
@@ -41,6 +42,9 @@ const App = () => {
       onIncrement: session.startIncrement,
       onSave: session.save,
       onSaveAs: session.saveAs,
+      onAbout: () => {
+        void showAboutWindow()
+      },
       onQuit: session.requestClose,
     },
     hasImage,

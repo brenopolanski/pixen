@@ -12,6 +12,8 @@ export interface MenuHandlers {
   onIncrement: () => void
   onSave: () => void
   onSaveAs: () => void
+  /** Opens the About window; replaces the predefined macOS About panel. */
+  onAbout: () => void
   /** Runs the unsaved-changes prompt and quits; see `requestClose`. */
   onQuit: () => void
 }
@@ -88,6 +90,12 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
     action: handlers.onSaveAs,
   })
 
+  const aboutItem = await MenuItem.new({
+    id: 'pixen-about',
+    text: `About ${APP_NAME}`,
+    action: handlers.onAbout,
+  })
+
   const quitItem = await MenuItem.new({
     id: 'pixen-quit',
     text: mac ? `Quit ${APP_NAME}` : 'Quit',
@@ -112,6 +120,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
           pixelizeItem,
           incrementItem,
           await separator(),
+          aboutItem,
           quitItem,
         ],
   })
@@ -122,7 +131,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
           await Submenu.new({
             text: APP_NAME,
             items: [
-              await PredefinedMenuItem.new({ item: { About: null } }),
+              aboutItem,
               await separator(),
               await PredefinedMenuItem.new({ item: 'Hide' }),
               await PredefinedMenuItem.new({ item: 'HideOthers' }),

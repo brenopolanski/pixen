@@ -31,6 +31,7 @@ keyboard shortcuts.
 - Numbers a screenshot for a step-by-step guide: click each spot and the badge counts itself up
 - Puts Open, Screenshot, Copy Image, Pixelize, Numbered Steps, Save and Save As in the native menu
   bar
+- Opens an About window from the App menu on macOS, or the File menu on Windows and Linux
 - Shows a splash screen while the app and the editor engine start up
 - Tracks unsaved changes in the window title (`Pixen — my-image.png *`)
 - Asks before closing with unsaved work: **Save**, **Don't Save** or **Cancel**
@@ -134,6 +135,11 @@ confirms unsaved work, then loads. Only where the image comes from differs.
 
 Quit is a plain menu item wired to Pixen's own close handler, not the predefined one. The predefined
 item calls `exit` directly, which would drop unsaved edits without asking.
+
+About is a custom item for the same reason: the predefined macOS About panel is Apple's generic
+credits sheet, not Pixen's window. `About Pixen` invokes `show_about_window`, which builds a small
+window on demand (`index.html?window=about`) or focuses it if it is already open. `⌘W` / `Escape`
+close it.
 
 ### Screenshots are macOS-only for now
 
@@ -278,7 +284,7 @@ and the worst case is that they reappear rather than stop working.
 
 ```text
 src/
-├── components/          # Toolbar, Editor, EmptyState, DropOverlay, PixelizeOverlay, IncrementOverlay, ErrorBanner, Splash
+├── components/          # Toolbar, Editor, EmptyState, DropOverlay, PixelizeOverlay, IncrementOverlay, ErrorBanner, Splash, About
 │   └── ui/              # shadcn/ui primitives: Button, DropdownMenu, the Sonner toaster
 ├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch
 └── lib/
@@ -291,7 +297,7 @@ src-tauri/src/
 ├── capture.rs           # macOS interactive screen capture
 ├── clipboard.rs         # copying the edited image out as pixels
 ├── dialog.rs            # the three-button unsaved-changes prompt
-└── window.rs            # splash → main handoff, quit
+└── window.rs            # splash → main handoff, About window, quit
 ```
 
 The primitives under `components/ui/` are the generated shadcn files, themed to Pixen's own tokens
@@ -315,6 +321,8 @@ existing file, and OS errors are mapped to short sentences instead of being forw
 | `⌘V` / `Ctrl+V`        | Open the image on the clipboard |
 | `⌘⇧C` / `Ctrl+Shift+C` | Copy the image to the clipboard |
 | `⌘Q` / `Ctrl+Q`        | Quit, guarding unsaved work     |
+| `⌘W` / `Ctrl+W`        | Close the About window          |
+| `Escape`               | Close the About window          |
 
 ## License
 

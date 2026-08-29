@@ -28,6 +28,7 @@ pub fn run() {
             image::write_image,
             window::finish_launch,
             window::quit_app,
+            window::show_about_window,
         ])
         .setup(|app| {
             let handle = app.handle().clone();

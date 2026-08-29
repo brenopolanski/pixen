@@ -33,6 +33,7 @@ export const useNativeMenu = (handlers: MenuHandlers, hasImage: boolean) => {
       onIncrement: () => handlersRef.current.onIncrement(),
       onSave: () => handlersRef.current.onSave(),
       onSaveAs: () => handlersRef.current.onSaveAs(),
+      onAbout: () => handlersRef.current.onAbout(),
       onQuit: () => handlersRef.current.onQuit(),
     })
       .then(async (menu) => {

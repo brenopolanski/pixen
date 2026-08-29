@@ -9,6 +9,8 @@ export const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'] as const
 
 /** Keep in sync with SPLASH_WINDOW_LABEL in src-tauri/src/window.rs */
 export const SPLASH_WINDOW_LABEL = 'splash'
+/** Keep in sync with ABOUT_WINDOW_LABEL in src-tauri/src/window.rs */
+export const ABOUT_WINDOW_LABEL = 'about'
 
 /**
  * The editor mounts into this element. Pinning the id rather than letting the

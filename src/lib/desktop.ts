@@ -1,8 +1,9 @@
+import { getVersion } from '@tauri-apps/api/app'
 import { invoke } from '@tauri-apps/api/core'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { ask } from '@tauri-apps/plugin-dialog'
 
-import { SPLASH_WINDOW_LABEL } from '@/lib/constants'
+import { ABOUT_WINDOW_LABEL, SPLASH_WINDOW_LABEL } from '@/lib/constants'
 
 /** What the user chose in the unsaved-changes prompt. */
 export type CloseDecision = 'save' | 'discard' | 'cancel'
@@ -10,6 +11,22 @@ export type CloseDecision = 'save' | 'discard' | 'cancel'
 /** Both windows load the same bundle, so the query string picks the view. */
 export const isSplashWindow = (): boolean => {
   return new URLSearchParams(window.location.search).get('window') === SPLASH_WINDOW_LABEL
+}
+
+export const isAboutWindow = (): boolean => {
+  return new URLSearchParams(window.location.search).get('window') === ABOUT_WINDOW_LABEL
+}
+
+export const showAboutWindow = (): Promise<void> => {
+  return invoke('show_about_window')
+}
+
+export const closeCurrentWindow = (): Promise<void> => {
+  return getCurrentWindow().close()
+}
+
+export const getAppVersion = (): Promise<string> => {
+  return getVersion()
 }
 
 /** Reveals the main window and dismisses the splash screen. */
