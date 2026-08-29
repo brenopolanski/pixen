@@ -135,13 +135,7 @@ export const Toolbar = ({
         <span className="text-[13px] font-semibold tracking-tight text-foreground">{APP_NAME}</span>
       </div>
 
-      <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
-        <span className="truncate text-[12px] text-muted-foreground">
-          {hasImage ? (fileName ?? UNTITLED_NAME) : 'No image open'}
-        </span>
-        {dirty && <span aria-label="Unsaved changes" className="size-1.5 rounded-full bg-brand" />}
-      </div>
-
+      {/* The file actions, next to the name they act on. */}
       <div className="flex shrink-0 items-center gap-1.5">
         <ToolbarButton
           disabled={busy}
@@ -151,30 +145,6 @@ export const Toolbar = ({
         >
           <ImagePlus className="size-3.5" />
         </ToolbarButton>
-
-        {onCaptureScreen && (
-          // No accelerator: Cmd+Shift+3/4/5 belong to macOS and shadowing them
-          // would take the system capture away from the user.
-          <ToolbarButton disabled={busy} label="Screenshot" onClick={onCaptureScreen}>
-            <Camera className="size-3.5" />
-          </ToolbarButton>
-        )}
-
-        {/* Before the format selector, because the clipboard carries pixels
-            and this action ignores whatever is chosen there. */}
-        <ToolbarButton
-          // Held wide enough for the longer confirmation, so the row beside it
-          // does not shift as the label changes.
-          className="min-w-[90px] justify-center"
-          disabled={busy || !hasImage}
-          label={copied ? 'Copied' : 'Copy'}
-          shortcut={formatShortcut(mac, 'c', true)}
-          onClick={onCopyImage}
-        >
-          {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-        </ToolbarButton>
-
-        <FormatSelect disabled={busy} format={format} onChange={onFormatChange} />
 
         <ToolbarButton
           disabled={busy || !hasImage}
@@ -194,6 +164,39 @@ export const Toolbar = ({
         >
           <Save className="size-3.5" />
         </ToolbarButton>
+      </div>
+
+      <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
+        <span className="truncate text-[12px] text-muted-foreground">
+          {hasImage ? (fileName ?? UNTITLED_NAME) : 'No image open'}
+        </span>
+        {dirty && <span aria-label="Unsaved changes" className="size-1.5 rounded-full bg-brand" />}
+      </div>
+
+      <div className="flex shrink-0 items-center gap-1.5">
+        {onCaptureScreen && (
+          // No accelerator: Cmd+Shift+3/4/5 belong to macOS and shadowing them
+          // would take the system capture away from the user.
+          <ToolbarButton disabled={busy} label="Screenshot" onClick={onCaptureScreen}>
+            <Camera className="size-3.5" />
+          </ToolbarButton>
+        )}
+
+        <ToolbarButton
+          // Held wide enough for the longer confirmation, so the row beside it
+          // does not shift as the label changes.
+          className="min-w-[90px] justify-center"
+          disabled={busy || !hasImage}
+          label={copied ? 'Copied' : 'Copy'}
+          shortcut={formatShortcut(mac, 'c', true)}
+          onClick={onCopyImage}
+        >
+          {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+        </ToolbarButton>
+
+        {/* Belongs to the Save buttons on the left, not to the Copy beside it:
+            the clipboard carries pixels, so the chosen format never applies. */}
+        <FormatSelect disabled={busy} format={format} onChange={onFormatChange} />
       </div>
     </header>
   )
