@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 
 import { setWindowTitle } from '@/lib/desktop'
-import type { WindowTitleInput } from '@/lib/project/project'
-import { windowTitle } from '@/lib/project/project'
+import type { WindowTitleInput } from '@/lib/image/image'
+import { windowTitle } from '@/lib/image/image'
 
 export const useWindowTitle = (input: WindowTitleInput) => {
   const title = windowTitle(input)

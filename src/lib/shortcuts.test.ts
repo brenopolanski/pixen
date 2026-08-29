@@ -1,13 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { ShortcutEvent } from './shortcuts'
-import {
-  formatShortcut,
-  isOpenImageShortcut,
-  isOpenProjectShortcut,
-  isSaveAsShortcut,
-  isSaveShortcut,
-} from './shortcuts'
+import { formatShortcut, isOpenImageShortcut, isSaveAsShortcut, isSaveShortcut } from './shortcuts'
 
 const event = (overrides: Partial<ShortcutEvent>): ShortcutEvent => ({
   key: 's',
@@ -52,15 +46,12 @@ describe('isSaveAsShortcut', () => {
   })
 })
 
-describe('open shortcuts', () => {
-  it('separates opening an image from opening a project', () => {
-    const open = event({ key: 'o', ctrlKey: true })
-    const openShifted = event({ key: 'O', ctrlKey: true, shiftKey: true })
-
-    expect(isOpenImageShortcut(open, false)).toBe(true)
-    expect(isOpenProjectShortcut(open, false)).toBe(false)
-    expect(isOpenProjectShortcut(openShifted, false)).toBe(true)
-    expect(isOpenImageShortcut(openShifted, false)).toBe(false)
+describe('isOpenImageShortcut', () => {
+  it('matches the primary modifier with O, but not the shifted variant', () => {
+    expect(isOpenImageShortcut(event({ key: 'o', ctrlKey: true }), false)).toBe(true)
+    expect(isOpenImageShortcut(event({ key: 'O', ctrlKey: true, shiftKey: true }), false)).toBe(
+      false,
+    )
   })
 })
 

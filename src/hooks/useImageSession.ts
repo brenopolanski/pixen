@@ -3,77 +3,56 @@ import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
-  RECOVERY_INTERVAL_MS,
   UNSAVED_CHECK_DEBOUNCE_MS,
   UNSAVED_CHECK_INTERVAL_MS,
+  UNTITLED_NAME,
 } from '@/lib/constants'
-import {
-  askAboutUnsavedChanges,
-  askToDiscardChanges,
-  askToRestoreRecovery,
-  quitApp,
-} from '@/lib/desktop'
+import { askAboutUnsavedChanges, askToDiscardChanges, quitApp } from '@/lib/desktop'
 import { hasUnsavedEdits } from '@/lib/editor/engine'
 import { PixenError, toUserMessage } from '@/lib/errors'
-import {
-  baseNameOf,
-  createProject,
-  projectFileName,
-  renameProject,
-  withSavedImage,
-} from '@/lib/project/project'
-import {
-  clearRecovery,
-  pickImage,
-  pickProject,
-  pickProjectDestination,
-  readImage,
-  readProject,
-  readRecovery,
-  writeProject,
-  writeRecovery,
-} from '@/lib/project/projectStorage'
-import type { PixenProject } from '@/types/project'
+import { encodeImage } from '@/lib/image/encode'
+import { baseNameOf, formatForPath } from '@/lib/image/image'
+import { pickImage, pickSaveDestination, readImage, writeImage } from '@/lib/image/imageStorage'
 
 interface SessionState {
-  project: PixenProject | null
-  path: string | null
-  dirty: boolean
   /**
-   * The image handed to the editor. Only loading a file changes it: the editor
+   * The image handed to the editor. Only opening a file changes it: the editor
    * reloads — and so discards its undo history — whenever this value moves, so
    * a save deliberately leaves it alone.
    */
-  loadedImage: string | null
+  image: string | null
+  /** Where Save writes. Null until a save has picked a destination. */
+  path: string | null
+  /** Base name of the opened file, the default the save dialog offers. */
+  name: string | null
+  dirty: boolean
 }
 
 const EMPTY_SESSION: SessionState = {
-  project: null,
+  image: null,
   path: null,
+  name: null,
   dirty: false,
-  loadedImage: null,
 }
 
-export interface ProjectSession extends SessionState {
+export interface ImageSession extends SessionState {
   busy: boolean
   error: string | null
   openImage: () => void
-  openProject: () => void
   save: () => void
   saveAs: () => void
   discardEdits: () => void
   requestClose: () => void
-  restoreRecovery: () => Promise<void>
   reportError: (message: string) => void
   dismissError: () => void
 }
 
 /**
- * Owns the open project: what it is, where it lives, and whether it differs
+ * Owns the open image: what it is, where a save writes, and whether it differs
  * from the copy on disk. Every filesystem call it makes goes through
- * `projectStorage`, so no component touches the disk itself.
+ * `imageStorage`, so no component touches the disk itself.
  */
-export const useProjectSession = (editorRef: RefObject<ImageEditorRef | null>): ProjectSession => {
+export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): ImageSession => {
   const [session, setSession] = useState<SessionState>(EMPTY_SESSION)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -83,11 +62,6 @@ export const useProjectSession = (editorRef: RefObject<ImageEditorRef | null>): 
   const sessionRef = useRef(session)
   /** The image last written to disk; null until this image has been saved. */
   const baselineRef = useRef<string | null>(null)
-  /**
-   * Recovered work is unsaved even though the editor treats the image it just
-   * loaded as pristine, so the flag is held until a real save clears it.
-   */
-  const unsavedOnDiskRef = useRef(false)
   const busyRef = useRef(false)
 
   const applySession = useCallback((next: SessionState) => {
@@ -96,10 +70,9 @@ export const useProjectSession = (editorRef: RefObject<ImageEditorRef | null>): 
   }, [])
 
   const load = useCallback(
-    (project: PixenProject, path: string | null, dirty = false) => {
+    (image: string, name: string) => {
       baselineRef.current = null
-      unsavedOnDiskRef.current = dirty
-      applySession({ project, path, dirty, loadedImage: project.image })
+      applySession({ image, path: null, name, dirty: false })
       setError(null)
     },
     [applySession],
@@ -137,11 +110,11 @@ export const useProjectSession = (editorRef: RefObject<ImageEditorRef | null>): 
   const isUnsaved = useCallback((): boolean => {
     const editor = editorRef.current?.editor
 
-    if (!editor || !sessionRef.current.project) {
+    if (!editor || !sessionRef.current.image) {
       return false
     }
 
-    return unsavedOnDiskRef.current || hasUnsavedEdits(editor, baselineRef.current)
+    return hasUnsavedEdits(editor, baselineRef.current)
   }, [editorRef])
 
   /** Returns false when the user cancelled the Save dialog. */
@@ -149,29 +122,23 @@ export const useProjectSession = (editorRef: RefObject<ImageEditorRef | null>): 
     async (image: string, path: string | null): Promise<boolean> => {
       const current = sessionRef.current
 
-      if (!current.project) {
+      if (!current.image) {
         return false
       }
 
-      const destination = path ?? (await pickProjectDestination(projectFileName(current.project)))
+      const destination = path ?? (await pickSaveDestination(current.name ?? UNTITLED_NAME))
 
       if (!destination) {
         return false
       }
 
-      const saved = renameProject(withSavedImage(current.project, image), baseNameOf(destination))
+      await writeImage(destination, await encodeImage(image, formatForPath(destination)))
 
-      await writeProject(destination, saved)
-
+      // The baseline is the editor's own output rather than the encoded copy:
+      // comparing a later export against re-encoded bytes would report the
+      // image as unsaved forever.
       baselineRef.current = image
-      unsavedOnDiskRef.current = false
-      applySession({
-        project: saved,
-        path: destination,
-        dirty: false,
-        loadedImage: current.loadedImage,
-      })
-      await clearRecovery()
+      applySession({ ...current, path: destination, dirty: false })
 
       return true
     },
@@ -190,29 +157,13 @@ export const useProjectSession = (editorRef: RefObject<ImageEditorRef | null>): 
         return
       }
 
-      load(createProject(baseNameOf(path), await readImage(path)), null)
-    })
-  }, [load, run])
-
-  const openProject = useCallback(() => {
-    run(async () => {
-      if (sessionRef.current.dirty && !(await askToDiscardChanges())) {
-        return
-      }
-
-      const path = await pickProject()
-
-      if (!path) {
-        return
-      }
-
-      load(await readProject(path), path)
+      load(await readImage(path), baseNameOf(path))
     })
   }, [load, run])
 
   const save = useCallback(() => {
     run(async () => {
-      if (!sessionRef.current.project) {
+      if (!sessionRef.current.image) {
         return
       }
 
@@ -222,7 +173,7 @@ export const useProjectSession = (editorRef: RefObject<ImageEditorRef | null>): 
 
   const saveAs = useCallback(() => {
     run(async () => {
-      if (!sessionRef.current.project) {
+      if (!sessionRef.current.image) {
         return
       }
 
@@ -233,10 +184,10 @@ export const useProjectSession = (editorRef: RefObject<ImageEditorRef | null>): 
   /** Backs the editor's own Cancel button: returns to the last saved state. */
   const discardEdits = useCallback(() => {
     run(async () => {
-      const { project, dirty } = sessionRef.current
+      const { image, dirty } = sessionRef.current
       const editor = editorRef.current?.editor
 
-      if (!project || !editor || !dirty) {
+      if (!image || !editor || !dirty) {
         return
       }
 
@@ -244,8 +195,7 @@ export const useProjectSession = (editorRef: RefObject<ImageEditorRef | null>): 
         return
       }
 
-      await editor.reset(baselineRef.current ?? project.image)
-      unsavedOnDiskRef.current = false
+      await editor.reset(baselineRef.current ?? image)
       applySession({ ...sessionRef.current, dirty: false })
     })
   }, [applySession, editorRef, run])
@@ -266,32 +216,12 @@ export const useProjectSession = (editorRef: RefObject<ImageEditorRef | null>): 
         }
       }
 
-      await clearRecovery()
       await quitApp()
     })
   }, [isUnsaved, persist, readCurrentImage, run])
 
-  const restoreRecovery = useCallback(async (): Promise<void> => {
-    try {
-      const snapshot = await readRecovery()
-
-      if (!snapshot) {
-        return
-      }
-
-      if (await askToRestoreRecovery()) {
-        load(snapshot.project, snapshot.path, true)
-        return
-      }
-
-      await clearRecovery()
-    } catch (failure) {
-      setError(toUserMessage(failure))
-    }
-  }, [load])
-
   const refreshUnsavedState = useCallback(() => {
-    if (!sessionRef.current.project) {
+    if (!sessionRef.current.image) {
       return
     }
 
@@ -302,10 +232,10 @@ export const useProjectSession = (editorRef: RefObject<ImageEditorRef | null>): 
     }
   }, [applySession, isUnsaved])
 
-  const hasProject = session.project !== null
+  const hasImage = session.image !== null
 
   useEffect(() => {
-    if (!hasProject) {
+    if (!hasImage) {
       return
     }
 
@@ -335,36 +265,7 @@ export const useProjectSession = (editorRef: RefObject<ImageEditorRef | null>): 
       window.removeEventListener('pointerup', schedule)
       window.removeEventListener('keyup', schedule)
     }
-  }, [hasProject, refreshUnsavedState])
-
-  useEffect(() => {
-    if (!session.dirty) {
-      return
-    }
-
-    const interval = window.setInterval(() => {
-      const { project, path } = sessionRef.current
-      const image = editorRef.current?.editor?.getImage()
-
-      if (!project || !image) {
-        return
-      }
-
-      void writeRecovery({
-        path,
-        project: withSavedImage(project, image),
-        savedAt: new Date().toISOString(),
-      }).catch((failure: unknown) => {
-        // Recovery is background bookkeeping. Failing to park a snapshot must
-        // not interrupt the user, who still has an explicit Save.
-        console.error('[pixen] could not write a recovery snapshot', failure)
-      })
-    }, RECOVERY_INTERVAL_MS)
-
-    return () => {
-      window.clearInterval(interval)
-    }
-  }, [editorRef, session.dirty])
+  }, [hasImage, refreshUnsavedState])
 
   const reportError = useCallback((message: string) => {
     setError(message)
@@ -379,12 +280,10 @@ export const useProjectSession = (editorRef: RefObject<ImageEditorRef | null>): 
     busy,
     error,
     openImage,
-    openProject,
     save,
     saveAs,
     discardEdits,
     requestClose,
-    restoreRecovery,
     reportError,
     dismissError,
   }

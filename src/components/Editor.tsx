@@ -15,8 +15,8 @@ interface EditorProps {
 
 /**
  * The Unlayer editor is the whole editing engine; Pixen only hands it an image
- * and turns its Save and Cancel actions into project operations. The saved
- * image is read back through the ref rather than taken from the callback, so it
+ * and turns its Save and Cancel actions into file operations. The saved image
+ * is read back through the ref rather than taken from the callback, so it
  * always comes from the same source as the unsaved-changes check.
  *
  * Those two buttons are hidden in src/index.css because Pixen's own toolbar

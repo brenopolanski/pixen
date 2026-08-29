@@ -12,17 +12,11 @@ const delay = (ms: number): Promise<void> => {
 
 /**
  * Startup, in order: warm the editor engine, hold the splash screen for long
- * enough to read, hand the screen over to the main window, then let the app
- * finish initialising. A ref guards the sequence because React runs effects
- * twice in development.
+ * enough to read, then hand the screen over to the main window. A ref guards
+ * the sequence because React runs effects twice in development.
  */
-export const useLaunchSequence = (onReady: () => Promise<void>) => {
-  const readyRef = useRef(onReady)
+export const useLaunchSequence = () => {
   const launchedRef = useRef(false)
-
-  useEffect(() => {
-    readyRef.current = onReady
-  })
 
   useEffect(() => {
     if (launchedRef.current) {
@@ -34,7 +28,6 @@ export const useLaunchSequence = (onReady: () => Promise<void>) => {
     const launch = async () => {
       await Promise.all([preloadEditorEngine(), delay(SPLASH_MIN_DURATION_MS)])
       await finishLaunch()
-      await readyRef.current()
     }
 
     void launch().catch((failure: unknown) => {

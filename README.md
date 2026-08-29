@@ -9,28 +9,29 @@
   Open-source desktop image editor built with <a href="https://tauri.app">Tauri</a> and React.
 </p>
 
-> **Early-stage.** Pixen is at v0.1.0. It opens an image, edits it, and saves a reopenable
-> project — nothing more. The `.pix` format is intentionally minimal and will change.
+> **Early-stage.** Pixen is at v0.1.0. It opens an image, edits it, and saves the result — nothing
+> more.
 
 Pixen is a small desktop shell around the [Unlayer Image Editor](https://unlayer.com/image-editor).
-The editor does the editing; Pixen owns the window, the native file dialogs, the project format,
-and the keyboard shortcuts.
+The editor does the editing; Pixen owns the window, the native file dialogs, the encoding, and the
+keyboard shortcuts.
 
 ## What it does
 
 - Opens PNG, JPEG and WebP images through a native file dialog
 - Edits them with [`@unlayer/react-image-editor`](https://github.com/unlayer/react-image-editor) —
   crop, resize, filters, draw, text, shapes, stickers and frames
-- Saves the work as a `.pix` project with `⌘S` / `Ctrl+S`, asking for a location the first time
+- Saves as PNG, JPEG or WebP with `⌘S` / `Ctrl+S`, asking where to write the first time and reusing
+  that destination afterwards
 - Saves to a new file with `⌘⇧S` / `Ctrl+Shift+S`
-- Reopens a `.pix` project and restores the image so editing can continue
 - Shows a splash screen while the app and the editor engine start up
-- Tracks unsaved changes in the window title (`Pixen — my-image.pix *`)
+- Tracks unsaved changes in the window title (`Pixen — my-image.png *`)
 - Asks before closing with unsaved work: **Save**, **Don't Save** or **Cancel**
-- Keeps a crash-recovery snapshot in the app data folder and offers to restore it on next launch
+
+The image you opened is never written unless you pick it in the save dialog yourself.
 
 Not implemented: AI, plugins, accounts, cloud storage, batch processing, multiple documents,
-version history, telemetry.
+version history, crash recovery, telemetry.
 
 ## Tech stack
 
@@ -103,50 +104,39 @@ Bundles land in `src-tauri/target/release/bundle/`: `.app` and `.dmg` on macOS, 
 on Windows, `.deb` and AppImage on Linux. Builds are unsigned, so on macOS the first launch is
 right-click the app → Open.
 
-## Project format (`.pix`)
+## Saving
 
-A `.pix` file is JSON with a version field:
+The save dialog offers PNG, JPEG and WebP, and the extension on the path you choose decides the
+encoding. A dialog only reports where to write, never which file type was selected, so Pixen reads
+the format back off the path — and falls back to PNG for an extension it cannot encode, which is
+what GTK dialogs leave you with when they do not append a suffix.
 
-```json
-{
-  "version": 1,
-  "name": "my-image",
-  "source": "data:image/png;base64,…",
-  "image": "data:image/png;base64,…",
-  "createdAt": "2026-01-02T03:04:05.000Z",
-  "updatedAt": "2026-01-02T03:14:15.000Z"
-}
-```
+The editor's output is always re-encoded into the target format rather than written through. That is
+not an optimisation: `getImage()` hands back the loaded source data URL verbatim while the canvas
+holds no objects, so an opened JPEG comes back as JPEG and would otherwise land behind a `.png`
+name. `write_image` then re-checks the data URL's media type against the destination's extension, so
+the bytes on disk always agree with the name. JPEG gets a white fill first, since it carries no alpha
+channel and anything transparent would otherwise encode black.
 
-- `source` is the image as it was first opened, kept untouched.
-- `image` is the flattened result of the last save, and is what the editor reloads.
-
-Opening a project with an unrecognised `version` fails with
-_"This Pixen project uses an unsupported version."_ rather than being read anyway, so a newer
-project is never overwritten with a downgraded copy.
-
-### The V1 limitation
+### What a flattened save costs
 
 `@unlayer/react-image-editor` exposes no serialization of its editable state. Its API offers
 `getImage()` (a flattened data URL), `hasChanges()`, `reset()` and `updateOptions()` — there is no
-way to read back layers, text objects or the undo stack. So V1 stores the flattened image, which
-means:
+way to read back layers, text objects or the undo stack. So a saved file is pixels and nothing else:
 
-- **Reopening a project is not the same as never having closed it.** Text, shapes and stickers come
-  back rasterised into the image, not as editable objects.
+- **Reopening a saved image is not the same as never having closed it.** Text, shapes and stickers
+  come back rasterised, not as editable objects.
 - **Undo history does not survive a save or a reopen.**
-- Images are base64 inside JSON, so a `.pix` is roughly a third larger than the raw pixels.
-
-`source` is stored precisely so a later format version can keep real editable state alongside it
-without breaking v1 files.
 
 Unsaved changes are derived rather than observed, for the same reason: the editor emits no change
-events, so Pixen combines `hasChanges()` with a comparison against the last saved image.
+events, so Pixen combines `hasChanges()` with a comparison against the last saved image. That
+comparison uses the editor's own export, not the encoded file, so saving as JPEG does not leave the
+image looking permanently unsaved.
 
 The editor's toolbar also ends with its own Cancel and Save buttons, which duplicate Pixen's
 toolbar and native dialogs. Nothing in the editor's options turns them off, so `src/index.css`
 hides that group by position and lets the zoom controls take the space. That rule depends on the
-editor's DOM, so it needs a look after an editor release — the buttons stay wired to the project,
+editor's DOM, so it needs a look after an editor release — the buttons stay wired to the session,
 and the worst case is that they reappear rather than stop working.
 
 ## Architecture
@@ -155,13 +145,12 @@ and the worst case is that they reappear rather than stop working.
 src/
 ├── components/          # Toolbar, Editor, EmptyState, ErrorBanner, Splash
 ├── hooks/               # session state, shortcuts, window title, close guard, launch
-├── lib/
-│   ├── editor/          # engine preload, editor options, unsaved-edit detection
-│   └── project/         # project model, validation, storage
-└── types/project.ts     # the .pix format
+└── lib/
+    ├── editor/          # engine preload, editor options, unsaved-edit detection
+    └── image/           # paths and formats, canvas re-encoding, dialogs and I/O
 
 src-tauri/src/
-├── project.rs           # image and project file I/O
+├── image.rs             # image file I/O
 ├── dialog.rs            # the three-button unsaved-changes prompt
 └── window.rs            # splash → main handoff, quit
 ```
@@ -169,19 +158,15 @@ src-tauri/src/
 All filesystem work happens in Rust behind narrow commands, so the webview is granted **no**
 filesystem scope at all — see `src-tauri/capabilities/`. Reads are extension-checked and
 size-capped, writes go through a temp file and a rename so an interrupted save cannot destroy an
-existing project, and OS errors are mapped to short sentences instead of being forwarded raw.
-
-Recovery snapshots live in the app data folder, never beside the user's files, and the user's `.pix`
-is only ever written by an explicit save.
+existing file, and OS errors are mapped to short sentences instead of being forwarded raw.
 
 ## Keyboard shortcuts
 
-| Shortcut               | Action                |
-| ---------------------- | --------------------- |
-| `⌘S` / `Ctrl+S`        | Save the project      |
-| `⌘⇧S` / `Ctrl+Shift+S` | Save As               |
-| `⌘O` / `Ctrl+O`        | Open an image         |
-| `⌘⇧O` / `Ctrl+Shift+O` | Open a `.pix` project |
+| Shortcut               | Action        |
+| ---------------------- | ------------- |
+| `⌘S` / `Ctrl+S`        | Save          |
+| `⌘⇧S` / `Ctrl+Shift+S` | Save As       |
+| `⌘O` / `Ctrl+O`        | Open an image |
 
 ## License
 

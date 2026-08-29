@@ -26,9 +26,6 @@ export const isSaveAsShortcut = (event: ShortcutEvent, mac: boolean): boolean =>
 export const isOpenImageShortcut = (event: ShortcutEvent, mac: boolean): boolean =>
   matches(event, mac, 'o', false)
 
-export const isOpenProjectShortcut = (event: ShortcutEvent, mac: boolean): boolean =>
-  matches(event, mac, 'o', true)
-
 /** Writes a shortcut the way the host platform writes it. */
 export const formatShortcut = (mac: boolean, key: string, shift = false): string =>
   mac

@@ -1,8 +1,8 @@
-import { FolderOpen, ImagePlus, Save, SaveAll } from 'lucide-react'
+import { ImagePlus, Save, SaveAll } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { PixenLogo } from '@/components/shared/Icons'
-import { APP_NAME, UNTITLED_PROJECT_NAME } from '@/lib/constants'
+import { APP_NAME, UNTITLED_NAME } from '@/lib/constants'
 import { isMacPlatform } from '@/lib/platform'
 import { formatShortcut } from '@/lib/shortcuts'
 import { cn } from '@/lib/utils'
@@ -47,9 +47,8 @@ interface ToolbarProps {
   busy: boolean
   dirty: boolean
   fileName: string | null
-  hasProject: boolean
+  hasImage: boolean
   onOpenImage: () => void
-  onOpenProject: () => void
   onSave: () => void
   onSaveAs: () => void
 }
@@ -58,9 +57,8 @@ export const Toolbar = ({
   busy,
   dirty,
   fileName,
-  hasProject,
+  hasImage,
   onOpenImage,
-  onOpenProject,
   onSave,
   onSaveAs,
 }: ToolbarProps) => {
@@ -78,7 +76,7 @@ export const Toolbar = ({
 
       <div className="flex min-w-0 flex-1 items-center justify-center gap-1.5">
         <span className="truncate text-[12px] text-muted-foreground">
-          {hasProject ? (fileName ?? UNTITLED_PROJECT_NAME) : 'No image open'}
+          {hasImage ? (fileName ?? UNTITLED_NAME) : 'No image open'}
         </span>
         {dirty && <span aria-label="Unsaved changes" className="size-1.5 rounded-full bg-brand" />}
       </div>
@@ -94,16 +92,7 @@ export const Toolbar = ({
         </ToolbarButton>
 
         <ToolbarButton
-          disabled={busy}
-          label="Open Project"
-          shortcut={formatShortcut(mac, 'o', true)}
-          onClick={onOpenProject}
-        >
-          <FolderOpen className="size-3.5" />
-        </ToolbarButton>
-
-        <ToolbarButton
-          disabled={busy || !hasProject}
+          disabled={busy || !hasImage}
           label="Save As"
           shortcut={formatShortcut(mac, 's', true)}
           onClick={onSaveAs}
@@ -112,7 +101,7 @@ export const Toolbar = ({
         </ToolbarButton>
 
         <ToolbarButton
-          disabled={busy || !hasProject}
+          disabled={busy || !hasImage}
           label="Save"
           shortcut={formatShortcut(mac, 's')}
           primary

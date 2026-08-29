@@ -1,5 +1,5 @@
 mod dialog;
-mod project;
+mod image;
 mod window;
 
 use std::thread;
@@ -16,12 +16,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             dialog::confirm_unsaved_changes,
-            project::read_image,
-            project::read_project,
-            project::write_project,
-            project::read_recovery,
-            project::write_recovery,
-            project::clear_recovery,
+            image::read_image,
+            image::write_image,
             window::finish_launch,
             window::quit_app,
         ])

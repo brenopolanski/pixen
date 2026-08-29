@@ -52,12 +52,3 @@ export const askToDiscardChanges = (): Promise<boolean> => {
     cancelLabel: 'Cancel',
   })
 }
-
-export const askToRestoreRecovery = (): Promise<boolean> => {
-  return ask('Pixen found unsaved work from your last session.', {
-    title: 'Restore unsaved work?',
-    kind: 'info',
-    okLabel: 'Restore',
-    cancelLabel: 'Discard',
-  })
-}
