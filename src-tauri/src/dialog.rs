@@ -1,6 +1,8 @@
 use serde::Serialize;
 use tauri::AppHandle;
-use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind, MessageDialogResult};
+use tauri_plugin_dialog::{
+    DialogExt, MessageDialogButtons, MessageDialogKind, MessageDialogResult,
+};
 
 const SAVE_LABEL: &str = "Save";
 const DISCARD_LABEL: &str = "Don't Save";

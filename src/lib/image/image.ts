@@ -19,42 +19,59 @@ const extensionOf = (path: string): string => {
   return dot > 0 ? fileName.slice(dot + 1).toLowerCase() : ''
 }
 
+export type SaveFormatId = 'png' | 'jpeg' | 'webp'
+
+/**
+ * A format the toolbar can offer. There is deliberately no media type here:
+ * encoding happens in Rust, so `write_image` is the one place that maps an
+ * extension onto a codec.
+ */
 export interface SaveFormat {
-  /** Labels the file type in the save dialog. */
+  id: SaveFormatId
+  /** Labels the format in the toolbar and the save dialog. */
   name: string
   /** The first entry is what a path without a usable extension receives. */
   extensions: string[]
-  mimeType: string
 }
 
-/** Lossless, so it is what Pixen offers first and falls back to. */
-const PNG: SaveFormat = { name: 'PNG', extensions: ['png'], mimeType: 'image/png' }
+const PNG: SaveFormat = { id: 'png', name: 'PNG', extensions: ['png'] }
 
 export const SAVE_FORMATS: SaveFormat[] = [
   PNG,
-  { name: 'JPEG', extensions: ['jpg', 'jpeg'], mimeType: 'image/jpeg' },
-  { name: 'WebP', extensions: ['webp'], mimeType: 'image/webp' },
+  { id: 'jpeg', name: 'JPEG', extensions: ['jpg', 'jpeg'] },
+  { id: 'webp', name: 'WebP', extensions: ['webp'] },
 ]
 
+export const DEFAULT_SAVE_FORMAT = PNG
+
+export const formatById = (id: string): SaveFormat => {
+  return SAVE_FORMATS.find((format) => format.id === id) ?? DEFAULT_SAVE_FORMAT
+}
+
+/** Whether a path is already named for the format, counting every alias. */
+export const matchesFormat = (path: string, format: SaveFormat): boolean => {
+  return format.extensions.includes(extensionOf(path))
+}
+
 /**
- * Read back from the path because a save dialog only reports where to write,
- * never which file type was chosen. An unrecognised extension falls back to
- * PNG so the bytes can never disagree with the name.
+ * A save dialog only reports where to write, never which of its file types was
+ * chosen, so the format Pixen is set to save in is the answer unless the user
+ * typed an extension of their own — an explicit `.webp` outranks the selector.
  */
-export const formatForPath = (path: string): SaveFormat => {
+export const formatForPath = (path: string, chosen: SaveFormat): SaveFormat => {
   const extension = extensionOf(path)
 
-  return SAVE_FORMATS.find((format) => format.extensions.includes(extension)) ?? PNG
+  return SAVE_FORMATS.find((format) => format.extensions.includes(extension)) ?? chosen
 }
 
 /** Save dialogs do not always append the filter's suffix on every platform. */
 export const withImageExtension = (path: string, format: SaveFormat): string => {
-  return format.extensions.includes(extensionOf(path)) ? path : `${path}.${format.extensions[0]}`
+  return matchesFormat(path, format) ? path : `${path}.${format.extensions[0]}`
 }
 
 /** What the save dialog offers for an image that has not been saved yet. */
-export const defaultFileName = (baseName: string): string => {
-  return `${baseName}.${PNG.extensions[0]}`
+export const defaultFileName = (baseName: string, format: SaveFormat): string => {
+  return `${baseName}.${format.extensions[0]}`
 }
 
 export interface WindowTitleInput {

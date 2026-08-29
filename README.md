@@ -106,17 +106,37 @@ right-click the app → Open.
 
 ## Saving
 
-The save dialog offers PNG, JPEG and WebP, and the extension on the path you choose decides the
-encoding. A dialog only reports where to write, never which file type was selected, so Pixen reads
-the format back off the path — and falls back to PNG for an extension it cannot encode, which is
-what GTK dialogs leave you with when they do not append a suffix.
+PNG, JPEG and WebP are picked from the selector in Pixen's own toolbar, not from the save dialog. A
+native dialog only reports where to write, never which of its file types was selected, so a dialog
+listing all three would advertise a choice it cannot honour — pick JPEG there and you would still get
+a PNG. Instead the dialog is shown a single filter matching the toolbar, and:
 
-The editor's output is always re-encoded into the target format rather than written through. That is
-not an optimisation: `getImage()` hands back the loaded source data URL verbatim while the canvas
-holds no objects, so an opened JPEG comes back as JPEG and would otherwise land behind a `.png`
-name. `write_image` then re-checks the data URL's media type against the destination's extension, so
-the bytes on disk always agree with the name. JPEG gets a white fill first, since it carries no alpha
-channel and anything transparent would otherwise encode black.
+- **An extension you type yourself wins.** Naming the file `photo.webp` while the selector says PNG
+  saves WebP, and the selector moves to WebP to match.
+- **Changing format sends the next Save through the dialog again.** The extension is part of the
+  name, so reusing the old path would put JPEG bytes inside the `.png` already on disk.
+
+### Why encoding happens in Rust
+
+`write_image` decodes the editor's output and re-encodes it with the [`image`](https://docs.rs/image)
+crate, rather than asking the webview's canvas to do it. A canvas cannot be used here because Tauri
+embeds a different engine per platform and `toDataURL` disagrees across them: WebKit — WKWebView on
+macOS, WebKitGTK on Linux — has never implemented WebP encoding and answers the request with PNG
+instead, [silently](https://caniuse.com/mdn-api_htmlcanvaselement_toblob_type_parameter_webp). Only
+WebView2 on Windows would have produced a real WebP. Encoding in Rust is the same code on all three.
+
+Two details of that encoder:
+
+- **WebP is lossless.** The `image` crate encodes VP8L only, which still beats PNG on size. Lossy
+  WebP would mean linking libwebp and its C toolchain.
+- **JPEG is composited onto white** at quality 92, since it carries no alpha channel and anything
+  transparent would otherwise encode black.
+
+Bytes already in the destination's format are written through untouched. `getImage()` hands back the
+loaded source data URL verbatim while the canvas holds no objects, so saving an untouched JPEG as a
+JPEG copies it rather than putting it through a second round of lossy compression. The format is
+decided by sniffing the bytes rather than trusting the data URL's own media type, so what lands on
+disk always agrees with the name.
 
 ### What a flattened save costs
 
@@ -147,10 +167,10 @@ src/
 ├── hooks/               # session state, shortcuts, window title, close guard, launch
 └── lib/
     ├── editor/          # engine preload, editor options, unsaved-edit detection
-    └── image/           # paths and formats, canvas re-encoding, dialogs and I/O
+    └── image/           # paths and formats, dialogs and I/O
 
 src-tauri/src/
-├── image.rs             # image file I/O
+├── image.rs             # image file I/O and PNG/JPEG/WebP encoding
 ├── dialog.rs            # the three-button unsaved-changes prompt
 └── window.rs            # splash → main handoff, quit
 ```

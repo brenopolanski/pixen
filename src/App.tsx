@@ -32,7 +32,9 @@ const App = () => {
         busy={session.busy}
         dirty={session.dirty}
         fileName={session.path && fileNameOf(session.path)}
+        format={session.format}
         hasImage={hasImage}
+        onFormatChange={session.setFormat}
         onOpenImage={session.openImage}
         onSave={session.save}
         onSaveAs={session.saveAs}

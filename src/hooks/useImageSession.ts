@@ -10,8 +10,8 @@ import {
 import { askAboutUnsavedChanges, askToDiscardChanges, quitApp } from '@/lib/desktop'
 import { hasUnsavedEdits } from '@/lib/editor/engine'
 import { PixenError, toUserMessage } from '@/lib/errors'
-import { encodeImage } from '@/lib/image/encode'
-import { baseNameOf, formatForPath } from '@/lib/image/image'
+import type { SaveFormat } from '@/lib/image/image'
+import { baseNameOf, DEFAULT_SAVE_FORMAT, formatForPath, matchesFormat } from '@/lib/image/image'
 import { pickImage, pickSaveDestination, readImage, writeImage } from '@/lib/image/imageStorage'
 
 interface SessionState {
@@ -38,6 +38,9 @@ const EMPTY_SESSION: SessionState = {
 export interface ImageSession extends SessionState {
   busy: boolean
   error: string | null
+  /** The format the next save writes in. */
+  format: SaveFormat
+  setFormat: (format: SaveFormat) => void
   openImage: () => void
   save: () => void
   saveAs: () => void
@@ -56,10 +59,14 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   const [session, setSession] = useState<SessionState>(EMPTY_SESSION)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Deliberately outside `session`: the chosen output format is the user's
+  // preference, so opening another image must not reset it.
+  const [format, setFormatState] = useState<SaveFormat>(DEFAULT_SAVE_FORMAT)
 
   // Mirrors `session` so callbacks wired to window listeners and native
   // dialogs always read current values without being rebuilt.
   const sessionRef = useRef(session)
+  const formatRef = useRef(format)
   /** The image last written to disk; null until this image has been saved. */
   const baselineRef = useRef<string | null>(null)
   const busyRef = useRef(false)
@@ -67,6 +74,11 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   const applySession = useCallback((next: SessionState) => {
     sessionRef.current = next
     setSession(next)
+  }, [])
+
+  const setFormat = useCallback((next: SaveFormat) => {
+    formatRef.current = next
+    setFormatState(next)
   }, [])
 
   const load = useCallback(
@@ -121,20 +133,35 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   const persist = useCallback(
     async (image: string, path: string | null): Promise<boolean> => {
       const current = sessionRef.current
+      const chosen = formatRef.current
 
       if (!current.image) {
         return false
       }
 
-      const destination = path ?? (await pickSaveDestination(current.name ?? UNTITLED_NAME))
+      // Switching format has to be saved somewhere new, because the extension
+      // is part of the name: reusing the path would put JPEG bytes inside the
+      // .png the user already has on disk.
+      const reusable = path && matchesFormat(path, chosen) ? path : null
+      const destination =
+        reusable ?? (await pickSaveDestination(current.name ?? UNTITLED_NAME, chosen))
 
       if (!destination) {
         return false
       }
 
-      await writeImage(destination, await encodeImage(image, formatForPath(destination)))
+      // An extension typed into the dialog outranks the selector, so bring the
+      // toolbar back in line instead of letting it name a format Pixen is not
+      // actually writing.
+      const format = formatForPath(destination, chosen)
 
-      // The baseline is the editor's own output rather than the encoded copy:
+      setFormat(format)
+
+      // The editor's output goes over as-is: `write_image` encodes it into
+      // whatever the destination's extension names.
+      await writeImage(destination, image)
+
+      // The baseline is that same output rather than the file on disk:
       // comparing a later export against re-encoded bytes would report the
       // image as unsaved forever.
       baselineRef.current = image
@@ -142,7 +169,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
 
       return true
     },
-    [applySession],
+    [applySession, setFormat],
   )
 
   const openImage = useCallback(() => {
@@ -279,6 +306,8 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     ...session,
     busy,
     error,
+    format,
+    setFormat,
     openImage,
     save,
     saveAs,

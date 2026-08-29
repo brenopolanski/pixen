@@ -1,9 +1,19 @@
 import { describe, expect, it } from 'vitest'
 
-import { baseNameOf, fileNameOf, formatForPath, windowTitle, withImageExtension } from './image'
+import {
+  baseNameOf,
+  defaultFileName,
+  fileNameOf,
+  formatById,
+  formatForPath,
+  matchesFormat,
+  windowTitle,
+  withImageExtension,
+} from './image'
 
-const PNG = formatForPath('a.png')
-const JPEG = formatForPath('a.jpg')
+const PNG = formatById('png')
+const JPEG = formatById('jpeg')
+const WEBP = formatById('webp')
 
 describe('fileNameOf', () => {
   it('reads POSIX and Windows paths', () => {
@@ -30,17 +40,47 @@ describe('baseNameOf', () => {
   })
 })
 
-describe('formatForPath', () => {
-  it('reads the format from the extension, whatever its case', () => {
-    expect(formatForPath('/tmp/photo.png').mimeType).toBe('image/png')
-    expect(formatForPath('/tmp/photo.JPG').mimeType).toBe('image/jpeg')
-    expect(formatForPath('/tmp/photo.jpeg').mimeType).toBe('image/jpeg')
-    expect(formatForPath('/tmp/photo.webp').mimeType).toBe('image/webp')
+describe('formatById', () => {
+  it('resolves every format the toolbar can offer', () => {
+    expect(formatById('jpeg').name).toBe('JPEG')
+    expect(formatById('webp').name).toBe('WebP')
   })
 
-  it('falls back to PNG rather than trusting an extension it cannot encode', () => {
-    expect(formatForPath('/tmp/photo.gif').mimeType).toBe('image/png')
-    expect(formatForPath('/tmp/photo').mimeType).toBe('image/png')
+  it('falls back to PNG for an id it does not know', () => {
+    expect(formatById('gif').name).toBe('PNG')
+  })
+})
+
+describe('matchesFormat', () => {
+  it('accepts every extension the format covers, whatever its case', () => {
+    expect(matchesFormat('/tmp/photo.jpg', JPEG)).toBe(true)
+    expect(matchesFormat('/tmp/photo.JPEG', JPEG)).toBe(true)
+  })
+
+  it('rejects another format and a missing extension', () => {
+    expect(matchesFormat('/tmp/photo.png', JPEG)).toBe(false)
+    expect(matchesFormat('/tmp/photo', JPEG)).toBe(false)
+  })
+})
+
+describe('formatForPath', () => {
+  it('lets an extension typed into the dialog outrank the chosen format', () => {
+    expect(formatForPath('/tmp/photo.png', JPEG).id).toBe('png')
+    expect(formatForPath('/tmp/photo.JPG', PNG).id).toBe('jpeg')
+    expect(formatForPath('/tmp/photo.webp', PNG).id).toBe('webp')
+  })
+
+  it('keeps the chosen format when the path says nothing it can encode', () => {
+    expect(formatForPath('/tmp/photo.gif', WEBP).id).toBe('webp')
+    expect(formatForPath('/tmp/photo', JPEG).id).toBe('jpeg')
+  })
+})
+
+describe('defaultFileName', () => {
+  it('names the file for the chosen format', () => {
+    expect(defaultFileName('my-image', PNG)).toBe('my-image.png')
+    expect(defaultFileName('my-image', JPEG)).toBe('my-image.jpg')
+    expect(defaultFileName('my-image', WEBP)).toBe('my-image.webp')
   })
 })
 

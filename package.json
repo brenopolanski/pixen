@@ -17,7 +17,7 @@
   "packageManager": "pnpm@10.28.1",
   "scripts": {
     "build": "tsc && vite build",
-    "check:fix": "pnpm format && pnpm lint:fix && pnpm typecheck && pnpm test",
+    "check:fix": "pnpm format && pnpm lint:fix && pnpm typecheck && pnpm test && pnpm test:rust",
     "clean": "/bin/bash scripts/clean.sh",
     "dev": "vite",
     "format": "pnpm prettier --write",
@@ -32,6 +32,7 @@
     "tauri:build": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri build",
     "tauri:dev": "PATH=\"$HOME/.cargo/bin:$PATH\" tauri dev",
     "test": "vitest run",
+    "test:rust": "cd src-tauri && PATH=\"$HOME/.cargo/bin:$PATH\" cargo test --no-default-features",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
   },

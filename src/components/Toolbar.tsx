@@ -1,8 +1,10 @@
-import { ImagePlus, Save, SaveAll } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { ChevronDown, ImagePlus, Save, SaveAll } from 'lucide-react'
+import type { ChangeEvent, ReactNode } from 'react'
 
 import { PixenLogo } from '@/components/shared/Icons'
 import { APP_NAME, UNTITLED_NAME } from '@/lib/constants'
+import type { SaveFormat } from '@/lib/image/image'
+import { formatById, SAVE_FORMATS } from '@/lib/image/image'
 import { isMacPlatform } from '@/lib/platform'
 import { formatShortcut } from '@/lib/shortcuts'
 import { cn } from '@/lib/utils'
@@ -43,11 +45,53 @@ const ToolbarButton = ({
   )
 }
 
+interface FormatSelectProps {
+  disabled: boolean
+  format: SaveFormat
+  onChange: (format: SaveFormat) => void
+}
+
+/**
+ * The format lives here rather than in the save dialog because a native dialog
+ * reports only a path back, never which of its file types was picked.
+ *
+ * A plain select keeps the platform's own menu, keyboard handling and labelling
+ * for free; the chevron is decorative and the arrow the browser draws is
+ * dropped so the control matches the buttons beside it.
+ */
+const FormatSelect = ({ disabled, format, onChange }: FormatSelectProps) => {
+  const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    onChange(formatById(event.target.value))
+  }
+
+  return (
+    <div className="relative flex items-center">
+      <select
+        aria-label="Save format"
+        className="appearance-none rounded-md border border-border bg-surface py-1.5 pr-7 pl-2.5 text-[12px] font-medium text-foreground transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-40"
+        disabled={disabled}
+        title="Format used when saving"
+        value={format.id}
+        onChange={handleChange}
+      >
+        {SAVE_FORMATS.map((option) => (
+          <option key={option.id} value={option.id}>
+            {option.name}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2 size-3 text-muted-foreground" />
+    </div>
+  )
+}
+
 interface ToolbarProps {
   busy: boolean
   dirty: boolean
   fileName: string | null
+  format: SaveFormat
   hasImage: boolean
+  onFormatChange: (format: SaveFormat) => void
   onOpenImage: () => void
   onSave: () => void
   onSaveAs: () => void
@@ -57,7 +101,9 @@ export const Toolbar = ({
   busy,
   dirty,
   fileName,
+  format,
   hasImage,
+  onFormatChange,
   onOpenImage,
   onSave,
   onSaveAs,
@@ -90,6 +136,8 @@ export const Toolbar = ({
         >
           <ImagePlus className="size-3.5" />
         </ToolbarButton>
+
+        <FormatSelect disabled={busy} format={format} onChange={onFormatChange} />
 
         <ToolbarButton
           disabled={busy || !hasImage}
