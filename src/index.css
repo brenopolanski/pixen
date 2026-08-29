@@ -60,6 +60,17 @@ body {
   user-select: none;
 }
 
+/* The editor's toolbar ends with its own Cancel and Save pair, which duplicates
+   Pixen's toolbar and native save dialogs. The editor offers no option to drop
+   them — `features.imageEditor` covers only the tool rail and its dock — so the
+   group is hidden by position. Inside `.image-editor-root` (a class the editor
+   sets on its own mount point) the toolbar is the first row, holding three
+   groups: undo/redo/flatten, zoom, then these actions. Removing the third from
+   the flow is enough to move zoom over, because the row is `justify-between`. */
+#pixen-editor .image-editor-root > div > div:first-child > div:last-child {
+  display: none;
+}
+
 input,
 textarea {
   user-select: text;

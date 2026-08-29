@@ -143,6 +143,12 @@ without breaking v1 files.
 Unsaved changes are derived rather than observed, for the same reason: the editor emits no change
 events, so Pixen combines `hasChanges()` with a comparison against the last saved image.
 
+The editor's toolbar also ends with its own Cancel and Save buttons, which duplicate Pixen's
+toolbar and native dialogs. Nothing in the editor's options turns them off, so `src/index.css`
+hides that group by position and lets the zoom controls take the space. That rule depends on the
+editor's DOM, so it needs a look after an editor release — the buttons stay wired to the project,
+and the worst case is that they reappear rather than stop working.
+
 ## Architecture
 
 ```text
