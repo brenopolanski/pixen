@@ -1,4 +1,14 @@
-import { Camera, Check, ChevronDown, Copy, Grid2x2, ImagePlus, Save, SaveAll } from 'lucide-react'
+import {
+  Camera,
+  Check,
+  ChevronDown,
+  Copy,
+  Grid2x2,
+  ImagePlus,
+  ListOrdered,
+  Save,
+  SaveAll,
+} from 'lucide-react'
 import type { ChangeEvent, ReactNode } from 'react'
 
 import { PixenLogo } from '@/components/shared/Icons'
@@ -104,6 +114,7 @@ interface ToolbarProps {
   onCaptureScreen?: () => void
   onCopyImage: () => void
   onPixelize: () => void
+  onIncrement: () => void
   onFormatChange: (format: SaveFormat) => void
   onOpenImage: () => void
   onSave: () => void
@@ -120,6 +131,7 @@ export const Toolbar = ({
   onCaptureScreen,
   onCopyImage,
   onPixelize,
+  onIncrement,
   onFormatChange,
   onOpenImage,
   onSave,
@@ -180,6 +192,11 @@ export const Toolbar = ({
             doing something a keystroke could finish on its own. */}
         <ToolbarButton disabled={busy || !hasImage} label="Pixelize" onClick={onPixelize}>
           <Grid2x2 className="size-3.5" />
+        </ToolbarButton>
+
+        {/* No accelerator either: this one is click-to-stamp. */}
+        <ToolbarButton disabled={busy || !hasImage} label="Steps" onClick={onIncrement}>
+          <ListOrdered className="size-3.5" />
         </ToolbarButton>
 
         {onCaptureScreen && (

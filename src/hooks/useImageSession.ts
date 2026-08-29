@@ -17,6 +17,8 @@ import { copyImage as writeToClipboard } from '@/lib/image/clipboard'
 import type { SaveFormat } from '@/lib/image/image'
 import { baseNameOf, DEFAULT_SAVE_FORMAT, formatForPath, matchesFormat } from '@/lib/image/image'
 import { pickImage, pickSaveDestination, readImage, writeImage } from '@/lib/image/imageStorage'
+import type { Stamp } from '@/lib/image/increment'
+import { composeStamps } from '@/lib/image/increment'
 import type { Rect } from '@/lib/image/pixelize'
 import { pixelizeImage } from '@/lib/image/pixelize'
 
@@ -65,6 +67,13 @@ export interface ImageSession extends SessionState {
   /** Hides the chosen region and hands the result back to the editor. */
   applyPixelize: (region: Rect) => void
   cancelPixelize: () => void
+  /** The flattened image the numbering overlay stamps on; null when closed. */
+  incrementPreview: string | null
+  /** Flattens the canvas and opens the numbering overlay. */
+  startIncrement: () => void
+  /** Bakes every badge in one pass and hands the result back to the editor. */
+  applyIncrement: (stamps: Stamp[]) => void
+  cancelIncrement: () => void
   save: () => void
   saveAs: () => void
   discardEdits: () => void
@@ -84,6 +93,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
   const [pixelizePreview, setPixelizePreview] = useState<string | null>(null)
+  const [incrementPreview, setIncrementPreview] = useState<string | null>(null)
   // Deliberately outside `session`: the chosen output format is the user's
   // preference, so opening another image must not reset it.
   const [format, setFormatState] = useState<SaveFormat>(DEFAULT_SAVE_FORMAT)
@@ -94,6 +104,12 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   const formatRef = useRef(format)
   /** The image last written to disk; null until this image has been saved. */
   const baselineRef = useRef<string | null>(null)
+  /**
+   * Whether an edit Pixen made itself — a mosaic, a set of numbers — is waiting
+   * to be saved. Tracked here because those edits are baked into the image the
+   * editor is then handed, which leaves its own change tracking none the wiser.
+   */
+  const bakedRef = useRef(false)
   const busyRef = useRef(false)
 
   const applySession = useCallback((next: SessionState) => {
@@ -109,10 +125,12 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   const load = useCallback(
     (image: string, name: string) => {
       baselineRef.current = null
+      bakedRef.current = false
       applySession({ image, path: null, name, dirty: false })
       setError(null)
       setCopied(false)
       setPixelizePreview(null)
+      setIncrementPreview(null)
     },
     [applySession],
   )
@@ -151,6 +169,13 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
 
     if (!editor || !sessionRef.current.image) {
       return false
+    }
+
+    // Pixen's own edits reload the editor, which then reports the new pixels as
+    // pristine. Only a save can clear this, or the unsaved dot would vanish a
+    // moment after a pixelize and quitting would never think to ask.
+    if (bakedRef.current) {
+      return true
     }
 
     return hasUnsavedEdits(editor, baselineRef.current)
@@ -192,6 +217,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       // comparing a later export against re-encoded bytes would report the
       // image as unsaved forever.
       baselineRef.current = image
+      bakedRef.current = false
       applySession({ ...current, path: destination, dirty: false })
 
       return true
@@ -288,6 +314,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       // The overlay selects on a flattened copy rather than on the editor's own
       // canvas, whose zoom and pan Unlayer does not report.
       setPixelizePreview(readCurrentImage())
+      setIncrementPreview(null)
     })
   }, [readCurrentImage, run])
 
@@ -310,11 +337,49 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
         // Not `load`: this edits the open document, so the path and name stay
         // and the result is unsaved until Save writes it. The baseline is left
         // alone deliberately — the mosaic is a change against the last save.
+        bakedRef.current = true
         applySession({ ...current, image: pixelized, dirty: true })
         setPixelizePreview(null)
       })
     },
     [applySession, pixelizePreview, run],
+  )
+
+  const startIncrement = useCallback(() => {
+    run(async () => {
+      if (!sessionRef.current.image) {
+        return
+      }
+
+      setIncrementPreview(readCurrentImage())
+      setPixelizePreview(null)
+    })
+  }, [readCurrentImage, run])
+
+  const cancelIncrement = useCallback(() => {
+    setIncrementPreview(null)
+  }, [])
+
+  const applyIncrement = useCallback(
+    (stamps: Stamp[]) => {
+      run(async () => {
+        const current = sessionRef.current
+        const preview = incrementPreview
+
+        if (!current.image || !preview || stamps.length === 0) {
+          return
+        }
+
+        // Every badge in one composite, so the editor reloads — and loses its
+        // undo stack — once rather than once per number.
+        const numbered = await composeStamps(preview, stamps)
+
+        bakedRef.current = true
+        applySession({ ...current, image: numbered, dirty: true })
+        setIncrementPreview(null)
+      })
+    },
+    [applySession, incrementPreview, run],
   )
 
   // The confirmation is transient, so it clears itself rather than needing
@@ -365,8 +430,18 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
         return
       }
 
-      await editor.reset(baselineRef.current ?? image)
-      applySession({ ...sessionRef.current, dirty: false })
+      const baseline = baselineRef.current
+
+      await editor.reset(baseline ?? image)
+
+      // Without a save behind it there is no earlier version to go back to, so
+      // any mosaic or numbering baked into the image is still there — and still
+      // unsaved — however far the editor's own state was wound back.
+      if (baseline !== null) {
+        bakedRef.current = false
+      }
+
+      applySession({ ...sessionRef.current, dirty: bakedRef.current })
     })
   }, [applySession, editorRef, run])
 
@@ -461,6 +536,10 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     startPixelize,
     applyPixelize,
     cancelPixelize,
+    incrementPreview,
+    startIncrement,
+    applyIncrement,
+    cancelIncrement,
     save,
     saveAs,
     discardEdits,

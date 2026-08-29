@@ -28,7 +28,9 @@ keyboard shortcuts.
 - Saves to a new file with `⌘⇧S` / `Ctrl+Shift+S`
 - Copies the edited image to the system clipboard with `⌘⇧C` / `Ctrl+Shift+C`
 - Hides private data — an address, a token, a face — behind a mosaic, by dragging a box over it
-- Puts Open, Screenshot, Copy Image, Pixelize, Save and Save As in the native menu bar
+- Numbers a screenshot for a step-by-step guide: click each spot and the badge counts itself up
+- Puts Open, Screenshot, Copy Image, Pixelize, Numbered Steps, Save and Save As in the native menu
+  bar
 - Shows a splash screen while the app and the editor engine start up
 - Tracks unsaved changes in the window title (`Pixen — my-image.png *`)
 - Asks before closing with unsaved work: **Save**, **Don't Save** or **Cancel**
@@ -191,6 +193,30 @@ or **Cancel** closes without touching the image, and a stray click does the same
   keystroke would only ever get you halfway. It sits in the Edit menu on macOS beside Copy Image,
   and in the File menu elsewhere.
 
+## Numbering steps
+
+**Steps** does what you would otherwise do by hand with the text tool: click the first thing the
+reader should look at, then the second, and each click drops the next number. Backspace takes the
+last one back, Escape or **Cancel** throws the lot away, and **Done** writes them onto the image.
+
+- **The badges are not baked until Done.** They stay overlay elements while you work, which is what
+  lets the counter count and Backspace undo. Applying on each click would reload the editor once per
+  number — and, since every apply would start over, never get past 1.
+- **Done flattens once**, on the same terms as Pixelize: the save path, file name and unsaved marker
+  survive, the editor's undo history does not. See [flattening costs](#what-a-flattened-save-costs).
+- **The compositing is canvas, not Rust.** The mosaic belongs in Rust because it only averages
+  pixels, but a badge has a digit in it, and drawing a digit needs a font — one the webview already
+  has and the Rust binary would have to bundle. `src/lib/image/increment.ts` draws the circles and
+  numbers onto a canvas and exports a PNG, so alpha survives and the toolbar's format stays out of
+  it.
+- **Clicks are mapped through the same geometry as Pixelize.** `IncrementOverlay` shows the
+  flattened image at a known `contain` fit, and `clickToPixel` / `pixelToDisplayed` in
+  `src/lib/image/pixelize.ts` convert between the two. A click in the letterbox margin is ignored
+  rather than closing the tool, since you are mid-sequence. A badge dropped near an edge is nudged
+  inwards so it is not sliced in half, and the preview is nudged with it.
+- **One size, one colour, starting at 1.** Shutter's tool has no settings either, and a screenshot
+  wants the numbers to look the same as each other more than it wants them configurable.
+
 ## Saving
 
 PNG, JPEG and WebP are picked from the selector in Pixen's own toolbar, not from the save dialog. A
@@ -251,11 +277,11 @@ and the worst case is that they reappear rather than stop working.
 
 ```text
 src/
-├── components/          # Toolbar, Editor, EmptyState, DropOverlay, PixelizeOverlay, ErrorBanner, Splash
+├── components/          # Toolbar, Editor, EmptyState, DropOverlay, PixelizeOverlay, IncrementOverlay, ErrorBanner, Splash
 ├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch
 └── lib/
     ├── editor/          # engine preload, editor options, unsaved-edit detection
-    ├── image/           # paths and formats, clipboard, capture, pixelize geometry, dialogs and I/O
+    ├── image/           # paths and formats, clipboard, capture, pixelize and badge geometry, dialogs and I/O
     └── menu.ts          # the native menu bar
 
 src-tauri/src/

@@ -30,6 +30,7 @@ export const useNativeMenu = (handlers: MenuHandlers, hasImage: boolean) => {
       onCaptureScreen: () => handlersRef.current.onCaptureScreen(),
       onCopyImage: () => handlersRef.current.onCopyImage(),
       onPixelize: () => handlersRef.current.onPixelize(),
+      onIncrement: () => handlersRef.current.onIncrement(),
       onSave: () => handlersRef.current.onSave(),
       onSaveAs: () => handlersRef.current.onSaveAs(),
       onQuit: () => handlersRef.current.onQuit(),

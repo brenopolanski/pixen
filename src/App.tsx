@@ -5,6 +5,7 @@ import { DropOverlay } from '@/components/DropOverlay'
 import { Editor } from '@/components/Editor'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorBanner } from '@/components/ErrorBanner'
+import { IncrementOverlay } from '@/components/IncrementOverlay'
 import { PixelizeOverlay } from '@/components/PixelizeOverlay'
 import { Toolbar } from '@/components/Toolbar'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
@@ -36,6 +37,7 @@ const App = () => {
       onCaptureScreen: session.captureScreen,
       onCopyImage: session.copyImage,
       onPixelize: session.startPixelize,
+      onIncrement: session.startIncrement,
       onSave: session.save,
       onSaveAs: session.saveAs,
       onQuit: session.requestClose,
@@ -66,6 +68,7 @@ const App = () => {
         onCaptureScreen={isCaptureSupported() ? session.captureScreen : undefined}
         onCopyImage={session.copyImage}
         onFormatChange={session.setFormat}
+        onIncrement={session.startIncrement}
         onOpenImage={session.openImage}
         onPixelize={session.startPixelize}
         onSave={session.save}
@@ -94,6 +97,14 @@ const App = () => {
             image={session.pixelizePreview}
             onApply={session.applyPixelize}
             onCancel={session.cancelPixelize}
+          />
+        )}
+
+        {session.incrementPreview && (
+          <IncrementOverlay
+            image={session.incrementPreview}
+            onApply={session.applyIncrement}
+            onCancel={session.cancelIncrement}
           />
         )}
       </main>

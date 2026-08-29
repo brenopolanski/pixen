@@ -25,6 +25,12 @@ export interface Rect {
   height: number
 }
 
+/** A point in the coordinate space of whatever produced it. */
+export interface Point {
+  x: number
+  y: number
+}
+
 /**
  * Where a `contain`-fitted image actually lands inside its box.
  *
@@ -90,6 +96,62 @@ export const selectionToPixels = (box: Box, image: Size, selection: Rect): Rect 
   }
 
   return { x, y, width, height }
+}
+
+/**
+ * Turns a click on the overlay into a pixel on the image.
+ *
+ * Null in the letterbox margin. A tool that stamps rather than selects stays
+ * open on a miss, so this reports the miss instead of clamping the click onto
+ * the nearest edge, where the user did not aim.
+ */
+export const clickToPixel = (box: Box, image: Size, point: Point): Point | null => {
+  const displayed = displayedImageRect(box, image)
+
+  if (displayed.width <= 0 || displayed.height <= 0) {
+    return null
+  }
+
+  const offsetX = point.x - displayed.x
+  const offsetY = point.y - displayed.y
+
+  if (offsetX < 0 || offsetY < 0 || offsetX > displayed.width || offsetY > displayed.height) {
+    return null
+  }
+
+  const scale = image.width / displayed.width
+
+  return {
+    x: Math.min(Math.floor(offsetX * scale), image.width - 1),
+    y: Math.min(Math.floor(offsetY * scale), image.height - 1),
+  }
+}
+
+/**
+ * The inverse: where a pixel on the image shows up on the overlay.
+ *
+ * What keeps a stamp drawn in CSS over the same pixel it will be baked onto.
+ */
+export const pixelToDisplayed = (box: Box, image: Size, point: Point): Point => {
+  const displayed = displayedImageRect(box, image)
+
+  if (displayed.width <= 0 || displayed.height <= 0) {
+    return { x: 0, y: 0 }
+  }
+
+  const scale = displayed.width / image.width
+
+  return {
+    x: displayed.x + point.x * scale,
+    y: displayed.y + point.y * scale,
+  }
+}
+
+/** How much smaller the image is on screen than in its own pixels. */
+export const displayedScale = (box: Box, image: Size): number => {
+  const displayed = displayedImageRect(box, image)
+
+  return displayed.width <= 0 ? 0 : displayed.width / image.width
 }
 
 /** Normalises a drag into a positive rectangle, whichever way it was drawn. */

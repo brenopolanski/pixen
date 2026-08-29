@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { displayedImageRect, rectBetween, selectionToPixels } from './pixelize'
+import {
+  clickToPixel,
+  displayedImageRect,
+  displayedScale,
+  pixelToDisplayed,
+  rectBetween,
+  selectionToPixels,
+} from './pixelize'
 
 describe('displayedImageRect', () => {
   it('letterboxes a wide image that has to shrink to fit', () => {
@@ -62,6 +69,59 @@ describe('selectionToPixels', () => {
 
   it('refuses a slip of the mouse', () => {
     expect(selectionToPixels(box, image, { x: 100, y: 150, width: 1, height: 1 })).toBeNull()
+  })
+})
+
+describe('clickToPixel', () => {
+  const box = { width: 400, height: 400 }
+  // Displayed at 400x200, offset 100 from the top: one CSS pixel is two image
+  // pixels.
+  const image = { width: 800, height: 400 }
+
+  it('scales a click on the image up to a pixel', () => {
+    expect(clickToPixel(box, image, { x: 100, y: 150 })).toEqual({ x: 200, y: 100 })
+  })
+
+  it('refuses a click in the letterbox margin', () => {
+    expect(clickToPixel(box, image, { x: 100, y: 40 })).toBeNull()
+    expect(clickToPixel(box, image, { x: 100, y: 360 })).toBeNull()
+  })
+
+  it('keeps a click on the far edge inside the image', () => {
+    expect(clickToPixel(box, image, { x: 400, y: 300 })).toEqual({ x: 799, y: 399 })
+  })
+})
+
+describe('pixelToDisplayed', () => {
+  const box = { width: 400, height: 400 }
+  const image = { width: 800, height: 400 }
+
+  it('places a pixel back where it is shown', () => {
+    expect(pixelToDisplayed(box, image, { x: 200, y: 100 })).toEqual({ x: 100, y: 150 })
+  })
+
+  it('inverts clickToPixel', () => {
+    const point = { x: 137, y: 211 }
+    const pixel = clickToPixel(box, image, point)
+
+    expect(pixel).not.toBeNull()
+
+    const back = pixelToDisplayed(box, image, pixel!)
+
+    // Within a CSS pixel: the pixel coordinate is floored on the way in, so the
+    // round trip lands on the top-left of the pixel that was clicked.
+    expect(Math.abs(back.x - point.x)).toBeLessThanOrEqual(1)
+    expect(Math.abs(back.y - point.y)).toBeLessThanOrEqual(1)
+  })
+})
+
+describe('displayedScale', () => {
+  it('reports how much the image shrank to fit', () => {
+    expect(displayedScale({ width: 400, height: 400 }, { width: 800, height: 400 })).toBe(0.5)
+  })
+
+  it('is 1 for an image that fits already', () => {
+    expect(displayedScale({ width: 400, height: 400 }, { width: 100, height: 50 })).toBe(1)
   })
 })
 

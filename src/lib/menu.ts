@@ -9,6 +9,7 @@ export interface MenuHandlers {
   onCaptureScreen: () => void
   onCopyImage: () => void
   onPixelize: () => void
+  onIncrement: () => void
   onSave: () => void
   onSaveAs: () => void
   /** Runs the unsaved-changes prompt and quits; see `requestClose`. */
@@ -64,6 +65,13 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
     action: handlers.onPixelize,
   })
 
+  const incrementItem = await MenuItem.new({
+    id: 'pixen-increment',
+    text: 'Numbered Steps…',
+    enabled: false,
+    action: handlers.onIncrement,
+  })
+
   const saveItem = await MenuItem.new({
     id: 'pixen-save',
     text: 'Save',
@@ -102,6 +110,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
           saveAsItem,
           copyImageItem,
           pixelizeItem,
+          incrementItem,
           await separator(),
           quitItem,
         ],
@@ -136,6 +145,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
               await separator(),
               copyImageItem,
               pixelizeItem,
+              incrementItem,
             ],
           }),
           await Submenu.new({
@@ -163,6 +173,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
       await saveAsItem.setEnabled(hasImage)
       await copyImageItem.setEnabled(hasImage)
       await pixelizeItem.setEnabled(hasImage)
+      await incrementItem.setEnabled(hasImage)
     },
   }
 }
