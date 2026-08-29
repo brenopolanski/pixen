@@ -1,0 +1,61 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Pixen",
+  "version": "0.1.0",
+  "identifier": "org.dashfy.pixen",
+  "build": {
+    "beforeDevCommand": "pnpm dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "label": "splash",
+        "url": "index.html?window=splash",
+        "title": "Pixen",
+        "width": 420,
+        "height": 260,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": true,
+        "center": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "maximizable": false,
+        "minimizable": false,
+        "closable": false
+      },
+      {
+        "label": "main",
+        "title": "Pixen",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 620,
+        "center": true,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.unlayer.com https://editor.unlayer.com; style-src 'self' 'unsafe-inline' https://cdn.unlayer.com https://editor.unlayer.com https://fonts.googleapis.com; font-src 'self' data: https://cdn.unlayer.com https://editor.unlayer.com https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob:; worker-src 'self' blob:; frame-src 'self' https://editor.unlayer.com; connect-src 'self' data: blob: ipc: http://ipc.localhost https://ipc.localhost https://cdn.unlayer.com https://editor.unlayer.com https://api.unlayer.com"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app", "dmg", "nsis", "deb", "appimage"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    }
+  }
+}

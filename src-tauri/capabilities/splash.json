@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "splash",
+  "description": "The splash screen only renders; it needs no dialogs, no filesystem and no window control",
+  "windows": ["splash"],
+  "permissions": ["core:default"]
+}

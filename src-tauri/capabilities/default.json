@@ -1,0 +1,13 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Native dialogs and the window title for the editor window. All filesystem access goes through Rust commands, so the webview is granted no filesystem scope.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-title",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "dialog:allow-ask"
+  ]
+}

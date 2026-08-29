@@ -1,0 +1,9 @@
+# ignore artifacts
+dist/
+node_modules/
+coverage/
+pnpm-lock.yaml
+.pnpm-store/
+
+# ignore all tauri files
+**/src-tauri/**
