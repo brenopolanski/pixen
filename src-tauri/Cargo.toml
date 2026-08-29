@@ -9,6 +9,13 @@ edition = "2021"
 name = "pixen_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
+# The package stays lowercase (Cargo's convention). The binary is what macOS
+# shows in the Dock during `tauri dev`, which has no .app bundle to take the
+# product name from, so this has to be Pixen rather than pixen.
+[[bin]]
+name = "Pixen"
+path = "src/main.rs"
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
