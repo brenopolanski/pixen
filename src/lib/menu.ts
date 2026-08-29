@@ -7,6 +7,7 @@ export interface MenuHandlers {
   onOpenImage: () => void
   /** Only reachable on macOS, the one platform with a capture backend. */
   onCaptureScreen: () => void
+  onCopyImage: () => void
   onSave: () => void
   onSaveAs: () => void
   /** Runs the unsaved-changes prompt and quits; see `requestClose`. */
@@ -14,7 +15,7 @@ export interface MenuHandlers {
 }
 
 export interface AppMenu {
-  /** Greys out the save entries while there is nothing to save. */
+  /** Greys out the save and copy entries while there is nothing to act on. */
   setHasImage: (hasImage: boolean) => Promise<void>
 }
 
@@ -43,6 +44,16 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
     action: handlers.onCaptureScreen,
   })
 
+  // Shift is deliberate: plain Cmd+C stays with the predefined Copy below, so
+  // copying text in the editor keeps working.
+  const copyImageItem = await MenuItem.new({
+    id: 'pixen-copy-image',
+    text: 'Copy Image',
+    accelerator: 'CmdOrCtrl+Shift+C',
+    enabled: false,
+    action: handlers.onCopyImage,
+  })
+
   const saveItem = await MenuItem.new({
     id: 'pixen-save',
     text: 'Save',
@@ -68,11 +79,21 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
 
   const separator = () => PredefinedMenuItem.new({ item: 'Separator' })
 
+  // Copy Image belongs with the other clipboard entries, which only macOS has;
+  // elsewhere File is the only menu there is.
   const fileMenu = await Submenu.new({
     text: 'File',
     items: mac
       ? [openItem, captureItem, await separator(), saveItem, saveAsItem]
-      : [openItem, await separator(), saveItem, saveAsItem, await separator(), quitItem],
+      : [
+          openItem,
+          await separator(),
+          saveItem,
+          saveAsItem,
+          copyImageItem,
+          await separator(),
+          quitItem,
+        ],
   })
 
   const menu = await Menu.new({
@@ -101,6 +122,8 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
               await PredefinedMenuItem.new({ item: 'Copy' }),
               await PredefinedMenuItem.new({ item: 'Paste' }),
               await PredefinedMenuItem.new({ item: 'SelectAll' }),
+              await separator(),
+              copyImageItem,
             ],
           }),
           await Submenu.new({
@@ -126,6 +149,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
     setHasImage: async (hasImage: boolean) => {
       await saveItem.setEnabled(hasImage)
       await saveAsItem.setEnabled(hasImage)
+      await copyImageItem.setEnabled(hasImage)
     },
   }
 }

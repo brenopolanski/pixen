@@ -1,4 +1,5 @@
 mod capture;
+mod clipboard;
 mod dialog;
 mod image;
 mod window;
@@ -15,8 +16,12 @@ const LAUNCH_TIMEOUT: Duration = Duration::from_secs(12);
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        // Registered for its Rust API only: the clipboard is written from
+        // `copy_image`, never from the webview, so no permission is granted.
+        .plugin(tauri_plugin_clipboard_manager::init())
         .invoke_handler(tauri::generate_handler![
             capture::capture_screen,
+            clipboard::copy_image,
             dialog::confirm_unsaved_changes,
             image::read_image,
             image::write_image,

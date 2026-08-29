@@ -85,9 +85,12 @@ fn flatten_onto_white(image: &DynamicImage) -> RgbImage {
     flattened
 }
 
+fn decode(bytes: &[u8]) -> Result<DynamicImage, String> {
+    image::load_from_memory(bytes).map_err(|_| "Pixen could not read the edited image.".to_string())
+}
+
 fn encode(bytes: &[u8], format: Format) -> Result<Vec<u8>, String> {
-    let source = image::load_from_memory(bytes)
-        .map_err(|_| "Pixen could not read the edited image.".to_string())?;
+    let source = decode(bytes)?;
     let mut encoded = Vec::new();
 
     let result = match format {
@@ -126,11 +129,20 @@ fn decode_data_url(data_url: &str) -> Result<Vec<u8>, String> {
         .strip_prefix("data:")
         .and_then(|rest| rest.split_once(";base64,"))
         .map(|(_, payload)| payload)
-        .ok_or_else(|| format!("Could not write {IMAGE_SUBJECT}: the data is not an image."))?;
+        .ok_or_else(|| format!("Could not read {IMAGE_SUBJECT}: the data is not an image."))?;
 
     STANDARD
         .decode(payload)
-        .map_err(|_| format!("Could not write {IMAGE_SUBJECT}: the data is damaged."))
+        .map_err(|_| format!("Could not read {IMAGE_SUBJECT}: the data is damaged."))
+}
+
+/// The editor's output as raw RGBA and its dimensions, which is the form the
+/// system clipboard takes — it carries pixels, not an encoded file.
+pub fn rgba_from_data_url(data_url: &str) -> Result<(Vec<u8>, u32, u32), String> {
+    let rgba = decode(&decode_data_url(data_url)?)?.to_rgba8();
+    let (width, height) = rgba.dimensions();
+
+    Ok((rgba.into_raw(), width, height))
 }
 
 fn extension_of(path: &Path) -> String {
@@ -293,6 +305,20 @@ mod tests {
             .to_rgba8();
 
         assert!(decoded.pixels().all(|pixel| pixel.0[3] == 0));
+    }
+
+    #[test]
+    fn reads_data_urls_as_rgba_without_losing_alpha() {
+        let data_url = format!(
+            "data:image/png;base64,{}",
+            STANDARD.encode(transparent_png())
+        );
+        let (rgba, width, height) = rgba_from_data_url(&data_url).expect("the data url decodes");
+
+        assert_eq!((width, height), (32, 32));
+        assert_eq!(rgba.len() as u32, width * height * 4);
+        // Every fourth byte is an alpha channel.
+        assert!(rgba.iter().skip(3).step_by(4).all(|&alpha| alpha == 0));
     }
 
     #[test]

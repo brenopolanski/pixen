@@ -26,6 +26,14 @@ export const isSaveAsShortcut = (event: ShortcutEvent, mac: boolean): boolean =>
 export const isOpenImageShortcut = (event: ShortcutEvent, mac: boolean): boolean =>
   matches(event, mac, 'o', false)
 
+/**
+ * Shift is part of it deliberately. Plain ⌘C belongs to the system Copy, which
+ * the editor's text tool and Pixen's own inputs need; ⌘⇧C is what other
+ * editors use for copying the image itself.
+ */
+export const isCopyImageShortcut = (event: ShortcutEvent, mac: boolean): boolean =>
+  matches(event, mac, 'c', true)
+
 /** Writes a shortcut the way the host platform writes it. */
 export const formatShortcut = (mac: boolean, key: string, shift = false): string =>
   mac

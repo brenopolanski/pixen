@@ -1,4 +1,4 @@
-import { Camera, ChevronDown, ImagePlus, Save, SaveAll } from 'lucide-react'
+import { Camera, Check, ChevronDown, Copy, ImagePlus, Save, SaveAll } from 'lucide-react'
 import type { ChangeEvent, ReactNode } from 'react'
 
 import { PixenLogo } from '@/components/shared/Icons'
@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 
 interface ToolbarButtonProps {
   children: ReactNode
+  className?: string
   disabled: boolean
   label: string
   primary?: boolean
@@ -21,6 +22,7 @@ interface ToolbarButtonProps {
 
 const ToolbarButton = ({
   children,
+  className,
   disabled,
   label,
   primary = false,
@@ -29,11 +31,15 @@ const ToolbarButton = ({
 }: ToolbarButtonProps) => {
   return (
     <button
+      // Live because Copy answers by relabelling itself, which a screen reader
+      // would otherwise never mention. Fixed labels never announce anything.
+      aria-live="polite"
       className={cn(
         'flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[12px] font-medium transition-colors disabled:pointer-events-none disabled:opacity-40',
         primary
           ? 'border-transparent bg-brand text-brand-foreground hover:brightness-110'
           : 'border-border bg-surface text-foreground hover:bg-accent',
+        className,
       )}
       disabled={disabled}
       title={shortcut ? `${label} (${shortcut})` : label}
@@ -88,12 +94,15 @@ const FormatSelect = ({ disabled, format, onChange }: FormatSelectProps) => {
 
 interface ToolbarProps {
   busy: boolean
+  /** Shows the copy confirmation; the session clears it on its own. */
+  copied: boolean
   dirty: boolean
   fileName: string | null
   format: SaveFormat
   hasImage: boolean
   /** Passed only where capture is supported, so the button is absent elsewhere. */
   onCaptureScreen?: () => void
+  onCopyImage: () => void
   onFormatChange: (format: SaveFormat) => void
   onOpenImage: () => void
   onSave: () => void
@@ -102,11 +111,13 @@ interface ToolbarProps {
 
 export const Toolbar = ({
   busy,
+  copied,
   dirty,
   fileName,
   format,
   hasImage,
   onCaptureScreen,
+  onCopyImage,
   onFormatChange,
   onOpenImage,
   onSave,
@@ -148,6 +159,20 @@ export const Toolbar = ({
             <Camera className="size-3.5" />
           </ToolbarButton>
         )}
+
+        {/* Before the format selector, because the clipboard carries pixels
+            and this action ignores whatever is chosen there. */}
+        <ToolbarButton
+          // Held wide enough for the longer confirmation, so the row beside it
+          // does not shift as the label changes.
+          className="min-w-[90px] justify-center"
+          disabled={busy || !hasImage}
+          label={copied ? 'Copied' : 'Copy'}
+          shortcut={formatShortcut(mac, 'c', true)}
+          onClick={onCopyImage}
+        >
+          {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+        </ToolbarButton>
 
         <FormatSelect disabled={busy} format={format} onChange={onFormatChange} />
 

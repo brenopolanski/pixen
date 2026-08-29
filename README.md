@@ -26,7 +26,8 @@ keyboard shortcuts.
 - Saves as PNG, JPEG or WebP with `⌘S` / `Ctrl+S`, asking where to write the first time and reusing
   that destination afterwards
 - Saves to a new file with `⌘⇧S` / `Ctrl+Shift+S`
-- Puts Open, Screenshot, Save and Save As in the native menu bar
+- Copies the edited image to the system clipboard with `⌘⇧C` / `Ctrl+Shift+C`
+- Puts Open, Screenshot, Copy Image, Save and Save As in the native menu bar
 - Shows a splash screen while the app and the editor engine start up
 - Tracks unsaved changes in the window title (`Pixen — my-image.png *`)
 - Asks before closing with unsaved work: **Save**, **Don't Save** or **Cancel**
@@ -124,9 +125,9 @@ confirms unsaved work, then loads. Only where the image comes from differs.
   — drag a region, or press Space to pick a window. Pixen hides itself for the duration and comes
   back whatever happens. A capture has no path either, so its first save offers `Screenshot.png`.
 - **The File menu** is built with `@tauri-apps/api/menu`, so its actions sit next to the session
-  rather than in Rust. Save and Save As are disabled until an image is open. On macOS a menu replaces
-  the entire bar, so the App, Edit and Window submenus are rebuilt too — without an Edit menu the
-  system copy, paste and select-all shortcuts stop working in text fields.
+  rather than in Rust. Save, Save As and Copy Image are disabled until an image is open. On macOS a
+  menu replaces the entire bar, so the App, Edit and Window submenus are rebuilt too — without an
+  Edit menu the system copy, paste and select-all shortcuts stop working in text fields.
 
 Quit is a plain menu item wired to Pixen's own close handler, not the predefined one. The predefined
 item calls `exit` directly, which would drop unsaved edits without asking.
@@ -145,6 +146,26 @@ having. Two things to know on macOS:
   is how cancellation is detected — `screencapture`'s exit code is undocumented.
 
 Capturing over unsaved edits asks before replacing them, the same as any other way of opening.
+
+## Copying
+
+`⌘⇧C` / `Ctrl+Shift+C` puts the edited image on the system clipboard, so an annotated screenshot can
+go straight into a chat or a ticket without becoming a file first. The toolbar button confirms it by
+relabelling itself for a moment; there is no other feedback a clipboard write can honestly give.
+
+Unlike the screenshot, this works on all three platforms.
+
+- **The clipboard carries pixels, not a file**, so the toolbar's format selector does not apply and
+  the receiving app decides how to store what it gets. `copy_image` hands over raw RGBA:
+  [`arboard`](https://docs.rs/arboard), under `tauri-plugin-clipboard-manager`, then offers it as
+  TIFF on macOS, a DIB on Windows and `image/png` on Linux. Transparency survives on all three.
+- **Shift is part of the shortcut on purpose.** Plain `⌘C` belongs to the system Copy, which the
+  editor's text tool and Pixen's own inputs need, so Copy Image takes the shifted variant that other
+  editors use for the same job. It sits in the Edit menu on macOS, next to that system Copy, and in
+  the File menu on Windows and Linux, where there is no Edit menu.
+- **The plugin is registered for its Rust API only.** Nothing on the webview side calls it, so no
+  clipboard permission is granted in `src-tauri/capabilities/` — the same arrangement as the file
+  commands. It is pure Rust on every platform, so Linux gains no new system libraries.
 
 ## Saving
 
@@ -210,12 +231,13 @@ src/
 ├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch
 └── lib/
     ├── editor/          # engine preload, editor options, unsaved-edit detection
-    ├── image/           # paths and formats, clipboard reads, capture, dialogs and I/O
+    ├── image/           # paths and formats, clipboard, capture, dialogs and I/O
     └── menu.ts          # the native menu bar
 
 src-tauri/src/
 ├── image.rs             # image file I/O and PNG/JPEG/WebP encoding
 ├── capture.rs           # macOS interactive screen capture
+├── clipboard.rs         # copying the edited image out as pixels
 ├── dialog.rs            # the three-button unsaved-changes prompt
 └── window.rs            # splash → main handoff, quit
 ```
@@ -233,6 +255,7 @@ existing file, and OS errors are mapped to short sentences instead of being forw
 | `⌘⇧S` / `Ctrl+Shift+S` | Save As                         |
 | `⌘O` / `Ctrl+O`        | Open an image                   |
 | `⌘V` / `Ctrl+V`        | Open the image on the clipboard |
+| `⌘⇧C` / `Ctrl+Shift+C` | Copy the image to the clipboard |
 | `⌘Q` / `Ctrl+Q`        | Quit, guarding unsaved work     |
 
 ## License

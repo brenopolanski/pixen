@@ -15,6 +15,9 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["macos-private-api"] }
 tauri-plugin-dialog = "2"
+# Registered for its Rust API only, so the webview gets no clipboard permission.
+# Pure Rust on every platform, so no new system libraries.
+tauri-plugin-clipboard-manager = "2"
 base64 = "0.22"
 # Only the three formats Pixen offers: the default feature set pulls in a dozen
 # more codecs, all of it compiled and none of it reachable.

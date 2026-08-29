@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 import type { ShortcutEvent } from './shortcuts'
-import { formatShortcut, isOpenImageShortcut, isSaveAsShortcut, isSaveShortcut } from './shortcuts'
+import {
+  formatShortcut,
+  isCopyImageShortcut,
+  isOpenImageShortcut,
+  isSaveAsShortcut,
+  isSaveShortcut,
+} from './shortcuts'
 
 const event = (overrides: Partial<ShortcutEvent>): ShortcutEvent => ({
   key: 's',
@@ -52,6 +58,20 @@ describe('isOpenImageShortcut', () => {
     expect(isOpenImageShortcut(event({ key: 'O', ctrlKey: true, shiftKey: true }), false)).toBe(
       false,
     )
+  })
+})
+
+describe('isCopyImageShortcut', () => {
+  it('matches the shifted variant on either platform', () => {
+    expect(isCopyImageShortcut(event({ key: 'C', metaKey: true, shiftKey: true }), true)).toBe(true)
+    expect(isCopyImageShortcut(event({ key: 'C', ctrlKey: true, shiftKey: true }), false)).toBe(
+      true,
+    )
+  })
+
+  it('leaves plain Copy alone, which text fields need', () => {
+    expect(isCopyImageShortcut(event({ key: 'c', metaKey: true }), true)).toBe(false)
+    expect(isCopyImageShortcut(event({ key: 'c', ctrlKey: true }), false)).toBe(false)
   })
 })
 

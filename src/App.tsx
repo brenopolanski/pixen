@@ -24,6 +24,7 @@ const App = () => {
 
   useLaunchSequence()
   useKeyboardShortcuts({
+    onCopyImage: session.copyImage,
     onOpenImage: session.openImage,
     onSave: session.save,
     onSaveAs: session.saveAs,
@@ -32,6 +33,7 @@ const App = () => {
     {
       onOpenImage: session.openImage,
       onCaptureScreen: session.captureScreen,
+      onCopyImage: session.copyImage,
       onSave: session.save,
       onSaveAs: session.saveAs,
       onQuit: session.requestClose,
@@ -54,11 +56,13 @@ const App = () => {
     <div className="relative flex h-full flex-col bg-background">
       <Toolbar
         busy={session.busy}
+        copied={session.copied}
         dirty={session.dirty}
         fileName={session.path && fileNameOf(session.path)}
         format={session.format}
         hasImage={hasImage}
         onCaptureScreen={isCaptureSupported() ? session.captureScreen : undefined}
+        onCopyImage={session.copyImage}
         onFormatChange={session.setFormat}
         onOpenImage={session.openImage}
         onSave={session.save}

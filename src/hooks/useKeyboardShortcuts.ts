@@ -1,15 +1,26 @@
 import { useEffect } from 'react'
 
 import { isMacPlatform } from '@/lib/platform'
-import { isOpenImageShortcut, isSaveAsShortcut, isSaveShortcut } from '@/lib/shortcuts'
+import {
+  isCopyImageShortcut,
+  isOpenImageShortcut,
+  isSaveAsShortcut,
+  isSaveShortcut,
+} from '@/lib/shortcuts'
 
 interface ShortcutHandlers {
+  onCopyImage: () => void
   onOpenImage: () => void
   onSave: () => void
   onSaveAs: () => void
 }
 
-export const useKeyboardShortcuts = ({ onOpenImage, onSave, onSaveAs }: ShortcutHandlers) => {
+export const useKeyboardShortcuts = ({
+  onCopyImage,
+  onOpenImage,
+  onSave,
+  onSaveAs,
+}: ShortcutHandlers) => {
   useEffect(() => {
     const mac = isMacPlatform()
 
@@ -29,6 +40,12 @@ export const useKeyboardShortcuts = ({ onOpenImage, onSave, onSaveAs }: Shortcut
       if (isOpenImageShortcut(event, mac)) {
         event.preventDefault()
         onOpenImage()
+        return
+      }
+
+      if (isCopyImageShortcut(event, mac)) {
+        event.preventDefault()
+        onCopyImage()
       }
     }
 
@@ -38,5 +55,5 @@ export const useKeyboardShortcuts = ({ onOpenImage, onSave, onSaveAs }: Shortcut
     return () => {
       window.removeEventListener('keydown', onKeyDown, { capture: true })
     }
-  }, [onOpenImage, onSave, onSaveAs])
+  }, [onCopyImage, onOpenImage, onSave, onSaveAs])
 }

@@ -1,3 +1,5 @@
+import { invoke } from '@tauri-apps/api/core'
+
 import { PixenError } from '@/lib/errors'
 
 /** The media types Pixen can open, so the ones worth taking off a clipboard. */
@@ -68,6 +70,17 @@ export const hasUnsupportedImage = (transfer: ClipboardContents | null): boolean
     (item) =>
       item.kind === 'file' && item.type.startsWith('image/') && !isSupportedImageType(item.type),
   )
+}
+
+/**
+ * Puts an image on the system clipboard.
+ *
+ * Encoding happens nowhere: the clipboard carries pixels, so the toolbar's save
+ * format does not apply and whichever app receives the paste decides how to
+ * store it.
+ */
+export const copyImage = (dataUrl: string): Promise<void> => {
+  return invoke('copy_image', { dataUrl })
 }
 
 /** The editor only accepts data URLs, which is also what `write_image` reads. */

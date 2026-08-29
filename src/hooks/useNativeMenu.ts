@@ -28,6 +28,7 @@ export const useNativeMenu = (handlers: MenuHandlers, hasImage: boolean) => {
     void installAppMenu(isMacPlatform(), {
       onOpenImage: () => handlersRef.current.onOpenImage(),
       onCaptureScreen: () => handlersRef.current.onCaptureScreen(),
+      onCopyImage: () => handlersRef.current.onCopyImage(),
       onSave: () => handlersRef.current.onSave(),
       onSaveAs: () => handlersRef.current.onSaveAs(),
       onQuit: () => handlersRef.current.onQuit(),

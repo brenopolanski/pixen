@@ -3,6 +3,7 @@ import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
+  COPIED_FEEDBACK_MS,
   SCREENSHOT_NAME,
   UNSAVED_CHECK_DEBOUNCE_MS,
   UNSAVED_CHECK_INTERVAL_MS,
@@ -12,6 +13,7 @@ import { askAboutUnsavedChanges, askToDiscardChanges, quitApp } from '@/lib/desk
 import { hasUnsavedEdits } from '@/lib/editor/engine'
 import { PixenError, toUserMessage } from '@/lib/errors'
 import { captureScreen as runCapture } from '@/lib/image/capture'
+import { copyImage as writeToClipboard } from '@/lib/image/clipboard'
 import type { SaveFormat } from '@/lib/image/image'
 import { baseNameOf, DEFAULT_SAVE_FORMAT, formatForPath, matchesFormat } from '@/lib/image/image'
 import { pickImage, pickSaveDestination, readImage, writeImage } from '@/lib/image/imageStorage'
@@ -40,6 +42,8 @@ const EMPTY_SESSION: SessionState = {
 export interface ImageSession extends SessionState {
   busy: boolean
   error: string | null
+  /** True for a moment after a copy, so the toolbar can confirm it happened. */
+  copied: boolean
   /** The format the next save writes in. */
   format: SaveFormat
   setFormat: (format: SaveFormat) => void
@@ -50,6 +54,8 @@ export interface ImageSession extends SessionState {
   openFromDataUrl: (dataUrl: string, name: string) => void
   /** Captures a region of the screen and opens it. macOS only. */
   captureScreen: () => void
+  /** Puts the edited image on the system clipboard. */
+  copyImage: () => void
   save: () => void
   saveAs: () => void
   discardEdits: () => void
@@ -67,6 +73,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   const [session, setSession] = useState<SessionState>(EMPTY_SESSION)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
   // Deliberately outside `session`: the chosen output format is the user's
   // preference, so opening another image must not reset it.
   const [format, setFormatState] = useState<SaveFormat>(DEFAULT_SAVE_FORMAT)
@@ -94,6 +101,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       baselineRef.current = null
       applySession({ image, path: null, name, dirty: false })
       setError(null)
+      setCopied(false)
     },
     [applySession],
   )
@@ -249,6 +257,31 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     })
   }, [confirmReplacingImage, load, run])
 
+  const copyImage = useCallback(() => {
+    run(async () => {
+      if (!sessionRef.current.image) {
+        return
+      }
+
+      await writeToClipboard(readCurrentImage())
+      setCopied(true)
+    })
+  }, [readCurrentImage, run])
+
+  // The confirmation is transient, so it clears itself rather than needing
+  // every other action to remember to reset it.
+  useEffect(() => {
+    if (!copied) {
+      return
+    }
+
+    const timer = window.setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [copied])
+
   const save = useCallback(() => {
     run(async () => {
       if (!sessionRef.current.image) {
@@ -367,12 +400,14 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     ...session,
     busy,
     error,
+    copied,
     format,
     setFormat,
     openImage,
     openFromPath,
     openFromDataUrl,
     captureScreen,
+    copyImage,
     save,
     saveAs,
     discardEdits,
