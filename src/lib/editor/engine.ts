@@ -10,13 +10,20 @@ import { EDITOR_PRELOAD_TIMEOUT_MS } from '@/lib/constants'
 const EDITOR_EMBED_URL = 'https://cdn.unlayer.com/image-editor/embed.js'
 
 /**
+ * What the published types allow on `features.imageEditor`. The embed also
+ * honours `dock`, which `@unlayer/types` 1.448.0 does not list yet.
+ */
+type ImageEditorFeatures = NonNullable<NonNullable<ImageEditorOptions['features']>['imageEditor']>
+
+/**
  * Module-level so the object identity is stable: the component remounts the
  * editor whenever anything outside theme/locale/translations changes. AI is off
- * because Pixen has no account or project id.
+ * because Pixen has no account or project id. The tool rail defaults to the
+ * right; `dock: 'left'` is the documented way to put it on the other side.
  */
 export const EDITOR_OPTIONS: ImageEditorOptions = {
   theme: 'dark',
-  features: { ai: false },
+  features: { ai: false, imageEditor: { dock: 'left' } as ImageEditorFeatures },
 }
 
 /**

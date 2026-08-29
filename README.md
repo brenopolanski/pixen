@@ -153,7 +153,8 @@ events, so Pixen combines `hasChanges()` with a comparison against the last save
 comparison uses the editor's own export, not the encoded file, so saving as JPEG does not leave the
 image looking permanently unsaved.
 
-The editor's toolbar also ends with its own Cancel and Save buttons, which duplicate Pixen's
+The tool rail docks on the left (`features.imageEditor.dock`), matching the layout of most desktop
+editors. The editor's own toolbar also ends with Cancel and Save buttons, which duplicate Pixen's
 toolbar and native dialogs. Nothing in the editor's options turns them off, so `src/index.css`
 hides that group by position and lets the zoom controls take the space. That rule depends on the
 editor's DOM, so it needs a look after an editor release — the buttons stay wired to the session,
