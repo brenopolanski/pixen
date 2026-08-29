@@ -1,4 +1,4 @@
-import { APP_NAME, UNTITLED_NAME } from '@/lib/constants'
+import { APP_NAME, IMAGE_EXTENSIONS, UNTITLED_NAME } from '@/lib/constants'
 
 /** Splits on both separators so Windows and POSIX paths behave the same. */
 export const fileNameOf = (path: string): string => {
@@ -17,6 +17,19 @@ const extensionOf = (path: string): string => {
   const dot = fileName.lastIndexOf('.')
 
   return dot > 0 ? fileName.slice(dot + 1).toLowerCase() : ''
+}
+
+/**
+ * Whether Pixen can open the file a path names. A drop hands over whatever the
+ * user was dragging, so the list is filtered before anything reaches Rust.
+ */
+export const isSupportedImagePath = (path: string): boolean => {
+  return (IMAGE_EXTENSIONS as readonly string[]).includes(extensionOf(path))
+}
+
+/** The first image in a drop; null when none of the files was one. */
+export const firstSupportedImagePath = (paths: readonly string[]): string | null => {
+  return paths.find(isSupportedImagePath) ?? null
 }
 
 export type SaveFormatId = 'png' | 'jpeg' | 'webp'

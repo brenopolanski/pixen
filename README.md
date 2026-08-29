@@ -18,12 +18,14 @@ keyboard shortcuts.
 
 ## What it does
 
-- Opens PNG, JPEG and WebP images through a native file dialog
+- Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or
+  through a native file dialog
 - Edits them with [`@unlayer/react-image-editor`](https://github.com/unlayer/react-image-editor) —
   crop, resize, filters, draw, text, shapes, stickers and frames
 - Saves as PNG, JPEG or WebP with `⌘S` / `Ctrl+S`, asking where to write the first time and reusing
   that destination afterwards
 - Saves to a new file with `⌘⇧S` / `Ctrl+Shift+S`
+- Puts Open, Save and Save As in the native menu bar
 - Shows a splash screen while the app and the editor engine start up
 - Tracks unsaved changes in the window title (`Pixen — my-image.png *`)
 - Asks before closing with unsaved work: **Save**, **Don't Save** or **Cancel**
@@ -104,6 +106,27 @@ Bundles land in `src-tauri/target/release/bundle/`: `.app` and `.dmg` on macOS, 
 on Windows, `.deb` and AppImage on Linux. Builds are unsigned, so on macOS the first launch is
 right-click the app → Open.
 
+## Opening
+
+A drop, a paste, the File menu and the toolbar all end up in the same place: `useImageSession`
+confirms unsaved work, then loads. Only where the image comes from differs.
+
+- **Dropping** goes through the window's `onDragDropEvent`. Tauri intercepts file drops before the
+  webview sees them, so `dragover` and `drop` never fire and an HTML5 drop zone would be dead. Paths
+  arrive unfiltered, so Pixen takes the first PNG, JPEG or WebP and ignores the rest — it is still a
+  one-document editor.
+- **Pasting** listens for the `paste` event rather than binding `⌘V`, so the clipboard's contents
+  decide whether Pixen acts. A paste aimed at an `input`, `textarea`, `select` or `contenteditable`
+  is left alone, which is what keeps the editor's text tool working. A pasted image has no path, so
+  its first save asks where to write.
+- **The File menu** is built with `@tauri-apps/api/menu`, so its actions sit next to the session
+  rather than in Rust. Save and Save As are disabled until an image is open. On macOS a menu replaces
+  the entire bar, so the App, Edit and Window submenus are rebuilt too — without an Edit menu the
+  system copy, paste and select-all shortcuts stop working in text fields.
+
+Quit is a plain menu item wired to Pixen's own close handler, not the predefined one. The predefined
+item calls `exit` directly, which would drop unsaved edits without asking.
+
 ## Saving
 
 PNG, JPEG and WebP are picked from the selector in Pixen's own toolbar, not from the save dialog. A
@@ -164,11 +187,12 @@ and the worst case is that they reappear rather than stop working.
 
 ```text
 src/
-├── components/          # Toolbar, Editor, EmptyState, ErrorBanner, Splash
-├── hooks/               # session state, shortcuts, window title, close guard, launch
+├── components/          # Toolbar, Editor, EmptyState, DropOverlay, ErrorBanner, Splash
+├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch
 └── lib/
     ├── editor/          # engine preload, editor options, unsaved-edit detection
-    └── image/           # paths and formats, dialogs and I/O
+    ├── image/           # paths and formats, clipboard reads, dialogs and I/O
+    └── menu.ts          # the native menu bar
 
 src-tauri/src/
 ├── image.rs             # image file I/O and PNG/JPEG/WebP encoding
@@ -183,11 +207,13 @@ existing file, and OS errors are mapped to short sentences instead of being forw
 
 ## Keyboard shortcuts
 
-| Shortcut               | Action        |
-| ---------------------- | ------------- |
-| `⌘S` / `Ctrl+S`        | Save          |
-| `⌘⇧S` / `Ctrl+Shift+S` | Save As       |
-| `⌘O` / `Ctrl+O`        | Open an image |
+| Shortcut               | Action                          |
+| ---------------------- | ------------------------------- |
+| `⌘S` / `Ctrl+S`        | Save                            |
+| `⌘⇧S` / `Ctrl+Shift+S` | Save As                         |
+| `⌘O` / `Ctrl+O`        | Open an image                   |
+| `⌘V` / `Ctrl+V`        | Open the image on the clipboard |
+| `⌘Q` / `Ctrl+Q`        | Quit, guarding unsaved work     |
 
 ## License
 

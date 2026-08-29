@@ -38,6 +38,34 @@ export const onCloseRequested = (handler: () => void): Promise<() => void> => {
     .then((unlisten) => () => unlisten())
 }
 
+/** Where a drag currently is, as far as the window is concerned. */
+export type DragState = 'over' | 'away'
+
+/**
+ * Tauri intercepts file drops before the webview sees them, so `dragover` and
+ * `drop` never fire — the window's own event is the only source. Paths arrive
+ * unfiltered: whatever the user was dragging.
+ */
+export const onFileDrop = (
+  onDragStateChange: (state: DragState) => void,
+  onDrop: (paths: string[]) => void,
+): Promise<() => void> => {
+  return getCurrentWindow()
+    .onDragDropEvent(({ payload }) => {
+      if (payload.type === 'enter' || payload.type === 'over') {
+        onDragStateChange('over')
+        return
+      }
+
+      onDragStateChange('away')
+
+      if (payload.type === 'drop') {
+        onDrop(payload.paths)
+      }
+    })
+    .then((unlisten) => () => unlisten())
+}
+
 /** Native three-button prompt; see confirm_unsaved_changes in Rust. */
 export const askAboutUnsavedChanges = (): Promise<CloseDecision> => {
   return invoke('confirm_unsaved_changes')

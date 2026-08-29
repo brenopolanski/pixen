@@ -19,7 +19,7 @@ export const EmptyState = ({ busy, onOpenImage }: EmptyStateProps) => {
       <div className="flex flex-col gap-1.5">
         <p className="text-[15px] font-semibold text-foreground">No image open</p>
         <p className="max-w-sm text-[13px] leading-relaxed text-muted-foreground">
-          Open a PNG, JPEG or WebP image to start editing
+          Drop a PNG, JPEG or WebP image here to start editing
         </p>
       </div>
 
@@ -34,7 +34,8 @@ export const EmptyState = ({ busy, onOpenImage }: EmptyStateProps) => {
       </button>
 
       <p className="text-[12px] text-muted-foreground">
-        {formatShortcut(mac, 'o')} to open an image · {formatShortcut(mac, 's')} to save
+        {formatShortcut(mac, 'o')} to browse · {formatShortcut(mac, 'v')} to paste from the
+        clipboard
       </p>
     </div>
   )

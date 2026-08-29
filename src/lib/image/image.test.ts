@@ -4,8 +4,10 @@ import {
   baseNameOf,
   defaultFileName,
   fileNameOf,
+  firstSupportedImagePath,
   formatById,
   formatForPath,
+  isSupportedImagePath,
   matchesFormat,
   windowTitle,
   withImageExtension,
@@ -37,6 +39,35 @@ describe('baseNameOf', () => {
 
   it('keeps a leading dot, which is not an extension', () => {
     expect(baseNameOf('/tmp/.hidden')).toBe('.hidden')
+  })
+})
+
+describe('isSupportedImagePath', () => {
+  it('accepts every extension Pixen opens, whatever its case', () => {
+    expect(isSupportedImagePath('/tmp/photo.png')).toBe(true)
+    expect(isSupportedImagePath('/tmp/photo.JPG')).toBe(true)
+    expect(isSupportedImagePath('C:\\Users\\dev\\photo.webp')).toBe(true)
+  })
+
+  it('rejects other files and paths with no extension at all', () => {
+    expect(isSupportedImagePath('/tmp/notes.pdf')).toBe(false)
+    expect(isSupportedImagePath('/tmp/photo.gif')).toBe(false)
+    expect(isSupportedImagePath('/tmp/Pictures')).toBe(false)
+  })
+})
+
+describe('firstSupportedImagePath', () => {
+  it('skips past files it cannot open', () => {
+    expect(firstSupportedImagePath(['/tmp/notes.pdf', '/tmp/photo.webp'])).toBe('/tmp/photo.webp')
+  })
+
+  it('keeps the drop order when several are images', () => {
+    expect(firstSupportedImagePath(['/tmp/a.png', '/tmp/b.jpg'])).toBe('/tmp/a.png')
+  })
+
+  it('is null for an empty drop and for one with no images', () => {
+    expect(firstSupportedImagePath([])).toBeNull()
+    expect(firstSupportedImagePath(['/tmp/notes.pdf'])).toBeNull()
   })
 })
 

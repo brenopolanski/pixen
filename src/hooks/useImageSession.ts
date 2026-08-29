@@ -42,6 +42,10 @@ export interface ImageSession extends SessionState {
   format: SaveFormat
   setFormat: (format: SaveFormat) => void
   openImage: () => void
+  /** Opens a file Pixen was handed rather than asked for: a drop, or a menu. */
+  openFromPath: (path: string) => void
+  /** Opens an image with no file behind it, such as a pasted screenshot. */
+  openFromDataUrl: (dataUrl: string, name: string) => void
   save: () => void
   saveAs: () => void
   discardEdits: () => void
@@ -172,9 +176,17 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     [applySession, setFormat],
   )
 
+  /**
+   * The guard every way of opening an image shares. Replacing the open image
+   * discards the editor's state, so a dirty session is confirmed first.
+   */
+  const confirmReplacingImage = useCallback(async (): Promise<boolean> => {
+    return !sessionRef.current.dirty || (await askToDiscardChanges())
+  }, [])
+
   const openImage = useCallback(() => {
     run(async () => {
-      if (sessionRef.current.dirty && !(await askToDiscardChanges())) {
+      if (!(await confirmReplacingImage())) {
         return
       }
 
@@ -186,7 +198,35 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
 
       load(await readImage(path), baseNameOf(path))
     })
-  }, [load, run])
+  }, [confirmReplacingImage, load, run])
+
+  const openFromPath = useCallback(
+    (path: string) => {
+      run(async () => {
+        if (!(await confirmReplacingImage())) {
+          return
+        }
+
+        load(await readImage(path), baseNameOf(path))
+      })
+    },
+    [confirmReplacingImage, load, run],
+  )
+
+  const openFromDataUrl = useCallback(
+    (dataUrl: string, name: string) => {
+      run(async () => {
+        if (!(await confirmReplacingImage())) {
+          return
+        }
+
+        // No path: a pasted image has no file on disk, so the first save has
+        // to ask where to write even though the session is not dirty.
+        load(dataUrl, name)
+      })
+    },
+    [confirmReplacingImage, load, run],
+  )
 
   const save = useCallback(() => {
     run(async () => {
@@ -309,6 +349,8 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     format,
     setFormat,
     openImage,
+    openFromPath,
+    openFromDataUrl,
     save,
     saveAs,
     discardEdits,

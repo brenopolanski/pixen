@@ -1,14 +1,18 @@
 import type { ImageEditorRef } from '@unlayer/react-image-editor'
 import { useRef } from 'react'
 
+import { DropOverlay } from '@/components/DropOverlay'
 import { Editor } from '@/components/Editor'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import { Toolbar } from '@/components/Toolbar'
+import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useCloseGuard } from '@/hooks/useCloseGuard'
+import { useFileDrop } from '@/hooks/useFileDrop'
 import { useImageSession } from '@/hooks/useImageSession'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useLaunchSequence } from '@/hooks/useLaunchSequence'
+import { useNativeMenu } from '@/hooks/useNativeMenu'
 import { useWindowTitle } from '@/hooks/useWindowTitle'
 import { fileNameOf } from '@/lib/image/image'
 
@@ -23,11 +27,29 @@ const App = () => {
     onSave: session.save,
     onSaveAs: session.saveAs,
   })
+  useNativeMenu(
+    {
+      onOpenImage: session.openImage,
+      onSave: session.save,
+      onSaveAs: session.saveAs,
+      onQuit: session.requestClose,
+    },
+    hasImage,
+  )
   useWindowTitle({ path: session.path, hasImage, dirty: session.dirty })
   useCloseGuard(session.requestClose)
+  useClipboardPaste({
+    onOpenDataUrl: session.openFromDataUrl,
+    onReject: session.reportError,
+  })
+
+  const dragging = useFileDrop({
+    onOpenPath: session.openFromPath,
+    onReject: session.reportError,
+  })
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="relative flex h-full flex-col bg-background">
       <Toolbar
         busy={session.busy}
         dirty={session.dirty}
@@ -55,6 +77,8 @@ const App = () => {
           <EmptyState busy={session.busy} onOpenImage={session.openImage} />
         )}
       </main>
+
+      {dragging && <DropOverlay />}
     </div>
   )
 }
