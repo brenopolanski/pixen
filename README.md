@@ -44,7 +44,7 @@ version history, crash recovery, telemetry.
 
 - [Tauri](https://tauri.app) 2 for the native shell, windows and filesystem access
 - React 19 + TypeScript + Vite for the UI
-- Tailwind CSS 4
+- Tailwind CSS 4, with [shadcn/ui](https://ui.shadcn.com) primitives in `src/components/ui/`
 - [`@unlayer/react-image-editor`](https://www.npmjs.com/package/@unlayer/react-image-editor) as the
   editing engine
 - Vitest for unit tests
@@ -153,8 +153,9 @@ Capturing over unsaved edits asks before replacing them, the same as any other w
 ## Copying
 
 `⌘⇧C` / `Ctrl+Shift+C` puts the edited image on the system clipboard, so an annotated screenshot can
-go straight into a chat or a ticket without becoming a file first. The toolbar button confirms it by
-relabelling itself for a moment; there is no other feedback a clipboard write can honestly give.
+go straight into a chat or a ticket without becoming a file first. A toast confirms it; there is no
+other feedback a clipboard write can honestly give. The toast is raised by the session rather than by
+the menu, so a copy from the keyboard or the native Edit menu says so too.
 
 Unlike the screenshot, this works on all three platforms.
 
@@ -278,6 +279,7 @@ and the worst case is that they reappear rather than stop working.
 ```text
 src/
 ├── components/          # Toolbar, Editor, EmptyState, DropOverlay, PixelizeOverlay, IncrementOverlay, ErrorBanner, Splash
+│   └── ui/              # shadcn/ui primitives: Button, DropdownMenu, the Sonner toaster
 ├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch
 └── lib/
     ├── editor/          # engine preload, editor options, unsaved-edit detection
@@ -291,6 +293,12 @@ src-tauri/src/
 ├── dialog.rs            # the three-button unsaved-changes prompt
 └── window.rs            # splash → main handoff, quit
 ```
+
+The primitives under `components/ui/` are the generated shadcn files, themed to Pixen's own tokens
+rather than the default zinc palette: `index.css` aliases shadcn's semantic names onto the existing
+`--brand`, `--surface` and `--danger`, so `Button` and `DropdownMenu` inherit the app's dark theme
+and nothing has to be restyled per component. Native dialogs, the editor and the overlays stay as
+they are; the primitives cover buttons, menus and toasts only.
 
 All filesystem work happens in Rust behind narrow commands, so the webview is granted **no**
 filesystem scope at all — see `src-tauri/capabilities/`. Reads are extension-checked and

@@ -4,7 +4,7 @@ import { APP_NAME, APP_TAGLINE } from '@/lib/constants'
 export const Splash = () => {
   return (
     <div
-      className="fade-in flex h-full flex-col items-center justify-center gap-5 rounded-xl border border-white/10 bg-background shadow-2xl"
+      className="flex h-full flex-col items-center justify-center gap-5 rounded-xl border border-white/10 bg-background shadow-2xl fade-in"
       data-tauri-drag-region
     >
       <PixenLogo className="size-14" />

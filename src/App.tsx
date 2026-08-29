@@ -8,6 +8,7 @@ import { ErrorBanner } from '@/components/ErrorBanner'
 import { IncrementOverlay } from '@/components/IncrementOverlay'
 import { PixelizeOverlay } from '@/components/PixelizeOverlay'
 import { Toolbar } from '@/components/Toolbar'
+import { Toaster } from '@/components/ui/sonner'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useCloseGuard } from '@/hooks/useCloseGuard'
 import { useFileDrop } from '@/hooks/useFileDrop'
@@ -60,7 +61,6 @@ const App = () => {
     <div className="relative flex h-full flex-col bg-background">
       <Toolbar
         busy={session.busy}
-        copied={session.copied}
         dirty={session.dirty}
         fileName={session.path && fileNameOf(session.path)}
         format={session.format}
@@ -110,6 +110,9 @@ const App = () => {
       </main>
 
       {dragging && <DropOverlay />}
+
+      {/* Last, so a toast sits above the editor and the overlays. */}
+      <Toaster position="bottom-right" />
     </div>
   )
 }

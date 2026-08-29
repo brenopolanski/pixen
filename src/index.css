@@ -1,4 +1,7 @@
 @import 'tailwindcss';
+/* Supplies the enter/exit utilities the shadcn dropdown animates with; Tailwind
+   4 dropped the plugin those used to come from. */
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -15,6 +18,22 @@
   --brand-foreground: #ffffff;
   --danger: #fca5a5;
   --danger-surface: #241417;
+
+  /* The names shadcn's components are written against, pointed at the palette
+     above rather than at a second one. Pixen's own classes keep using --brand
+     and --surface, so nothing here renames anything. */
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--foreground);
+  --accent-foreground: var(--foreground);
+  --popover: var(--surface);
+  --popover-foreground: var(--foreground);
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --destructive: var(--danger);
+  --input: var(--border);
+  --ring: var(--brand);
 }
 
 @theme inline {
@@ -30,6 +49,18 @@
   --color-brand-foreground: var(--brand-foreground);
   --color-danger: var(--danger);
   --color-danger-surface: var(--danger-surface);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-destructive: var(--destructive);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 12px;

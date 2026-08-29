@@ -2,8 +2,12 @@ import { X } from 'lucide-react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { Button } from '@/components/ui/button'
 import type { Rect } from '@/lib/image/pixelize'
 import { rectBetween, selectionToPixels } from '@/lib/image/pixelize'
+
+/** Matches the toolbar: an overlay is a mode of the same window, not a dialog. */
+const OVERLAY_BUTTON = 'h-auto gap-1.5 px-2.5 py-1.5 text-[12px]'
 
 interface PixelizeOverlayProps {
   /** The flattened canvas to select on. */
@@ -106,21 +110,17 @@ export const PixelizeOverlay = ({ image, onApply, onCancel }: PixelizeOverlayPro
   const marquee = drag ? rectBetween(drag.from, drag.to) : null
 
   return (
-    <div className="fade-in absolute inset-0 z-40 flex flex-col bg-background">
+    <div className="absolute inset-0 z-40 flex flex-col bg-background fade-in">
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2.5">
         <p className="text-[12px] text-muted-foreground">
           Drag over anything private to hide it behind a mosaic.
           <span className="ml-2 text-muted-foreground/70">Esc to cancel</span>
         </p>
 
-        <button
-          className="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-[12px] font-medium text-foreground transition-colors hover:bg-accent"
-          type="button"
-          onClick={onCancel}
-        >
+        <Button className={OVERLAY_BUTTON} variant="outline" onClick={onCancel}>
           <X className="size-3.5" />
           Cancel
-        </button>
+        </Button>
       </div>
 
       <div

@@ -11,7 +11,7 @@ import { ImageDown } from 'lucide-react'
 export const DropOverlay = () => {
   return (
     <div
-      className="fade-in pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+      className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm fade-in"
       aria-hidden
     >
       <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-brand px-10 py-8">

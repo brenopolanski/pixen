@@ -1,6 +1,7 @@
 import type { ImageEditorRef } from '@unlayer/react-image-editor'
 import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 import {
   COPIED_FEEDBACK_MS,
@@ -46,8 +47,6 @@ const EMPTY_SESSION: SessionState = {
 export interface ImageSession extends SessionState {
   busy: boolean
   error: string | null
-  /** True for a moment after a copy, so the toolbar can confirm it happened. */
-  copied: boolean
   /** The format the next save writes in. */
   format: SaveFormat
   setFormat: (format: SaveFormat) => void
@@ -91,7 +90,6 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   const [session, setSession] = useState<SessionState>(EMPTY_SESSION)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
   const [pixelizePreview, setPixelizePreview] = useState<string | null>(null)
   const [incrementPreview, setIncrementPreview] = useState<string | null>(null)
   // Deliberately outside `session`: the chosen output format is the user's
@@ -128,7 +126,6 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       bakedRef.current = false
       applySession({ image, path: null, name, dirty: false })
       setError(null)
-      setCopied(false)
       setPixelizePreview(null)
       setIncrementPreview(null)
     },
@@ -301,7 +298,10 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       }
 
       await writeToClipboard(readCurrentImage())
-      setCopied(true)
+
+      // Announced here rather than by the menu, so a copy from the keyboard or
+      // the native Edit menu confirms itself too.
+      toast.success('Copied to clipboard', { duration: COPIED_FEEDBACK_MS })
     })
   }, [readCurrentImage, run])
 
@@ -381,20 +381,6 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     },
     [applySession, incrementPreview, run],
   )
-
-  // The confirmation is transient, so it clears itself rather than needing
-  // every other action to remember to reset it.
-  useEffect(() => {
-    if (!copied) {
-      return
-    }
-
-    const timer = window.setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS)
-
-    return () => {
-      window.clearTimeout(timer)
-    }
-  }, [copied])
 
   const save = useCallback(() => {
     run(async () => {
@@ -524,7 +510,6 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     ...session,
     busy,
     error,
-    copied,
     format,
     setFormat,
     openImage,

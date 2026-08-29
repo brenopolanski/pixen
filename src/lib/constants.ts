@@ -22,8 +22,11 @@ export const EDITOR_CONTAINER_ID = 'pixen-editor'
 export const SPLASH_MIN_DURATION_MS = 700
 /** Ceiling on waiting for the editor engine before revealing the main window. */
 export const EDITOR_PRELOAD_TIMEOUT_MS = 8_000
-/** How long the toolbar confirms a copy before returning to its normal label. */
-export const COPIED_FEEDBACK_MS = 1_500
+/**
+ * How long the copy toast stays up. Longer than the inline label it replaced,
+ * because a corner of the window takes a moment to notice.
+ */
+export const COPIED_FEEDBACK_MS = 2_500
 /** Quiet period after the last interaction before the unsaved check runs. */
 export const UNSAVED_CHECK_DEBOUNCE_MS = 600
 /** Sweep for edits that finish without a pointer or key release. */

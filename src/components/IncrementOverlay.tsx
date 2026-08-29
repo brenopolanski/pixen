@@ -2,9 +2,13 @@ import { Check, Undo2, X } from 'lucide-react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 
+import { Button } from '@/components/ui/button'
 import type { Stamp } from '@/lib/image/increment'
 import { badgeRect, FIRST_STEP } from '@/lib/image/increment'
 import { clickToPixel, displayedScale, pixelToDisplayed } from '@/lib/image/pixelize'
+
+/** Matches the toolbar: an overlay is a mode of the same window, not a dialog. */
+const OVERLAY_BUTTON = 'h-auto gap-1.5 px-2.5 py-1.5 text-[12px]'
 
 interface IncrementOverlayProps {
   /** The flattened canvas to stamp on. */
@@ -89,7 +93,7 @@ export const IncrementOverlay = ({ image, onApply, onCancel }: IncrementOverlayP
   const scale = box && size ? displayedScale(box, size) : 1
 
   return (
-    <div className="fade-in absolute inset-0 z-40 flex flex-col bg-background">
+    <div className="absolute inset-0 z-40 flex flex-col bg-background fade-in">
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2.5">
         <p className="text-[12px] text-muted-foreground">
           Click each spot in the order you want it numbered.
@@ -97,36 +101,27 @@ export const IncrementOverlay = ({ image, onApply, onCancel }: IncrementOverlayP
         </p>
 
         <div className="flex shrink-0 items-center gap-1.5">
-          <button
-            className="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-[12px] font-medium text-foreground transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-40"
+          <Button
+            className={OVERLAY_BUTTON}
             disabled={stamps.length === 0}
-            type="button"
+            variant="outline"
             onClick={undoLast}
           >
             <Undo2 className="size-3.5" />
             Undo last
-          </button>
+          </Button>
 
-          <button
-            className="flex items-center gap-1.5 rounded-md border border-border bg-surface px-2.5 py-1.5 text-[12px] font-medium text-foreground transition-colors hover:bg-accent"
-            type="button"
-            onClick={onCancel}
-          >
+          <Button className={OVERLAY_BUTTON} variant="outline" onClick={onCancel}>
             <X className="size-3.5" />
             Cancel
-          </button>
+          </Button>
 
           {/* Nothing to bake until something has been stamped, and applying an
               empty set would flatten the editor for no change at all. */}
-          <button
-            className="flex items-center gap-1.5 rounded-md border border-transparent bg-brand px-2.5 py-1.5 text-[12px] font-medium text-brand-foreground transition-[filter] hover:brightness-110 disabled:pointer-events-none disabled:opacity-40"
-            disabled={stamps.length === 0}
-            type="button"
-            onClick={apply}
-          >
+          <Button className={OVERLAY_BUTTON} disabled={stamps.length === 0} onClick={apply}>
             <Check className="size-3.5" />
             Done
-          </button>
+          </Button>
         </div>
       </div>
 
