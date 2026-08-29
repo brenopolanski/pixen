@@ -17,6 +17,8 @@ import { copyImage as writeToClipboard } from '@/lib/image/clipboard'
 import type { SaveFormat } from '@/lib/image/image'
 import { baseNameOf, DEFAULT_SAVE_FORMAT, formatForPath, matchesFormat } from '@/lib/image/image'
 import { pickImage, pickSaveDestination, readImage, writeImage } from '@/lib/image/imageStorage'
+import type { Rect } from '@/lib/image/pixelize'
+import { pixelizeImage } from '@/lib/image/pixelize'
 
 interface SessionState {
   /**
@@ -56,6 +58,13 @@ export interface ImageSession extends SessionState {
   captureScreen: () => void
   /** Puts the edited image on the system clipboard. */
   copyImage: () => void
+  /** The flattened image the pixelize overlay selects on; null when closed. */
+  pixelizePreview: string | null
+  /** Flattens the canvas and opens the pixelize overlay. */
+  startPixelize: () => void
+  /** Hides the chosen region and hands the result back to the editor. */
+  applyPixelize: (region: Rect) => void
+  cancelPixelize: () => void
   save: () => void
   saveAs: () => void
   discardEdits: () => void
@@ -74,6 +83,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [pixelizePreview, setPixelizePreview] = useState<string | null>(null)
   // Deliberately outside `session`: the chosen output format is the user's
   // preference, so opening another image must not reset it.
   const [format, setFormatState] = useState<SaveFormat>(DEFAULT_SAVE_FORMAT)
@@ -102,6 +112,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       applySession({ image, path: null, name, dirty: false })
       setError(null)
       setCopied(false)
+      setPixelizePreview(null)
     },
     [applySession],
   )
@@ -268,6 +279,44 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     })
   }, [readCurrentImage, run])
 
+  const startPixelize = useCallback(() => {
+    run(async () => {
+      if (!sessionRef.current.image) {
+        return
+      }
+
+      // The overlay selects on a flattened copy rather than on the editor's own
+      // canvas, whose zoom and pan Unlayer does not report.
+      setPixelizePreview(readCurrentImage())
+    })
+  }, [readCurrentImage, run])
+
+  const cancelPixelize = useCallback(() => {
+    setPixelizePreview(null)
+  }, [])
+
+  const applyPixelize = useCallback(
+    (region: Rect) => {
+      run(async () => {
+        const current = sessionRef.current
+        const preview = pixelizePreview
+
+        if (!current.image || !preview) {
+          return
+        }
+
+        const pixelized = await pixelizeImage(preview, region)
+
+        // Not `load`: this edits the open document, so the path and name stay
+        // and the result is unsaved until Save writes it. The baseline is left
+        // alone deliberately — the mosaic is a change against the last save.
+        applySession({ ...current, image: pixelized, dirty: true })
+        setPixelizePreview(null)
+      })
+    },
+    [applySession, pixelizePreview, run],
+  )
+
   // The confirmation is transient, so it clears itself rather than needing
   // every other action to remember to reset it.
   useEffect(() => {
@@ -408,6 +457,10 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     openFromDataUrl,
     captureScreen,
     copyImage,
+    pixelizePreview,
+    startPixelize,
+    applyPixelize,
+    cancelPixelize,
     save,
     saveAs,
     discardEdits,

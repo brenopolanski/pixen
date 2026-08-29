@@ -5,6 +5,7 @@ import { DropOverlay } from '@/components/DropOverlay'
 import { Editor } from '@/components/Editor'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorBanner } from '@/components/ErrorBanner'
+import { PixelizeOverlay } from '@/components/PixelizeOverlay'
 import { Toolbar } from '@/components/Toolbar'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useCloseGuard } from '@/hooks/useCloseGuard'
@@ -34,6 +35,7 @@ const App = () => {
       onOpenImage: session.openImage,
       onCaptureScreen: session.captureScreen,
       onCopyImage: session.copyImage,
+      onPixelize: session.startPixelize,
       onSave: session.save,
       onSaveAs: session.saveAs,
       onQuit: session.requestClose,
@@ -65,13 +67,14 @@ const App = () => {
         onCopyImage={session.copyImage}
         onFormatChange={session.setFormat}
         onOpenImage={session.openImage}
+        onPixelize={session.startPixelize}
         onSave={session.save}
         onSaveAs={session.saveAs}
       />
 
       {session.error && <ErrorBanner message={session.error} onDismiss={session.dismissError} />}
 
-      <main className="flex min-h-0 flex-1 flex-col">
+      <main className="relative flex min-h-0 flex-1 flex-col">
         {session.image ? (
           <Editor
             editorRef={editorRef}
@@ -82,6 +85,16 @@ const App = () => {
           />
         ) : (
           <EmptyState busy={session.busy} onOpenImage={session.openImage} />
+        )}
+
+        {/* Over the editor rather than beside it: the selection needs the whole
+            area, and the editor must not see the drag. */}
+        {session.pixelizePreview && (
+          <PixelizeOverlay
+            image={session.pixelizePreview}
+            onApply={session.applyPixelize}
+            onCancel={session.cancelPixelize}
+          />
         )}
       </main>
 

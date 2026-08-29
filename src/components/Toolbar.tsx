@@ -1,4 +1,4 @@
-import { Camera, Check, ChevronDown, Copy, ImagePlus, Save, SaveAll } from 'lucide-react'
+import { Camera, Check, ChevronDown, Copy, Grid2x2, ImagePlus, Save, SaveAll } from 'lucide-react'
 import type { ChangeEvent, ReactNode } from 'react'
 
 import { PixenLogo } from '@/components/shared/Icons'
@@ -103,6 +103,7 @@ interface ToolbarProps {
   /** Passed only where capture is supported, so the button is absent elsewhere. */
   onCaptureScreen?: () => void
   onCopyImage: () => void
+  onPixelize: () => void
   onFormatChange: (format: SaveFormat) => void
   onOpenImage: () => void
   onSave: () => void
@@ -118,6 +119,7 @@ export const Toolbar = ({
   hasImage,
   onCaptureScreen,
   onCopyImage,
+  onPixelize,
   onFormatChange,
   onOpenImage,
   onSave,
@@ -174,6 +176,12 @@ export const Toolbar = ({
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5">
+        {/* No accelerator: this opens a drag-to-select overlay rather than
+            doing something a keystroke could finish on its own. */}
+        <ToolbarButton disabled={busy || !hasImage} label="Pixelize" onClick={onPixelize}>
+          <Grid2x2 className="size-3.5" />
+        </ToolbarButton>
+
         {onCaptureScreen && (
           // No accelerator: Cmd+Shift+3/4/5 belong to macOS and shadowing them
           // would take the system capture away from the user.

@@ -8,6 +8,7 @@ export interface MenuHandlers {
   /** Only reachable on macOS, the one platform with a capture backend. */
   onCaptureScreen: () => void
   onCopyImage: () => void
+  onPixelize: () => void
   onSave: () => void
   onSaveAs: () => void
   /** Runs the unsaved-changes prompt and quits; see `requestClose`. */
@@ -54,6 +55,15 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
     action: handlers.onCopyImage,
   })
 
+  // No accelerator, like the toolbar button: it opens a selection overlay
+  // rather than performing an edit outright.
+  const pixelizeItem = await MenuItem.new({
+    id: 'pixen-pixelize',
+    text: 'Pixelize…',
+    enabled: false,
+    action: handlers.onPixelize,
+  })
+
   const saveItem = await MenuItem.new({
     id: 'pixen-save',
     text: 'Save',
@@ -91,6 +101,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
           saveItem,
           saveAsItem,
           copyImageItem,
+          pixelizeItem,
           await separator(),
           quitItem,
         ],
@@ -124,6 +135,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
               await PredefinedMenuItem.new({ item: 'SelectAll' }),
               await separator(),
               copyImageItem,
+              pixelizeItem,
             ],
           }),
           await Submenu.new({
@@ -150,6 +162,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
       await saveItem.setEnabled(hasImage)
       await saveAsItem.setEnabled(hasImage)
       await copyImageItem.setEnabled(hasImage)
+      await pixelizeItem.setEnabled(hasImage)
     },
   }
 }

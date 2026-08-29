@@ -27,7 +27,8 @@ keyboard shortcuts.
   that destination afterwards
 - Saves to a new file with `⌘⇧S` / `Ctrl+Shift+S`
 - Copies the edited image to the system clipboard with `⌘⇧C` / `Ctrl+Shift+C`
-- Puts Open, Screenshot, Copy Image, Save and Save As in the native menu bar
+- Hides private data — an address, a token, a face — behind a mosaic, by dragging a box over it
+- Puts Open, Screenshot, Copy Image, Pixelize, Save and Save As in the native menu bar
 - Shows a splash screen while the app and the editor engine start up
 - Tracks unsaved changes in the window title (`Pixen — my-image.png *`)
 - Asks before closing with unsaved work: **Save**, **Don't Save** or **Cancel**
@@ -167,6 +168,29 @@ Unlike the screenshot, this works on all three platforms.
   clipboard permission is granted in `src-tauri/capabilities/` — the same arrangement as the file
   commands. It is pure Rust on every platform, so Linux gains no new system libraries.
 
+## Pixelizing
+
+**Pixelize** hides something you would rather not publish — an email address, an IP, a token — under
+a mosaic of averaged 12-pixel blocks. Drag a box over it and let go; there is no Apply step. Escape
+or **Cancel** closes without touching the image, and a stray click does the same.
+
+- **The selection is made on a still copy, not on the live canvas.** The editor reports neither its
+  zoom nor where the image sits on screen, so a box drawn over it could not be mapped back to
+  pixels. `PixelizeOverlay` covers the editor with the flattened image at a known `contain` fit, and
+  `src/lib/image/pixelize.ts` converts the drag into pixel coordinates from that.
+- **It flattens, like a save does.** The mosaic is applied to the image the editor currently shows,
+  and the result is loaded back in, so the editor's own undo history goes with it — pixelize is not
+  something Undo can take back. What survives is the document: the save path, the file name and the
+  unsaved marker, so `⌘S` still writes where it wrote before. The
+  [flattening costs](#what-a-flattened-save-costs) are the same ones a save pays.
+- **The mosaic is computed in Rust and stays a PNG in memory.** `pixelize_image` averages every
+  channel including alpha, so a mosaic over a transparent PNG stays transparent rather than growing
+  a grey square. This is an edit passing through, not a save, so the toolbar's format has no say in
+  it. The region is clamped to the image on both sides of the boundary.
+- **No keyboard shortcut.** It opens a drag-to-select overlay rather than finishing on its own, so a
+  keystroke would only ever get you halfway. It sits in the Edit menu on macOS beside Copy Image,
+  and in the File menu elsewhere.
+
 ## Saving
 
 PNG, JPEG and WebP are picked from the selector in Pixen's own toolbar, not from the save dialog. A
@@ -227,15 +251,15 @@ and the worst case is that they reappear rather than stop working.
 
 ```text
 src/
-├── components/          # Toolbar, Editor, EmptyState, DropOverlay, ErrorBanner, Splash
+├── components/          # Toolbar, Editor, EmptyState, DropOverlay, PixelizeOverlay, ErrorBanner, Splash
 ├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch
 └── lib/
     ├── editor/          # engine preload, editor options, unsaved-edit detection
-    ├── image/           # paths and formats, clipboard, capture, dialogs and I/O
+    ├── image/           # paths and formats, clipboard, capture, pixelize geometry, dialogs and I/O
     └── menu.ts          # the native menu bar
 
 src-tauri/src/
-├── image.rs             # image file I/O and PNG/JPEG/WebP encoding
+├── image.rs             # image file I/O, PNG/JPEG/WebP encoding, the pixelize mosaic
 ├── capture.rs           # macOS interactive screen capture
 ├── clipboard.rs         # copying the edited image out as pixels
 ├── dialog.rs            # the three-button unsaved-changes prompt

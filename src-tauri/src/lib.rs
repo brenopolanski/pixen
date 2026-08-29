@@ -23,6 +23,7 @@ pub fn run() {
             capture::capture_screen,
             clipboard::copy_image,
             dialog::confirm_unsaved_changes,
+            image::pixelize_image,
             image::read_image,
             image::write_image,
             window::finish_launch,
