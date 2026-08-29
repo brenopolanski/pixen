@@ -1,4 +1,4 @@
-import { ChevronDown, ImagePlus, Save, SaveAll } from 'lucide-react'
+import { Camera, ChevronDown, ImagePlus, Save, SaveAll } from 'lucide-react'
 import type { ChangeEvent, ReactNode } from 'react'
 
 import { PixenLogo } from '@/components/shared/Icons'
@@ -14,7 +14,8 @@ interface ToolbarButtonProps {
   disabled: boolean
   label: string
   primary?: boolean
-  shortcut: string
+  /** Omitted by actions that deliberately have no accelerator. */
+  shortcut?: string
   onClick: () => void
 }
 
@@ -35,7 +36,7 @@ const ToolbarButton = ({
           : 'border-border bg-surface text-foreground hover:bg-accent',
       )}
       disabled={disabled}
-      title={`${label} (${shortcut})`}
+      title={shortcut ? `${label} (${shortcut})` : label}
       type="button"
       onClick={onClick}
     >
@@ -91,6 +92,8 @@ interface ToolbarProps {
   fileName: string | null
   format: SaveFormat
   hasImage: boolean
+  /** Passed only where capture is supported, so the button is absent elsewhere. */
+  onCaptureScreen?: () => void
   onFormatChange: (format: SaveFormat) => void
   onOpenImage: () => void
   onSave: () => void
@@ -103,6 +106,7 @@ export const Toolbar = ({
   fileName,
   format,
   hasImage,
+  onCaptureScreen,
   onFormatChange,
   onOpenImage,
   onSave,
@@ -136,6 +140,14 @@ export const Toolbar = ({
         >
           <ImagePlus className="size-3.5" />
         </ToolbarButton>
+
+        {onCaptureScreen && (
+          // No accelerator: Cmd+Shift+3/4/5 belong to macOS and shadowing them
+          // would take the system capture away from the user.
+          <ToolbarButton disabled={busy} label="Screenshot" onClick={onCaptureScreen}>
+            <Camera className="size-3.5" />
+          </ToolbarButton>
+        )}
 
         <FormatSelect disabled={busy} format={format} onChange={onFormatChange} />
 

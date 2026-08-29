@@ -1,6 +1,8 @@
 export const APP_NAME = 'Pixen'
 export const APP_TAGLINE = 'Image Editor'
 export const UNTITLED_NAME = 'Untitled'
+/** Names a captured screenshot, so its first save offers Screenshot.png. */
+export const SCREENSHOT_NAME = 'Screenshot'
 
 /** Keep in sync with image_mime_type in src-tauri/src/image.rs */
 export const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'] as const

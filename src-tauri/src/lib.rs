@@ -1,3 +1,4 @@
+mod capture;
 mod dialog;
 mod image;
 mod window;
@@ -15,6 +16,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
+            capture::capture_screen,
             dialog::confirm_unsaved_changes,
             image::read_image,
             image::write_image,

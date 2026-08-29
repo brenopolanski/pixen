@@ -20,12 +20,13 @@ keyboard shortcuts.
 
 - Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or
   through a native file dialog
+- Captures a region of the screen straight into the editor (macOS only)
 - Edits them with [`@unlayer/react-image-editor`](https://github.com/unlayer/react-image-editor) —
   crop, resize, filters, draw, text, shapes, stickers and frames
 - Saves as PNG, JPEG or WebP with `⌘S` / `Ctrl+S`, asking where to write the first time and reusing
   that destination afterwards
 - Saves to a new file with `⌘⇧S` / `Ctrl+Shift+S`
-- Puts Open, Save and Save As in the native menu bar
+- Puts Open, Screenshot, Save and Save As in the native menu bar
 - Shows a splash screen while the app and the editor engine start up
 - Tracks unsaved changes in the window title (`Pixen — my-image.png *`)
 - Asks before closing with unsaved work: **Save**, **Don't Save** or **Cancel**
@@ -119,6 +120,9 @@ confirms unsaved work, then loads. Only where the image comes from differs.
   decide whether Pixen acts. A paste aimed at an `input`, `textarea`, `select` or `contenteditable`
   is left alone, which is what keeps the editor's text tool working. A pasted image has no path, so
   its first save asks where to write.
+- **Screenshotting** runs macOS's own `screencapture -i`, so you get the crosshair you already know
+  — drag a region, or press Space to pick a window. Pixen hides itself for the duration and comes
+  back whatever happens. A capture has no path either, so its first save offers `Screenshot.png`.
 - **The File menu** is built with `@tauri-apps/api/menu`, so its actions sit next to the session
   rather than in Rust. Save and Save As are disabled until an image is open. On macOS a menu replaces
   the entire bar, so the App, Edit and Window submenus are rebuilt too — without an Edit menu the
@@ -126,6 +130,21 @@ confirms unsaved work, then loads. Only where the image comes from differs.
 
 Quit is a plain menu item wired to Pixen's own close handler, not the predefined one. The predefined
 item calls `exit` directly, which would drop unsaved edits without asking.
+
+### Screenshots are macOS-only for now
+
+The button and the menu item are absent on Windows and Linux, both of which would need a capture
+stack of their own — and none of them offer a crosshair, which is the part that makes this worth
+having. Two things to know on macOS:
+
+- **The first capture asks for Screen Recording permission**, and macOS grants it to a specific app
+  binary. A dev build's path changes as it is rebuilt, so the prompt can reappear or the capture can
+  come back blank; confirm the permission against a real `pnpm tauri:build` app.
+- **Cancelling is silent and leaves the open image alone.** Escape cancels, and holding Control
+  sends the shot to the clipboard instead of to Pixen. Neither produces a file, and the missing file
+  is how cancellation is detected — `screencapture`'s exit code is undocumented.
+
+Capturing over unsaved edits asks before replacing them, the same as any other way of opening.
 
 ## Saving
 
@@ -191,11 +210,12 @@ src/
 ├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch
 └── lib/
     ├── editor/          # engine preload, editor options, unsaved-edit detection
-    ├── image/           # paths and formats, clipboard reads, dialogs and I/O
+    ├── image/           # paths and formats, clipboard reads, capture, dialogs and I/O
     └── menu.ts          # the native menu bar
 
 src-tauri/src/
 ├── image.rs             # image file I/O and PNG/JPEG/WebP encoding
+├── capture.rs           # macOS interactive screen capture
 ├── dialog.rs            # the three-button unsaved-changes prompt
 └── window.rs            # splash → main handoff, quit
 ```

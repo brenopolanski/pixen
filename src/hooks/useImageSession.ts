@@ -3,6 +3,7 @@ import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import {
+  SCREENSHOT_NAME,
   UNSAVED_CHECK_DEBOUNCE_MS,
   UNSAVED_CHECK_INTERVAL_MS,
   UNTITLED_NAME,
@@ -10,6 +11,7 @@ import {
 import { askAboutUnsavedChanges, askToDiscardChanges, quitApp } from '@/lib/desktop'
 import { hasUnsavedEdits } from '@/lib/editor/engine'
 import { PixenError, toUserMessage } from '@/lib/errors'
+import { captureScreen as runCapture } from '@/lib/image/capture'
 import type { SaveFormat } from '@/lib/image/image'
 import { baseNameOf, DEFAULT_SAVE_FORMAT, formatForPath, matchesFormat } from '@/lib/image/image'
 import { pickImage, pickSaveDestination, readImage, writeImage } from '@/lib/image/imageStorage'
@@ -46,6 +48,8 @@ export interface ImageSession extends SessionState {
   openFromPath: (path: string) => void
   /** Opens an image with no file behind it, such as a pasted screenshot. */
   openFromDataUrl: (dataUrl: string, name: string) => void
+  /** Captures a region of the screen and opens it. macOS only. */
+  captureScreen: () => void
   save: () => void
   saveAs: () => void
   discardEdits: () => void
@@ -228,6 +232,23 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     [confirmReplacingImage, load, run],
   )
 
+  const captureScreen = useCallback(() => {
+    run(async () => {
+      if (!(await confirmReplacingImage())) {
+        return
+      }
+
+      const dataUrl = await runCapture()
+
+      // Cancelled: the open image is left exactly as it was.
+      if (!dataUrl) {
+        return
+      }
+
+      load(dataUrl, SCREENSHOT_NAME)
+    })
+  }, [confirmReplacingImage, load, run])
+
   const save = useCallback(() => {
     run(async () => {
       if (!sessionRef.current.image) {
@@ -351,6 +372,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     openImage,
     openFromPath,
     openFromDataUrl,
+    captureScreen,
     save,
     saveAs,
     discardEdits,

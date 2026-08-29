@@ -14,6 +14,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useLaunchSequence } from '@/hooks/useLaunchSequence'
 import { useNativeMenu } from '@/hooks/useNativeMenu'
 import { useWindowTitle } from '@/hooks/useWindowTitle'
+import { isCaptureSupported } from '@/lib/image/capture'
 import { fileNameOf } from '@/lib/image/image'
 
 const App = () => {
@@ -30,6 +31,7 @@ const App = () => {
   useNativeMenu(
     {
       onOpenImage: session.openImage,
+      onCaptureScreen: session.captureScreen,
       onSave: session.save,
       onSaveAs: session.saveAs,
       onQuit: session.requestClose,
@@ -56,6 +58,7 @@ const App = () => {
         fileName={session.path && fileNameOf(session.path)}
         format={session.format}
         hasImage={hasImage}
+        onCaptureScreen={isCaptureSupported() ? session.captureScreen : undefined}
         onFormatChange={session.setFormat}
         onOpenImage={session.openImage}
         onSave={session.save}

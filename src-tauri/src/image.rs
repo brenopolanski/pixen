@@ -26,7 +26,7 @@ const JPEG_QUALITY: u8 = 92;
 /// Keep in sync with IMAGE_EXTENSIONS in src/lib/constants.ts and SAVE_FORMATS
 /// in src/lib/image/image.ts.
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum Format {
+pub enum Format {
     Png,
     Jpeg,
     WebP,
@@ -188,8 +188,22 @@ fn write_atomically(path: &Path, contents: &[u8], subject: &str) -> Result<(), S
     Ok(())
 }
 
-/// Reads a user-picked image and returns it as a data URL, which is the only
-/// image form the editor accepts.
+/// Reads an image file of a known format as a data URL, which is the only image
+/// form the editor accepts. Shared with the screenshot capture, which knows its
+/// own output is PNG and so has no extension to inspect.
+pub fn read_as_data_url(path: &Path, format: Format) -> Result<String, String> {
+    ensure_size_limit(path, MAX_IMAGE_BYTES, IMAGE_SUBJECT)?;
+
+    let bytes = fs::read(path).map_err(|error| io_error_message(&error, "read", IMAGE_SUBJECT))?;
+
+    Ok(format!(
+        "data:{};base64,{}",
+        format.mime_type(),
+        STANDARD.encode(bytes)
+    ))
+}
+
+/// Reads a user-picked image, refusing anything Pixen cannot decode.
 #[tauri::command]
 pub fn read_image(path: String) -> Result<String, String> {
     let path = PathBuf::from(path);
@@ -198,15 +212,7 @@ pub fn read_image(path: String) -> Result<String, String> {
         return Err("Pixen can open PNG, JPEG and WebP images.".to_string());
     };
 
-    ensure_size_limit(&path, MAX_IMAGE_BYTES, IMAGE_SUBJECT)?;
-
-    let bytes = fs::read(&path).map_err(|error| io_error_message(&error, "read", IMAGE_SUBJECT))?;
-
-    Ok(format!(
-        "data:{};base64,{}",
-        format.mime_type(),
-        STANDARD.encode(bytes)
-    ))
+    read_as_data_url(&path, format)
 }
 
 /// Writes an edited image, encoded into whichever format the destination's

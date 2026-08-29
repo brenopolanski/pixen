@@ -5,6 +5,8 @@ import { APP_NAME } from '@/lib/constants'
 
 export interface MenuHandlers {
   onOpenImage: () => void
+  /** Only reachable on macOS, the one platform with a capture backend. */
+  onCaptureScreen: () => void
   onSave: () => void
   onSaveAs: () => void
   /** Runs the unsaved-changes prompt and quits; see `requestClose`. */
@@ -35,6 +37,12 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
     action: handlers.onOpenImage,
   })
 
+  const captureItem = await MenuItem.new({
+    id: 'pixen-capture',
+    text: 'Take Screenshot…',
+    action: handlers.onCaptureScreen,
+  })
+
   const saveItem = await MenuItem.new({
     id: 'pixen-save',
     text: 'Save',
@@ -63,7 +71,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
   const fileMenu = await Submenu.new({
     text: 'File',
     items: mac
-      ? [openItem, await separator(), saveItem, saveAsItem]
+      ? [openItem, captureItem, await separator(), saveItem, saveAsItem]
       : [openItem, await separator(), saveItem, saveAsItem, await separator(), quitItem],
   })
 
