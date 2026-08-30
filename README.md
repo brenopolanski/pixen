@@ -5,12 +5,7 @@
 <h1 align="center">
   Pixen
 </h1>
-<p align="center">
-  Open-source desktop image editor built with <a href="https://tauri.app">Tauri</a> and React.
-</p>
-
-> **Early-stage.** Pixen is at v0.1.0. It opens an image, edits it, and saves the result — nothing
-> more.
+<p align="center">An open-source desktop image editor, ideal for screenshots — crop, annotate, hide private information, and make quick edits.</p>
 
 Pixen is a small desktop shell around the [Unlayer Image Editor](https://unlayer.com/image-editor).
 The editor does the editing; Pixen owns the window, the native file dialogs, the encoding, and the
