@@ -2,7 +2,7 @@
 name = "pixen"
 version = "0.1.0"
 description = "Open-source desktop image editor built with Tauri and React"
-authors = ["dashfy"]
+authors = ["Breno Polanski <breno.polanski@gmail.com>"]
 edition = "2021"
 
 [lib]
