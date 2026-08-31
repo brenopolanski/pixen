@@ -1,6 +1,4 @@
 @import 'tailwindcss';
-/* Supplies the enter/exit utilities the shadcn dropdown animates with; Tailwind
-   4 dropped the plugin those used to come from. */
 @import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));

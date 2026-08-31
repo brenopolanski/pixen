@@ -19,7 +19,7 @@ const eslintConfig = defineConfig([
   reactHooks.configs.flat.recommended,
   reactRefresh.configs.vite,
   prettier,
-  globalIgnores(['dist/**', 'src-tauri/**']),
+  globalIgnores(['dist/**', 'src-tauri/**', 'src/components/ui/**']),
   {
     languageOptions: {
       globals: {
@@ -67,15 +67,6 @@ const eslintConfig = defineConfig([
       'simple-import-sort/exports': 'error',
       'simple-import-sort/imports': 'error',
       'unused-imports/no-unused-imports': 'error',
-    },
-  },
-  {
-    // shadcn primitives ship their cva table next to the component, and the
-    // generator will keep doing that on every `shadcn add`. Naming the exports
-    // is cheaper than splitting each generated file by hand.
-    files: ['src/components/ui/**/*.tsx'],
-    rules: {
-      'react-refresh/only-export-components': ['error', { allowExportNames: ['buttonVariants'] }],
     },
   },
   {

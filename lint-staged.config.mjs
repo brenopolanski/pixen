@@ -1,4 +1,4 @@
-const eslintIgnoredPaths = ['/src-tauri/']
+const eslintIgnoredPaths = ['/src/components/ui/', '/src-tauri/']
 const shouldLintWithEslint = (file) => !eslintIgnoredPaths.some((path) => file.includes(path))
 
 const lintStagedConfig = {
