@@ -15,7 +15,7 @@ export const Splash = () => {
       </div>
 
       <div className="flex flex-col items-center gap-2.5">
-        <div className="h-[3px] w-28 overflow-hidden rounded-full bg-muted">
+        <div className="h-0.75 w-28 overflow-hidden rounded-full bg-muted">
           <div className="progress-indicator h-full w-1/3 rounded-full bg-brand" />
         </div>
         <p className="text-[11px] text-muted-foreground">Loading…</p>
