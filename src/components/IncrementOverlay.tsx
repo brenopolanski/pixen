@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import type { Stamp } from '@/lib/image/increment'
 import { badgeRect, FIRST_STEP } from '@/lib/image/increment'
 import { clickToPixel, displayedScale, pixelToDisplayed } from '@/lib/image/pixelize'
+import { generateReactKey } from '@/lib/utils'
 
 /** Matches the toolbar: an overlay is a mode of the same window, not a dialog. */
 const OVERLAY_BUTTON = 'h-auto gap-1.5 px-2.5 py-1.5 text-[12px]'
@@ -156,7 +157,7 @@ export const IncrementOverlay = ({ image, onApply, onCancel }: IncrementOverlayP
 
             return (
               <span
-                key={stamp.step}
+                key={generateReactKey('stamp', stamp.step)}
                 className="pointer-events-none absolute flex items-center justify-center rounded-full bg-[#e5484d] font-semibold text-white"
                 style={{
                   left: origin.x,

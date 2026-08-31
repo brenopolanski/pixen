@@ -28,6 +28,7 @@ import type { SaveFormat } from '@/lib/image/image'
 import { SAVE_FORMATS } from '@/lib/image/image'
 import { isMacPlatform } from '@/lib/platform'
 import { formatShortcut } from '@/lib/shortcuts'
+import { generateReactKey } from '@/lib/utils'
 
 /**
  * The primitives default to a 36px form control, which does not fit a 48px bar.
@@ -127,7 +128,7 @@ const ToolsMenu = ({
       <DropdownMenuContent align="end" className={MENU_CONTENT} sideOffset={6}>
         {items.map((item) => (
           <DropdownMenuItem
-            key={item.label}
+            key={generateReactKey('tool', item.label)}
             className={MENU_ITEM}
             disabled={item.disabled}
             title={item.shortcut ? `${item.label} (${item.shortcut})` : item.label}
@@ -169,7 +170,7 @@ const ExportMenu = ({ disabled, format, onChange }: ExportMenuProps) => {
       <DropdownMenuContent align="end" className={MENU_CONTENT} sideOffset={6}>
         {SAVE_FORMATS.map((option) => (
           <DropdownMenuCheckboxItem
-            key={option.id}
+            key={generateReactKey('format', option.id)}
             checked={option.id === format.id}
             className={MENU_CHECK_ITEM}
             title={option.name}
