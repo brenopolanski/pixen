@@ -5,6 +5,7 @@ import { isMacPlatform } from '@/lib/platform'
 import { formatShortcut } from '@/lib/shortcuts'
 
 import { Logo } from './shared/Logo'
+import { Kbd } from './ui/kbd'
 
 interface EmptyStateProps {
   busy: boolean
@@ -31,8 +32,8 @@ export const EmptyState = ({ busy, onOpenImage }: EmptyStateProps) => {
       </Button>
 
       <p className="text-[12px] text-muted-foreground">
-        {formatShortcut(mac, 'o')} to browse · {formatShortcut(mac, 'v')} to paste from the
-        clipboard
+        Use <Kbd>{formatShortcut(mac, 'o')}</Kbd> to browse and{' '}
+        <Kbd>{formatShortcut(mac, 'v')}</Kbd> to paste from the clipboard
       </p>
     </div>
   )
