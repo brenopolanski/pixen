@@ -7,6 +7,8 @@
 </h1>
 <p align="center">An open-source desktop image editor, ideal for screenshots — crop, annotate, hide private information, and make quick edits.</p>
 
+![Pixen Banner](./preview/pixen-banner.png)
+
 Pixen is a small desktop shell around the [Unlayer Image Editor](https://unlayer.com/image-editor).
 The editor does the editing; Pixen owns the window, the native file dialogs, the encoding, and the
 keyboard shortcuts.
