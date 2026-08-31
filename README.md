@@ -10,36 +10,19 @@
 ![Pixen Banner](./preview/pixen-banner.png)
 
 Pixen is a small desktop shell around the [Unlayer Image Editor](https://unlayer.com/image-editor).
-The editor does the editing; Pixen owns the window, the native file dialogs, the encoding, and the
-keyboard shortcuts.
+The editor does the editing. Pixen owns the window, the native file dialogs, the encoding, and the keyboard shortcuts.
 
 ## What it does
 
-- Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or
-  through a native file dialog
-- Captures a region of the screen straight into the editor (macOS only)
-- Edits them with [`@unlayer/react-image-editor`](https://github.com/unlayer/react-image-editor) —
-  crop, resize, filters, draw, text, shapes, stickers and frames
-- Saves as PNG, JPEG or WebP with `⌘S` / `Ctrl+S`, asking where to write the first time and reusing
-  that destination afterwards
+- Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or through a native file dialog
+- Captures a region of the screen straight into the editor (**macOS only**)
+- Edits them with [`@unlayer/react-image-editor`](https://github.com/unlayer/react-image-editor) — crop, resize, filters, draw, text, shapes, stickers and frames
+- Saves as PNG, JPEG or WebP with `⌘S` / `Ctrl+S`, asking where to write the first time and reusing that destination afterwards
 - Saves to a new file with `⌘⇧S` / `Ctrl+Shift+S`
 - Copies the edited image to the system clipboard with `⌘⇧C` / `Ctrl+Shift+C`
 - Hides private data — an address, a token, a face — behind a mosaic, by dragging a box over it
 - Numbers a screenshot for a step-by-step guide: click each spot and the badge counts itself up
-- Cuts the background away from the subject with a local segmentation model, previewing the result
-  before it is applied
-- Puts Open, Screenshot, Copy Image, Pixelize, Numbered Steps, Remove Background, Save and Save As
-  in the native menu bar
-- Opens an About window from the App menu on macOS, or the File menu on Windows and Linux
-- Shows a splash screen while the app and the editor engine start up
-- Tracks unsaved changes in the window title (`Pixen — my-image.png *`)
-- Asks before closing with unsaved work: **Save**, **Don't Save** or **Cancel**
-
-The image you opened is never written unless you pick it in the save dialog yourself.
-
-Not implemented: plugins, accounts, cloud storage, batch processing, multiple documents, version
-history, crash recovery, telemetry. The only model Pixen runs is the background segmentation one,
-and it runs on your machine.
+- Cuts the background away from the subject with a local segmentation model, previewing the result before it is applied
 
 ## Tech stack
 
