@@ -1,4 +1,4 @@
-import { ImageDown } from 'lucide-react'
+import { ImageDownIcon } from './shared/Icons'
 
 /**
  * Covers the whole window while a drag is in progress. The editor fills the
@@ -15,7 +15,7 @@ export const DropOverlay = () => {
       aria-hidden
     >
       <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-brand px-10 py-8">
-        <ImageDown className="size-8 text-brand" />
+        <ImageDownIcon className="size-8 text-brand" />
         <p className="text-[14px] font-semibold text-foreground">Drop to open</p>
         <p className="text-[12px] text-muted-foreground">PNG, JPEG or WebP</p>
       </div>

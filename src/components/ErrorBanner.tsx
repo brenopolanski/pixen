@@ -1,6 +1,6 @@
-import { X } from 'lucide-react'
-
 import { Button } from '@/components/ui/button'
+
+import { XIcon } from './shared/Icons'
 
 interface ErrorBannerProps {
   message: string
@@ -24,7 +24,7 @@ export const ErrorBanner = ({ message, onDismiss }: ErrorBannerProps) => {
         variant="ghost"
         onClick={onDismiss}
       >
-        <X className="size-3.5" />
+        <XIcon className="size-3.5" />
       </Button>
     </div>
   )

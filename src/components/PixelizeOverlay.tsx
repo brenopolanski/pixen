@@ -1,10 +1,11 @@
-import { X } from 'lucide-react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import type { Rect } from '@/lib/image/pixelize'
 import { rectBetween, selectionToPixels } from '@/lib/image/pixelize'
+
+import { XIcon } from './shared/Icons'
 
 /** Matches the toolbar: an overlay is a mode of the same window, not a dialog. */
 const OVERLAY_BUTTON = 'h-auto gap-1.5 px-2.5 py-1.5 text-[12px]'
@@ -118,7 +119,7 @@ export const PixelizeOverlay = ({ image, onApply, onCancel }: PixelizeOverlayPro
         </p>
 
         <Button className={OVERLAY_BUTTON} variant="outline" onClick={onCancel}>
-          <X className="size-3.5" />
+          <XIcon className="size-3.5" />
           Cancel
         </Button>
       </div>

@@ -1,9 +1,10 @@
-import { Check, X } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { toUserMessage } from '@/lib/errors'
 import { removeImageBackground } from '@/lib/image/cutout'
+
+import { CheckIcon, XIcon } from './shared/Icons'
 
 /** Matches the toolbar: an overlay is a mode of the same window, not a dialog. */
 const OVERLAY_BUTTON = 'h-auto gap-1.5 px-2.5 py-1.5 text-[12px]'
@@ -103,12 +104,12 @@ export const CutoutOverlay = ({ image, onApply, onCancel, onError }: CutoutOverl
 
         <div className="flex shrink-0 items-center gap-1.5">
           <Button className={OVERLAY_BUTTON} variant="outline" onClick={onCancel}>
-            <X className="size-3.5" />
+            <XIcon className="size-3.5" />
             Cancel
           </Button>
 
           <Button className={OVERLAY_BUTTON} disabled={!done} onClick={apply}>
-            <Check className="size-3.5" />
+            <CheckIcon className="size-3.5" />
             Apply
           </Button>
         </div>
@@ -130,7 +131,7 @@ export const CutoutOverlay = ({ image, onApply, onCancel, onError }: CutoutOverl
 
         {!done && (
           <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2.5 bg-gradient-to-t from-background to-transparent px-4 pt-10 pb-8">
-            <div className="h-[3px] w-40 overflow-hidden rounded-full bg-muted">
+            <div className="h-0.75 w-40 overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full bg-brand transition-[width] duration-200"
                 style={{ width: `${Math.round(ratio * 100)}%` }}

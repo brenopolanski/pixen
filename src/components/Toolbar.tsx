@@ -1,16 +1,3 @@
-import {
-  Camera,
-  ChevronDown,
-  Copy,
-  FileDown,
-  Grid2x2,
-  ImagePlus,
-  ListOrdered,
-  Save,
-  SaveAll,
-  WandSparkles,
-  Wrench,
-} from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -29,6 +16,19 @@ import { isMacPlatform } from '@/lib/platform'
 import { formatShortcut } from '@/lib/shortcuts'
 import { generateReactKey } from '@/lib/utils'
 
+import {
+  CameraIcon,
+  ChevronDownIcon,
+  CopyIcon,
+  FileDownIcon,
+  Grid2x2Icon,
+  ImagePlusIcon,
+  ListOrderedIcon,
+  SaveAllIcon,
+  SaveIcon,
+  WandSparklesIcon,
+  WrenchIcon,
+} from './shared/Icons'
 import { Logo } from './shared/Logo'
 
 /**
@@ -77,13 +77,13 @@ const ToolsMenu = ({
     {
       label: 'Background',
       disabled: busy || !hasImage,
-      icon: <WandSparkles className="size-3.5" />,
+      icon: <WandSparklesIcon className="size-3.5" />,
       onSelect: onCutout,
     },
     {
       label: 'Copy',
       disabled: busy || !hasImage,
-      icon: <Copy className="size-3.5" />,
+      icon: <CopyIcon className="size-3.5" />,
       shortcut: formatShortcut(mac, 'c', true),
       // Confirmed by a toast from the session, so this closes like the rest:
       // the confirmation no longer needs the menu to stay open to be seen.
@@ -92,13 +92,13 @@ const ToolsMenu = ({
     {
       label: 'Pixelize',
       disabled: busy || !hasImage,
-      icon: <Grid2x2 className="size-3.5" />,
+      icon: <Grid2x2Icon className="size-3.5" />,
       onSelect: onPixelize,
     },
     {
       label: 'Steps',
       disabled: busy || !hasImage,
-      icon: <ListOrdered className="size-3.5" />,
+      icon: <ListOrderedIcon className="size-3.5" />,
       onSelect: onIncrement,
     },
   ]
@@ -107,7 +107,7 @@ const ToolsMenu = ({
     items.push({
       label: 'Screenshot',
       disabled: busy,
-      icon: <Camera className="size-3.5" />,
+      icon: <CameraIcon className="size-3.5" />,
       onSelect: onCaptureScreen,
     })
   }
@@ -120,9 +120,9 @@ const ToolsMenu = ({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button className={TOOLBAR_BUTTON} title="Tools" variant="outline">
-          <Wrench className="size-3.5" />
+          <WrenchIcon className="size-3.5" />
           Tools
-          <ChevronDown className="size-3 text-muted-foreground" />
+          <ChevronDownIcon className="size-3 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
 
@@ -162,9 +162,9 @@ const ExportMenu = ({ disabled, format, onChange }: ExportMenuProps) => {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button className={TOOLBAR_BUTTON} disabled={disabled} title="Export" variant="outline">
-          <FileDown className="size-3.5" />
+          <FileDownIcon className="size-3.5" />
           Export
-          <ChevronDown className="size-3 text-muted-foreground" />
+          <ChevronDownIcon className="size-3 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
 
@@ -240,7 +240,7 @@ export const Toolbar = ({
           variant="outline"
           onClick={onOpenImage}
         >
-          <ImagePlus className="size-3.5" />
+          <ImagePlusIcon className="size-3.5" />
           Open Image
         </Button>
 
@@ -251,7 +251,7 @@ export const Toolbar = ({
           variant="outline"
           onClick={onSaveAs}
         >
-          <SaveAll className="size-3.5" />
+          <SaveAllIcon className="size-3.5" />
           Save As
         </Button>
 
@@ -261,7 +261,7 @@ export const Toolbar = ({
           title={`Save (${formatShortcut(mac, 's')})`}
           onClick={onSave}
         >
-          <Save className="size-3.5" />
+          <SaveIcon className="size-3.5" />
           Save
         </Button>
       </div>

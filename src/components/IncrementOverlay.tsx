@@ -1,4 +1,3 @@
-import { Check, Undo2, X } from 'lucide-react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 
@@ -7,6 +6,8 @@ import type { Stamp } from '@/lib/image/increment'
 import { badgeRect, FIRST_STEP } from '@/lib/image/increment'
 import { clickToPixel, displayedScale, pixelToDisplayed } from '@/lib/image/pixelize'
 import { generateReactKey } from '@/lib/utils'
+
+import { CheckIcon, Undo2Icon, XIcon } from './shared/Icons'
 
 /** Matches the toolbar: an overlay is a mode of the same window, not a dialog. */
 const OVERLAY_BUTTON = 'h-auto gap-1.5 px-2.5 py-1.5 text-[12px]'
@@ -108,19 +109,19 @@ export const IncrementOverlay = ({ image, onApply, onCancel }: IncrementOverlayP
             variant="outline"
             onClick={undoLast}
           >
-            <Undo2 className="size-3.5" />
+            <Undo2Icon className="size-3.5" />
             Undo last
           </Button>
 
           <Button className={OVERLAY_BUTTON} variant="outline" onClick={onCancel}>
-            <X className="size-3.5" />
+            <XIcon className="size-3.5" />
             Cancel
           </Button>
 
           {/* Nothing to bake until something has been stamped, and applying an
               empty set would flatten the editor for no change at all. */}
           <Button className={OVERLAY_BUTTON} disabled={stamps.length === 0} onClick={apply}>
-            <Check className="size-3.5" />
+            <CheckIcon className="size-3.5" />
             Done
           </Button>
         </div>

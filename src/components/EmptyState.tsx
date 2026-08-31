@@ -1,9 +1,8 @@
-import { ImagePlus } from 'lucide-react'
-
 import { Button } from '@/components/ui/button'
 import { isMacPlatform } from '@/lib/platform'
 import { formatShortcut } from '@/lib/shortcuts'
 
+import { ImagePlusIcon } from './shared/Icons'
 import { Logo } from './shared/Logo'
 import { Kbd } from './ui/kbd'
 
@@ -27,7 +26,7 @@ export const EmptyState = ({ busy, onOpenImage }: EmptyStateProps) => {
       </div>
 
       <Button className="h-auto px-3.5 py-2 text-[13px]" disabled={busy} onClick={onOpenImage}>
-        <ImagePlus className="size-4" />
+        <ImagePlusIcon className="size-4" />
         Open Image
       </Button>
 
