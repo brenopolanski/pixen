@@ -3,12 +3,7 @@ import { useEffect, useRef } from 'react'
 import { SPLASH_MIN_DURATION_MS } from '@/lib/constants'
 import { finishLaunch } from '@/lib/desktop'
 import { preloadEditorEngine } from '@/lib/editor/engine'
-
-const delay = (ms: number): Promise<void> => {
-  return new Promise((resolve) => {
-    window.setTimeout(() => resolve(), ms)
-  })
-}
+import { delay } from '@/lib/utils'
 
 /**
  * Startup, in order: warm the editor engine, hold the splash screen for long
