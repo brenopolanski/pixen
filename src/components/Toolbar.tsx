@@ -31,18 +31,6 @@ import {
 } from './shared/Icons'
 import { Logo } from './shared/Logo'
 
-/**
- * The primitives default to a 36px form control, which does not fit a 48px bar.
- * These are density overrides only — colour and state stay with the variants.
- */
-const TOOLBAR_BUTTON = 'h-auto gap-1.5 px-2.5 py-1.5 text-[12px]'
-const MENU_CONTENT = 'min-w-[176px]'
-/** Icons in the menu read as part of their label, so they keep its colour. */
-const MENU_ITEM = 'gap-1.5 px-2.5 py-1.5 text-[12px] font-medium [&_svg]:text-foreground'
-/** No left padding: a checkbox item reserves that gutter for its checkmark. */
-const MENU_CHECK_ITEM = 'gap-1.5 py-1.5 pr-2.5 text-[12px] font-medium'
-const MENU_SHORTCUT = 'text-[11px] tracking-normal'
-
 interface ToolItem {
   /** What the menu shows, and the key the list is sorted on. */
   label: string
@@ -119,18 +107,22 @@ const ToolsMenu = ({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button className={TOOLBAR_BUTTON} title="Tools" variant="outline">
+        <Button
+          className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
+          title="Tools"
+          variant="outline"
+        >
           <WrenchIcon className="size-3.5" />
           Tools
           <ChevronDownIcon className="size-3 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className={MENU_CONTENT} sideOffset={6}>
+      <DropdownMenuContent align="end" className="min-w-44" sideOffset={6}>
         {items.map((item) => (
           <DropdownMenuItem
             key={generateReactKey('tool', item.label)}
-            className={MENU_ITEM}
+            className="gap-1.5 px-2.5 py-1.5 text-[12px] font-medium [&_svg]:text-foreground"
             disabled={item.disabled}
             title={item.shortcut ? `${item.label} (${item.shortcut})` : item.label}
             onSelect={item.onSelect}
@@ -138,7 +130,9 @@ const ToolsMenu = ({
             {item.icon}
             {item.label}
             {item.shortcut && (
-              <DropdownMenuShortcut className={MENU_SHORTCUT}>{item.shortcut}</DropdownMenuShortcut>
+              <DropdownMenuShortcut className="text-[11px] tracking-normal">
+                {item.shortcut}
+              </DropdownMenuShortcut>
             )}
           </DropdownMenuItem>
         ))}
@@ -161,19 +155,24 @@ const ExportMenu = ({ disabled, format, onChange }: ExportMenuProps) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button className={TOOLBAR_BUTTON} disabled={disabled} title="Export" variant="outline">
+        <Button
+          className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
+          disabled={disabled}
+          title="Export"
+          variant="outline"
+        >
           <FileDownIcon className="size-3.5" />
           Export
           <ChevronDownIcon className="size-3 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className={MENU_CONTENT} sideOffset={6}>
+      <DropdownMenuContent align="end" className="min-w-44" sideOffset={6}>
         {SAVE_FORMATS.map((option) => (
           <DropdownMenuCheckboxItem
             key={generateReactKey('format', option.id)}
             checked={option.id === format.id}
-            className={MENU_CHECK_ITEM}
+            className="gap-1.5 py-1.5 pr-2.5 text-[12px] font-medium"
             title={option.name}
             onSelect={() => onChange(option)}
           >
@@ -234,7 +233,7 @@ export const Toolbar = ({
       {/* The file actions, next to the name they act on. */}
       <div className="flex shrink-0 items-center gap-1.5">
         <Button
-          className={TOOLBAR_BUTTON}
+          className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
           disabled={busy}
           title={`Open Image (${formatShortcut(mac, 'o')})`}
           variant="outline"
@@ -245,7 +244,7 @@ export const Toolbar = ({
         </Button>
 
         <Button
-          className={TOOLBAR_BUTTON}
+          className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
           disabled={busy || !hasImage}
           title={`Save As (${formatShortcut(mac, 's', true)})`}
           variant="outline"
@@ -256,7 +255,7 @@ export const Toolbar = ({
         </Button>
 
         <Button
-          className={TOOLBAR_BUTTON}
+          className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
           disabled={busy || !hasImage}
           title={`Save (${formatShortcut(mac, 's')})`}
           onClick={onSave}

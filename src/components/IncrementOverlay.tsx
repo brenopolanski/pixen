@@ -9,9 +9,6 @@ import { generateReactKey } from '@/lib/utils'
 
 import { CheckIcon, Undo2Icon, XIcon } from './shared/Icons'
 
-/** Matches the toolbar: an overlay is a mode of the same window, not a dialog. */
-const OVERLAY_BUTTON = 'h-auto gap-1.5 px-2.5 py-1.5 text-[12px]'
-
 interface IncrementOverlayProps {
   /** The flattened canvas to stamp on. */
   image: string
@@ -104,7 +101,7 @@ export const IncrementOverlay = ({ image, onApply, onCancel }: IncrementOverlayP
 
         <div className="flex shrink-0 items-center gap-1.5">
           <Button
-            className={OVERLAY_BUTTON}
+            className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
             disabled={stamps.length === 0}
             variant="outline"
             onClick={undoLast}
@@ -113,14 +110,22 @@ export const IncrementOverlay = ({ image, onApply, onCancel }: IncrementOverlayP
             Undo last
           </Button>
 
-          <Button className={OVERLAY_BUTTON} variant="outline" onClick={onCancel}>
+          <Button
+            className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
+            variant="outline"
+            onClick={onCancel}
+          >
             <XIcon className="size-3.5" />
             Cancel
           </Button>
 
           {/* Nothing to bake until something has been stamped, and applying an
               empty set would flatten the editor for no change at all. */}
-          <Button className={OVERLAY_BUTTON} disabled={stamps.length === 0} onClick={apply}>
+          <Button
+            className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
+            disabled={stamps.length === 0}
+            onClick={apply}
+          >
             <CheckIcon className="size-3.5" />
             Done
           </Button>

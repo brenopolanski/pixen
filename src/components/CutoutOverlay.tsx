@@ -6,9 +6,6 @@ import { removeImageBackground } from '@/lib/image/cutout'
 
 import { CheckIcon, XIcon } from './shared/Icons'
 
-/** Matches the toolbar: an overlay is a mode of the same window, not a dialog. */
-const OVERLAY_BUTTON = 'h-auto gap-1.5 px-2.5 py-1.5 text-[12px]'
-
 interface CutoutOverlayProps {
   /** The flattened canvas to run the model on. */
   image: string
@@ -103,12 +100,20 @@ export const CutoutOverlay = ({ image, onApply, onCancel, onError }: CutoutOverl
         </p>
 
         <div className="flex shrink-0 items-center gap-1.5">
-          <Button className={OVERLAY_BUTTON} variant="outline" onClick={onCancel}>
+          <Button
+            className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
+            variant="outline"
+            onClick={onCancel}
+          >
             <XIcon className="size-3.5" />
             Cancel
           </Button>
 
-          <Button className={OVERLAY_BUTTON} disabled={!done} onClick={apply}>
+          <Button
+            className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
+            disabled={!done}
+            onClick={apply}
+          >
             <CheckIcon className="size-3.5" />
             Apply
           </Button>
@@ -130,7 +135,7 @@ export const CutoutOverlay = ({ image, onApply, onCancel, onError }: CutoutOverl
         </div>
 
         {!done && (
-          <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2.5 bg-gradient-to-t from-background to-transparent px-4 pt-10 pb-8">
+          <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2.5 bg-linear-to-t from-background to-transparent px-4 pt-10 pb-8">
             <div className="h-0.75 w-40 overflow-hidden rounded-full bg-muted">
               <div
                 className="h-full rounded-full bg-brand transition-[width] duration-200"

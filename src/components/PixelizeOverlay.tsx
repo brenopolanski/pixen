@@ -7,9 +7,6 @@ import { rectBetween, selectionToPixels } from '@/lib/image/pixelize'
 
 import { XIcon } from './shared/Icons'
 
-/** Matches the toolbar: an overlay is a mode of the same window, not a dialog. */
-const OVERLAY_BUTTON = 'h-auto gap-1.5 px-2.5 py-1.5 text-[12px]'
-
 interface PixelizeOverlayProps {
   /** The flattened canvas to select on. */
   image: string
@@ -118,7 +115,11 @@ export const PixelizeOverlay = ({ image, onApply, onCancel }: PixelizeOverlayPro
           <span className="ml-2 text-muted-foreground/70">Esc to cancel</span>
         </p>
 
-        <Button className={OVERLAY_BUTTON} variant="outline" onClick={onCancel}>
+        <Button
+          className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
+          variant="outline"
+          onClick={onCancel}
+        >
           <XIcon className="size-3.5" />
           Cancel
         </Button>
