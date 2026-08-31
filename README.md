@@ -52,11 +52,11 @@ and it runs on your machine.
 
 ## Supported platforms
 
-| Platform | Status                                    |
-| -------- | ----------------------------------------- |
-| macOS    | 10.15+, built and tested                  |
-| Windows  | Supported by the code; build not verified |
-| Linux    | Supported by the code; build not verified |
+| Platform | Status                                             |
+| -------- | -------------------------------------------------- |
+| macOS    | 10.15+, unsigned `.dmg` from the tag workflow      |
+| Windows  | Unsigned NSIS installer from the tag workflow      |
+| Linux    | Unsigned `.deb` and AppImage from the tag workflow |
 
 No OS-specific paths or shortcuts are hardcoded: the primary modifier is chosen from the host
 platform, and every path comes from Tauri.
@@ -116,7 +116,10 @@ pnpm tauri:build
 
 Bundles land in `src-tauri/target/release/bundle/`: `.app` and `.dmg` on macOS, an NSIS installer
 on Windows, `.deb` and AppImage on Linux. Builds are unsigned, so on macOS the first launch is
-right-click the app → Open.
+right-click the app → Open, and on Windows SmartScreen may warn.
+
+Pushing a `v*` tag runs the release workflow on macOS, Ubuntu 22.04 and Windows. Each job attaches
+its installer to the same GitHub Release.
 
 ## Opening
 

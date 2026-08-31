@@ -3,7 +3,7 @@
   "productName": "Pixen",
   "mainBinaryName": "Pixen",
   "version": "0.1.0",
-  "identifier": "com.brenopolanski.defillama-search",
+  "identifier": "com.brenopolanski.pixen",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
