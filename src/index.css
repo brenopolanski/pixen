@@ -65,6 +65,12 @@
   --radius-xl: 16px;
 }
 
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+}
+
 html,
 body,
 #root {
