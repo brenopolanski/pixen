@@ -1,9 +1,10 @@
 import { ImagePlus } from 'lucide-react'
 
-import { PixenLogo } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
 import { isMacPlatform } from '@/lib/platform'
 import { formatShortcut } from '@/lib/shortcuts'
+
+import { Logo } from './shared/Logo'
 
 interface EmptyStateProps {
   busy: boolean
@@ -15,7 +16,7 @@ export const EmptyState = ({ busy, onOpenImage }: EmptyStateProps) => {
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 px-8 text-center fade-in">
-      <PixenLogo className="size-16" />
+      <Logo className="size-16" />
 
       <div className="flex flex-col gap-1.5">
         <p className="text-[15px] font-semibold text-foreground">No image open</p>

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 
-import { PixenLogo } from '@/components/shared/Icons'
 import { APP_NAME } from '@/lib/constants'
 import { closeCurrentWindow, getAppVersion } from '@/lib/desktop'
+
+import { Logo } from './shared/Logo'
 
 export const About = () => {
   const [version, setVersion] = useState('')
@@ -41,7 +42,7 @@ export const About = () => {
       className="flex h-full flex-col items-center justify-center gap-5 bg-background px-8 text-center fade-in"
       data-tauri-drag-region
     >
-      <PixenLogo className="size-24" />
+      <Logo className="size-24" />
 
       <div className="flex flex-col gap-1">
         <p className="text-[15px] font-semibold text-foreground">{APP_NAME}</p>

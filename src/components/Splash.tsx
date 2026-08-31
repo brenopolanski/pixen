@@ -1,5 +1,6 @@
-import { PixenLogo } from '@/components/shared/Icons'
 import { APP_NAME, APP_TAGLINE } from '@/lib/constants'
+
+import { Logo } from './shared/Logo'
 
 export const Splash = () => {
   return (
@@ -7,7 +8,7 @@ export const Splash = () => {
       className="flex h-full flex-col items-center justify-center gap-5 rounded-xl border border-white/10 bg-background shadow-2xl fade-in"
       data-tauri-drag-region
     >
-      <PixenLogo className="size-14" />
+      <Logo className="size-14" />
 
       <div className="flex flex-col items-center gap-1">
         <p className="text-[17px] font-semibold tracking-tight text-foreground">{APP_NAME}</p>

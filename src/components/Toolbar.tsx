@@ -13,7 +13,6 @@ import {
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 
-import { PixenLogo } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -29,6 +28,8 @@ import { SAVE_FORMATS } from '@/lib/image/image'
 import { isMacPlatform } from '@/lib/platform'
 import { formatShortcut } from '@/lib/shortcuts'
 import { generateReactKey } from '@/lib/utils'
+
+import { Logo } from './shared/Logo'
 
 /**
  * The primitives default to a 36px form control, which does not fit a 48px bar.
@@ -226,7 +227,7 @@ export const Toolbar = ({
       data-tauri-drag-region
     >
       <div className="flex shrink-0 items-center gap-2">
-        <PixenLogo className="size-5" />
+        <Logo className="size-5" />
         <span className="text-[13px] font-semibold tracking-tight text-foreground">{APP_NAME}</span>
       </div>
 
