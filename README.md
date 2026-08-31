@@ -43,9 +43,6 @@ The editor does the editing. Pixen owns the window, the native file dialogs, the
 | Windows  | Unsigned NSIS installer from the tag workflow      |
 | Linux    | Unsigned `.deb` and AppImage from the tag workflow |
 
-No OS-specific paths or shortcuts are hardcoded: the primary modifier is chosen from the host
-platform, and every path comes from Tauri.
-
 ## Requirements
 
 - [pnpm](https://pnpm.io) 10
