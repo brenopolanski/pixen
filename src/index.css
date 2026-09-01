@@ -102,7 +102,7 @@ body {
    sets on its own mount point) the toolbar is the first row, holding three
    groups: undo/redo/flatten, zoom, then these actions. Removing the third from
    the flow is enough to move zoom over, because the row is `justify-between`. */
-#pixen-editor .image-editor-root > div > div:first-child > div:last-child {
+.pixen-editor .image-editor-root > div > div:first-child > div:last-child {
   display: none;
 }
 

@@ -1,14 +1,14 @@
 import type { ImageEditorRef } from '@unlayer/react-image-editor'
 import ImageEditor from '@unlayer/react-image-editor'
-import type { RefObject } from 'react'
 
-import { EDITOR_CONTAINER_ID } from '@/lib/constants'
+import { EDITOR_CONTAINER_CLASS } from '@/lib/constants'
 import { EDITOR_OPTIONS } from '@/lib/editor/engine'
 
 interface EditorProps {
-  editorRef: RefObject<ImageEditorRef | null>
+  editorId: string
   image: string
   onCancel: () => void
+  onEditor: (editor: ImageEditorRef | null) => void
   onError: (message: string) => void
   onSave: () => void
 }
@@ -23,23 +23,25 @@ interface EditorProps {
  * covers them, but they stay wired: if a future editor build moves them out of
  * reach of that rule, they act on the project instead of going dead.
  */
-export const Editor = ({ editorRef, image, onCancel, onError, onSave }: EditorProps) => {
+export const Editor = ({ editorId, image, onCancel, onEditor, onError, onSave }: EditorProps) => {
   return (
-    <ImageEditor
-      ref={editorRef}
-      editorId={EDITOR_CONTAINER_ID}
-      image={image}
-      minHeight={0}
-      options={EDITOR_OPTIONS}
-      onCancel={onCancel}
-      onError={(failure) => {
-        console.error('[pixen] image editor failure', failure)
-        onError('The image editor could not start. Check your connection and try again.')
-      }}
-      onLoadError={() => {
-        onError('Pixen could not load this image into the editor.')
-      }}
-      onSave={onSave}
-    />
+    <div className={`${EDITOR_CONTAINER_CLASS} flex min-h-0 min-w-0 flex-1 flex-col`} id={editorId}>
+      <ImageEditor
+        ref={onEditor}
+        editorId={editorId}
+        image={image}
+        minHeight={0}
+        options={EDITOR_OPTIONS}
+        onCancel={onCancel}
+        onError={(failure) => {
+          console.error('[pixen] image editor failure', failure)
+          onError('The image editor could not start. Check your connection and try again.')
+        }}
+        onLoadError={() => {
+          onError('Pixen could not load this image into the editor.')
+        }}
+        onSave={onSave}
+      />
+    </div>
   )
 }
