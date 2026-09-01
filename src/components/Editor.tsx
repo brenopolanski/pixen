@@ -2,6 +2,7 @@ import type { ImageEditorRef } from '@unlayer/react-image-editor'
 import ImageEditor from '@unlayer/react-image-editor'
 import type { RefObject } from 'react'
 
+import { useCropDoubleClick } from '@/hooks/useCropDoubleClick'
 import { EDITOR_CONTAINER_ID } from '@/lib/constants'
 import { EDITOR_OPTIONS } from '@/lib/editor/engine'
 
@@ -24,6 +25,8 @@ interface EditorProps {
  * reach of that rule, they act on the project instead of going dead.
  */
 export const Editor = ({ editorRef, image, onCancel, onError, onSave }: EditorProps) => {
+  useCropDoubleClick(EDITOR_CONTAINER_ID)
+
   return (
     <ImageEditor
       ref={editorRef}
