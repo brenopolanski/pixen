@@ -1,10 +1,10 @@
 import type { ImageEditorRef } from '@unlayer/react-image-editor'
-import type { RefObject } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
   COPIED_FEEDBACK_MS,
+  MAX_TABS,
   SCREENSHOT_NAME,
   UNSAVED_CHECK_DEBOUNCE_MS,
   UNSAVED_CHECK_INTERVAL_MS,
@@ -22,62 +22,58 @@ import type { Stamp } from '@/lib/image/increment'
 import { composeStamps } from '@/lib/image/increment'
 import type { Rect } from '@/lib/image/pixelize'
 import { pixelizeImage } from '@/lib/image/pixelize'
+import type { ImageTab } from '@/lib/tabs'
+import {
+  decideNewTabAction,
+  decideOpenAction,
+  nextTabAfterClose,
+  tabsFullMessage,
+} from '@/lib/tabs'
 
 interface SessionState {
-  /**
-   * The image handed to the editor. Only opening a file changes it: the editor
-   * reloads — and so discards its undo history — whenever this value moves, so
-   * a save deliberately leaves it alone.
-   */
-  image: string | null
-  /** Where Save writes. Null until a save has picked a destination. */
-  path: string | null
-  /** Base name of the opened file, the default the save dialog offers. */
-  name: string | null
-  dirty: boolean
+  tabs: ImageTab[]
+  activeId: string | null
 }
 
 const EMPTY_SESSION: SessionState = {
-  image: null,
-  path: null,
-  name: null,
-  dirty: false,
+  tabs: [],
+  activeId: null,
 }
 
-export interface ImageSession extends SessionState {
+export interface ImageSession {
+  tabs: ImageTab[]
+  activeId: string | null
+  /** Convenience: the active tab's image, or null when none are open. */
+  image: string | null
+  path: string | null
+  name: string | null
+  dirty: boolean
   busy: boolean
   error: string | null
-  /** The format the next save writes in. */
+  /** True while a tool overlay covers the canvas — tabs must not move. */
+  overlayOpen: boolean
   format: SaveFormat
   setFormat: (format: SaveFormat) => void
+  setEditorRef: (tabId: string, editor: ImageEditorRef | null) => void
+  activateTab: (tabId: string) => void
+  closeTab: (tabId: string) => void
   openImage: () => void
-  /** Opens a file Pixen was handed rather than asked for: a drop, or a menu. */
+  /** File picker that always creates a tab; never replaces a clean one. */
+  openInNewTab: () => void
   openFromPath: (path: string) => void
-  /** Opens an image with no file behind it, such as a pasted screenshot. */
   openFromDataUrl: (dataUrl: string, name: string) => void
-  /** Captures a region of the screen and opens it. macOS only. */
   captureScreen: () => void
-  /** Puts the edited image on the system clipboard. */
   copyImage: () => void
-  /** The flattened image the pixelize overlay selects on; null when closed. */
   pixelizePreview: string | null
-  /** Flattens the canvas and opens the pixelize overlay. */
   startPixelize: () => void
-  /** Hides the chosen region and hands the result back to the editor. */
   applyPixelize: (region: Rect) => void
   cancelPixelize: () => void
-  /** The flattened image the numbering overlay stamps on; null when closed. */
   incrementPreview: string | null
-  /** Flattens the canvas and opens the numbering overlay. */
   startIncrement: () => void
-  /** Bakes every badge in one pass and hands the result back to the editor. */
   applyIncrement: (stamps: Stamp[]) => void
   cancelIncrement: () => void
-  /** The flattened image the cutout overlay runs the model on; null when closed. */
   cutoutPreview: string | null
-  /** Flattens the canvas and opens the background removal overlay. */
   startCutout: () => void
-  /** Accepts the cutout the overlay produced and hands it to the editor. */
   applyCutout: (dataUrl: string) => void
   cancelCutout: () => void
   save: () => void
@@ -88,60 +84,125 @@ export interface ImageSession extends SessionState {
   dismissError: () => void
 }
 
+const createTabId = (): string => {
+  return `tab-${crypto.randomUUID()}`
+}
+
+const activeTabOf = (state: SessionState): ImageTab | null => {
+  return state.tabs.find((tab) => tab.id === state.activeId) ?? null
+}
+
 /**
- * Owns the open image: what it is, where a save writes, and whether it differs
- * from the copy on disk. Every filesystem call it makes goes through
- * `imageStorage`, so no component touches the disk itself.
+ * Owns the open images: what they are, where a save writes, and which tab is
+ * in front. Every filesystem call goes through `imageStorage`.
  */
-export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): ImageSession => {
+export const useImageSession = (): ImageSession => {
   const [session, setSession] = useState<SessionState>(EMPTY_SESSION)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pixelizePreview, setPixelizePreview] = useState<string | null>(null)
   const [incrementPreview, setIncrementPreview] = useState<string | null>(null)
   const [cutoutPreview, setCutoutPreview] = useState<string | null>(null)
-  // Deliberately outside `session`: the chosen output format is the user's
-  // preference, so opening another image must not reset it.
   const [format, setFormatState] = useState<SaveFormat>(DEFAULT_SAVE_FORMAT)
 
-  // Mirrors `session` so callbacks wired to window listeners and native
-  // dialogs always read current values without being rebuilt.
   const sessionRef = useRef(session)
   const formatRef = useRef(format)
-  /** The image last written to disk; null until this image has been saved. */
-  const baselineRef = useRef<string | null>(null)
-  /**
-   * Whether an edit Pixen made itself — a mosaic, a set of numbers — is waiting
-   * to be saved. Tracked here because those edits are baked into the image the
-   * editor is then handed, which leaves its own change tracking none the wiser.
-   */
-  const bakedRef = useRef(false)
+  const editorRefs = useRef(new Map<string, ImageEditorRef>())
+  /** Image last written to disk for that tab; missing until it has been saved. */
+  const baselinesRef = useRef(new Map<string, string | null>())
+  const bakedRef = useRef(new Map<string, boolean>())
   const busyRef = useRef(false)
+
+  const overlayOpen =
+    pixelizePreview !== null || incrementPreview !== null || cutoutPreview !== null
+  const overlayOpenRef = useRef(overlayOpen)
+
+  useEffect(() => {
+    overlayOpenRef.current = overlayOpen
+  }, [overlayOpen])
 
   const applySession = useCallback((next: SessionState) => {
     sessionRef.current = next
     setSession(next)
   }, [])
 
+  const patchTab = useCallback(
+    (tabId: string, patch: Partial<ImageTab>) => {
+      const current = sessionRef.current
+      applySession({
+        ...current,
+        tabs: current.tabs.map((tab) => (tab.id === tabId ? { ...tab, ...patch } : tab)),
+      })
+    },
+    [applySession],
+  )
+
   const setFormat = useCallback((next: SaveFormat) => {
     formatRef.current = next
     setFormatState(next)
   }, [])
 
-  const load = useCallback(
-    (image: string, name: string) => {
-      baselineRef.current = null
-      bakedRef.current = false
-      applySession({ image, path: null, name, dirty: false })
+  const setEditorRef = useCallback((tabId: string, editor: ImageEditorRef | null) => {
+    if (editor) {
+      editorRefs.current.set(tabId, editor)
+    } else {
+      editorRefs.current.delete(tabId)
+    }
+  }, [])
+
+  const editorOf = useCallback((tabId: string) => {
+    return editorRefs.current.get(tabId)?.editor ?? null
+  }, [])
+
+  const clearOverlays = useCallback(() => {
+    setPixelizePreview(null)
+    setIncrementPreview(null)
+    setCutoutPreview(null)
+  }, [])
+
+  const forgetTab = useCallback((tabId: string) => {
+    editorRefs.current.delete(tabId)
+    baselinesRef.current.delete(tabId)
+    bakedRef.current.delete(tabId)
+  }, [])
+
+  const placeImage = useCallback(
+    (image: string, name: string, options?: { forceNew?: boolean }) => {
+      const current = sessionRef.current
+      const action = options?.forceNew
+        ? decideNewTabAction(current.tabs.length, MAX_TABS)
+        : decideOpenAction(current.tabs, current.activeId, MAX_TABS)
+
+      if (action.type === 'refuse') {
+        throw new PixenError(tabsFullMessage(MAX_TABS))
+      }
+
+      clearOverlays()
       setError(null)
-      setPixelizePreview(null)
-      setIncrementPreview(null)
-      setCutoutPreview(null)
+
+      if (action.type === 'replace') {
+        baselinesRef.current.set(action.tabId, null)
+        bakedRef.current.set(action.tabId, false)
+        applySession({
+          tabs: current.tabs.map((tab) =>
+            tab.id === action.tabId ? { ...tab, image, path: null, name, dirty: false } : tab,
+          ),
+          activeId: action.tabId,
+        })
+        return
+      }
+
+      const id = createTabId()
+      baselinesRef.current.set(id, null)
+      bakedRef.current.set(id, false)
+      applySession({
+        tabs: [...current.tabs, { id, image, path: null, name, dirty: false }],
+        activeId: id,
+      })
     },
-    [applySession],
+    [applySession, clearOverlays],
   )
 
-  /** Serializes the file actions so two native dialogs can never overlap. */
   const run = useCallback((action: () => Promise<void>) => {
     if (busyRef.current) {
       return
@@ -160,168 +221,146 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       })
   }, [])
 
-  const readCurrentImage = useCallback((): string => {
-    const image = editorRef.current?.editor?.getImage()
+  const readTabImage = useCallback(
+    (tabId: string): string => {
+      const image = editorOf(tabId)?.getImage()
 
-    if (!image) {
+      if (!image) {
+        throw new PixenError('Pixen could not read the current image from the editor.')
+      }
+
+      return image
+    },
+    [editorOf],
+  )
+
+  const readCurrentImage = useCallback((): string => {
+    const active = activeTabOf(sessionRef.current)
+
+    if (!active) {
       throw new PixenError('Pixen could not read the current image from the editor.')
     }
 
-    return image
-  }, [editorRef])
+    return readTabImage(active.id)
+  }, [readTabImage])
 
-  const isUnsaved = useCallback((): boolean => {
-    const editor = editorRef.current?.editor
+  const isTabUnsaved = useCallback(
+    (tabId: string): boolean => {
+      const editor = editorOf(tabId)
+      const tab = sessionRef.current.tabs.find((entry) => entry.id === tabId)
 
-    if (!editor || !sessionRef.current.image) {
-      return false
-    }
-
-    // Pixen's own edits reload the editor, which then reports the new pixels as
-    // pristine. Only a save can clear this, or the unsaved dot would vanish a
-    // moment after a pixelize and quitting would never think to ask.
-    if (bakedRef.current) {
-      return true
-    }
-
-    return hasUnsavedEdits(editor, baselineRef.current)
-  }, [editorRef])
-
-  /** Returns false when the user cancelled the Save dialog. */
-  const persist = useCallback(
-    async (image: string, path: string | null): Promise<boolean> => {
-      const current = sessionRef.current
-      const chosen = formatRef.current
-
-      if (!current.image) {
+      if (!editor || !tab) {
         return false
       }
 
-      // Switching format has to be saved somewhere new, because the extension
-      // is part of the name: reusing the path would put JPEG bytes inside the
-      // .png the user already has on disk.
+      if (bakedRef.current.get(tabId)) {
+        return true
+      }
+
+      return hasUnsavedEdits(editor, baselinesRef.current.get(tabId) ?? null)
+    },
+    [editorOf],
+  )
+
+  const anyUnsaved = useCallback((): boolean => {
+    return sessionRef.current.tabs.some((tab) => tab.dirty || isTabUnsaved(tab.id))
+  }, [isTabUnsaved])
+
+  const persistTab = useCallback(
+    async (tab: ImageTab, image: string, path: string | null): Promise<boolean> => {
+      const chosen = formatRef.current
       const reusable = path && matchesFormat(path, chosen) ? path : null
-      const destination =
-        reusable ?? (await pickSaveDestination(current.name ?? UNTITLED_NAME, chosen))
+      const destination = reusable ?? (await pickSaveDestination(tab.name ?? UNTITLED_NAME, chosen))
 
       if (!destination) {
         return false
       }
 
-      // An extension typed into the dialog outranks the selector, so bring the
-      // toolbar back in line instead of letting it name a format Pixen is not
-      // actually writing.
       const format = formatForPath(destination, chosen)
 
       setFormat(format)
-
-      // The editor's output goes over as-is: `write_image` encodes it into
-      // whatever the destination's extension names.
       await writeImage(destination, image)
 
-      // The baseline is that same output rather than the file on disk:
-      // comparing a later export against re-encoded bytes would report the
-      // image as unsaved forever.
-      baselineRef.current = image
-      bakedRef.current = false
-      applySession({ ...current, path: destination, dirty: false })
+      baselinesRef.current.set(tab.id, image)
+      bakedRef.current.set(tab.id, false)
+      patchTab(tab.id, { path: destination, dirty: false })
 
       return true
     },
-    [applySession, setFormat],
+    [patchTab, setFormat],
   )
-
-  /**
-   * The guard every way of opening an image shares. Replacing the open image
-   * discards the editor's state, so a dirty session is confirmed first.
-   */
-  const confirmReplacingImage = useCallback(async (): Promise<boolean> => {
-    return !sessionRef.current.dirty || (await askToDiscardChanges())
-  }, [])
 
   const openImage = useCallback(() => {
     run(async () => {
-      if (!(await confirmReplacingImage())) {
-        return
-      }
-
       const path = await pickImage()
 
       if (!path) {
         return
       }
 
-      load(await readImage(path), baseNameOf(path))
+      placeImage(await readImage(path), baseNameOf(path))
     })
-  }, [confirmReplacingImage, load, run])
+  }, [placeImage, run])
+
+  const openInNewTab = useCallback(() => {
+    run(async () => {
+      const path = await pickImage()
+
+      if (!path) {
+        return
+      }
+
+      placeImage(await readImage(path), baseNameOf(path), { forceNew: true })
+    })
+  }, [placeImage, run])
 
   const openFromPath = useCallback(
     (path: string) => {
       run(async () => {
-        if (!(await confirmReplacingImage())) {
-          return
-        }
-
-        load(await readImage(path), baseNameOf(path))
+        placeImage(await readImage(path), baseNameOf(path))
       })
     },
-    [confirmReplacingImage, load, run],
+    [placeImage, run],
   )
 
   const openFromDataUrl = useCallback(
     (dataUrl: string, name: string) => {
       run(async () => {
-        if (!(await confirmReplacingImage())) {
-          return
-        }
-
-        // No path: a pasted image has no file on disk, so the first save has
-        // to ask where to write even though the session is not dirty.
-        load(dataUrl, name)
+        placeImage(dataUrl, name)
       })
     },
-    [confirmReplacingImage, load, run],
+    [placeImage, run],
   )
 
   const captureScreen = useCallback(() => {
     run(async () => {
-      if (!(await confirmReplacingImage())) {
-        return
-      }
-
       const dataUrl = await runCapture()
 
-      // Cancelled: the open image is left exactly as it was.
       if (!dataUrl) {
         return
       }
 
-      load(dataUrl, SCREENSHOT_NAME)
+      placeImage(dataUrl, SCREENSHOT_NAME)
     })
-  }, [confirmReplacingImage, load, run])
+  }, [placeImage, run])
 
   const copyImage = useCallback(() => {
     run(async () => {
-      if (!sessionRef.current.image) {
+      if (!activeTabOf(sessionRef.current)) {
         return
       }
 
       await writeToClipboard(readCurrentImage())
-
-      // Announced here rather than by the menu, so a copy from the keyboard or
-      // the native Edit menu confirms itself too.
       toast.success('Copied to clipboard', { duration: COPIED_FEEDBACK_MS })
     })
   }, [readCurrentImage, run])
 
   const startPixelize = useCallback(() => {
     run(async () => {
-      if (!sessionRef.current.image) {
+      if (!activeTabOf(sessionRef.current)) {
         return
       }
 
-      // The overlay selects on a flattened copy rather than on the editor's own
-      // canvas, whose zoom and pan Unlayer does not report.
       setPixelizePreview(readCurrentImage())
       setIncrementPreview(null)
       setCutoutPreview(null)
@@ -335,29 +374,26 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   const applyPixelize = useCallback(
     (region: Rect) => {
       run(async () => {
-        const current = sessionRef.current
+        const active = activeTabOf(sessionRef.current)
         const preview = pixelizePreview
 
-        if (!current.image || !preview) {
+        if (!active || !preview) {
           return
         }
 
         const pixelized = await pixelizeImage(preview, region)
 
-        // Not `load`: this edits the open document, so the path and name stay
-        // and the result is unsaved until Save writes it. The baseline is left
-        // alone deliberately — the mosaic is a change against the last save.
-        bakedRef.current = true
-        applySession({ ...current, image: pixelized, dirty: true })
+        bakedRef.current.set(active.id, true)
+        patchTab(active.id, { image: pixelized, dirty: true })
         setPixelizePreview(null)
       })
     },
-    [applySession, pixelizePreview, run],
+    [patchTab, pixelizePreview, run],
   )
 
   const startIncrement = useCallback(() => {
     run(async () => {
-      if (!sessionRef.current.image) {
+      if (!activeTabOf(sessionRef.current)) {
         return
       }
 
@@ -374,28 +410,26 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   const applyIncrement = useCallback(
     (stamps: Stamp[]) => {
       run(async () => {
-        const current = sessionRef.current
+        const active = activeTabOf(sessionRef.current)
         const preview = incrementPreview
 
-        if (!current.image || !preview || stamps.length === 0) {
+        if (!active || !preview || stamps.length === 0) {
           return
         }
 
-        // Every badge in one composite, so the editor reloads — and loses its
-        // undo stack — once rather than once per number.
         const numbered = await composeStamps(preview, stamps)
 
-        bakedRef.current = true
-        applySession({ ...current, image: numbered, dirty: true })
+        bakedRef.current.set(active.id, true)
+        patchTab(active.id, { image: numbered, dirty: true })
         setIncrementPreview(null)
       })
     },
-    [applySession, incrementPreview, run],
+    [incrementPreview, patchTab, run],
   )
 
   const startCutout = useCallback(() => {
     run(async () => {
-      if (!sessionRef.current.image) {
+      if (!activeTabOf(sessionRef.current)) {
         return
       }
 
@@ -412,49 +446,50 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   const applyCutout = useCallback(
     (dataUrl: string) => {
       run(async () => {
-        const current = sessionRef.current
+        const active = activeTabOf(sessionRef.current)
 
-        // The overlay ran the model and already has the result, so unlike the
-        // other tools there is no work left here beyond taking it.
-        if (!current.image || !cutoutPreview) {
+        if (!active || !cutoutPreview) {
           return
         }
 
-        bakedRef.current = true
-        applySession({ ...current, image: dataUrl, dirty: true })
+        bakedRef.current.set(active.id, true)
+        patchTab(active.id, { image: dataUrl, dirty: true })
         setCutoutPreview(null)
       })
     },
-    [applySession, cutoutPreview, run],
+    [cutoutPreview, patchTab, run],
   )
 
   const save = useCallback(() => {
     run(async () => {
-      if (!sessionRef.current.image) {
+      const active = activeTabOf(sessionRef.current)
+
+      if (!active) {
         return
       }
 
-      await persist(readCurrentImage(), sessionRef.current.path)
+      await persistTab(active, readTabImage(active.id), active.path)
     })
-  }, [persist, readCurrentImage, run])
+  }, [persistTab, readTabImage, run])
 
   const saveAs = useCallback(() => {
     run(async () => {
-      if (!sessionRef.current.image) {
+      const active = activeTabOf(sessionRef.current)
+
+      if (!active) {
         return
       }
 
-      await persist(readCurrentImage(), null)
+      await persistTab(active, readTabImage(active.id), null)
     })
-  }, [persist, readCurrentImage, run])
+  }, [persistTab, readTabImage, run])
 
-  /** Backs the editor's own Cancel button: returns to the last saved state. */
   const discardEdits = useCallback(() => {
     run(async () => {
-      const { image, dirty } = sessionRef.current
-      const editor = editorRef.current?.editor
+      const active = activeTabOf(sessionRef.current)
+      const editor = active ? editorOf(active.id) : null
 
-      if (!image || !editor || !dirty) {
+      if (!active || !editor || !active.dirty) {
         return
       }
 
@@ -462,54 +497,128 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
         return
       }
 
-      const baseline = baselineRef.current
+      const baseline = baselinesRef.current.get(active.id) ?? null
 
-      await editor.reset(baseline ?? image)
+      await editor.reset(baseline ?? active.image)
 
-      // Without a save behind it there is no earlier version to go back to, so
-      // any mosaic or numbering baked into the image is still there — and still
-      // unsaved — however far the editor's own state was wound back.
       if (baseline !== null) {
-        bakedRef.current = false
+        bakedRef.current.set(active.id, false)
       }
 
-      applySession({ ...sessionRef.current, dirty: bakedRef.current })
+      patchTab(active.id, { dirty: bakedRef.current.get(active.id) === true })
     })
-  }, [applySession, editorRef, run])
+  }, [editorOf, patchTab, run])
+
+  const snapshotActiveDirty = useCallback(() => {
+    const active = activeTabOf(sessionRef.current)
+
+    if (!active) {
+      return
+    }
+
+    const dirty = isTabUnsaved(active.id)
+
+    if (dirty !== active.dirty) {
+      patchTab(active.id, { dirty })
+    }
+  }, [isTabUnsaved, patchTab])
+
+  const activateTab = useCallback(
+    (tabId: string) => {
+      if (overlayOpenRef.current || busyRef.current) {
+        return
+      }
+
+      const current = sessionRef.current
+
+      if (current.activeId === tabId || !current.tabs.some((tab) => tab.id === tabId)) {
+        return
+      }
+
+      snapshotActiveDirty()
+      applySession({ ...sessionRef.current, activeId: tabId })
+    },
+    [applySession, snapshotActiveDirty],
+  )
+
+  const removeTab = useCallback(
+    (tabId: string) => {
+      const current = sessionRef.current
+      const nextActive = nextTabAfterClose(current.tabs, tabId)
+
+      forgetTab(tabId)
+      applySession({
+        tabs: current.tabs.filter((tab) => tab.id !== tabId),
+        activeId: nextActive?.id ?? null,
+      })
+    },
+    [applySession, forgetTab],
+  )
+
+  const closeTab = useCallback(
+    (tabId: string) => {
+      run(async () => {
+        if (overlayOpenRef.current) {
+          return
+        }
+
+        const tab = sessionRef.current.tabs.find((entry) => entry.id === tabId)
+
+        if (!tab) {
+          return
+        }
+
+        if (tab.dirty || isTabUnsaved(tab.id)) {
+          const decision = await askAboutUnsavedChanges()
+
+          if (decision === 'cancel') {
+            return
+          }
+
+          if (decision === 'save' && !(await persistTab(tab, readTabImage(tab.id), tab.path))) {
+            return
+          }
+        }
+
+        removeTab(tabId)
+      })
+    },
+    [isTabUnsaved, persistTab, readTabImage, removeTab, run],
+  )
 
   const requestClose = useCallback(() => {
     run(async () => {
-      if (isUnsaved()) {
+      snapshotActiveDirty()
+
+      if (anyUnsaved()) {
         const decision = await askAboutUnsavedChanges()
 
         if (decision === 'cancel') {
           return
         }
 
-        // A cancelled Save dialog means nothing was written, so closing is
-        // abandoned rather than dropping the work.
-        if (decision === 'save' && !(await persist(readCurrentImage(), sessionRef.current.path))) {
-          return
+        if (decision === 'save') {
+          for (const tab of sessionRef.current.tabs) {
+            if (!(tab.dirty || isTabUnsaved(tab.id))) {
+              continue
+            }
+
+            if (!(await persistTab(tab, readTabImage(tab.id), tab.path))) {
+              return
+            }
+          }
         }
       }
 
       await quitApp()
     })
-  }, [isUnsaved, persist, readCurrentImage, run])
+  }, [anyUnsaved, isTabUnsaved, persistTab, readTabImage, run, snapshotActiveDirty])
 
   const refreshUnsavedState = useCallback(() => {
-    if (!sessionRef.current.image) {
-      return
-    }
+    snapshotActiveDirty()
+  }, [snapshotActiveDirty])
 
-    const dirty = isUnsaved()
-
-    if (dirty !== sessionRef.current.dirty) {
-      applySession({ ...sessionRef.current, dirty })
-    }
-  }, [applySession, isUnsaved])
-
-  const hasImage = session.image !== null
+  const hasImage = session.tabs.length > 0
 
   useEffect(() => {
     if (!hasImage) {
@@ -524,10 +633,9 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     }
 
     const sweep = () => {
-      // Deliberately only the cheap check: once something has been saved,
-      // deciding whether the canvas moved on means re-flattening it, which is
-      // far too much work to repeat on a timer.
-      if (baselineRef.current === null) {
+      const active = activeTabOf(sessionRef.current)
+
+      if (active && (baselinesRef.current.get(active.id) ?? null) === null) {
         refreshUnsavedState()
       }
     }
@@ -552,13 +660,25 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     setError(null)
   }, [])
 
+  const active = activeTabOf(session)
+
   return {
-    ...session,
+    tabs: session.tabs,
+    activeId: session.activeId,
+    image: active?.image ?? null,
+    path: active?.path ?? null,
+    name: active?.name ?? null,
+    dirty: active?.dirty ?? false,
     busy,
     error,
+    overlayOpen,
     format,
     setFormat,
+    setEditorRef,
+    activateTab,
+    closeTab,
     openImage,
+    openInNewTab,
     openFromPath,
     openFromDataUrl,
     captureScreen,
