@@ -1,3 +1,4 @@
+import { MoonIcon, SunIcon } from '@/components/shared/Icons'
 import {
   Sheet,
   SheetContent,
@@ -5,8 +6,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { Switch } from '@/components/ui/switch'
 import type { EditorTheme } from '@/lib/settings'
-import { cn } from '@/lib/utils'
 
 interface SettingsProps {
   open: boolean
@@ -14,11 +15,6 @@ interface SettingsProps {
   onClose: () => void
   onThemeChange: (theme: EditorTheme) => void
 }
-
-const THEMES: { id: EditorTheme; label: string }[] = [
-  { id: 'light', label: 'Light' },
-  { id: 'dark', label: 'Dark' },
-]
 
 export const Settings = ({ open, theme, onClose, onThemeChange }: SettingsProps) => {
   return (
@@ -41,33 +37,23 @@ export const Settings = ({ open, theme, onClose, onThemeChange }: SettingsProps)
 
           <div className="space-y-6 px-6 pt-8 pb-6">
             <section className="space-y-3">
-              <div className="space-y-0.5">
-                <span className="text-sm font-medium">Appearance</span>
-                <p className="text-xs text-muted-foreground">
-                  Light or dark chrome for Pixen and the image editor.
-                </p>
-              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <span className="text-sm font-medium">Appearance</span>
+                  <p className="text-xs text-muted-foreground">
+                    Toggle between light and dark themes
+                  </p>
+                </div>
 
-              <div className="flex gap-2">
-                {THEMES.map((option) => {
-                  const selected = option.id === theme
-
-                  return (
-                    <button
-                      key={option.id}
-                      className={cn(
-                        'flex-1 rounded-md border px-3 py-2 text-[12px] font-medium',
-                        selected
-                          ? 'border-border bg-accent text-foreground'
-                          : 'border-transparent text-muted-foreground hover:bg-accent/60',
-                      )}
-                      type="button"
-                      onClick={() => onThemeChange(option.id)}
-                    >
-                      {option.label}
-                    </button>
-                  )
-                })}
+                <div className="flex items-center gap-2">
+                  <SunIcon className="size-4 text-muted-foreground" />
+                  <Switch
+                    aria-label="Appearance"
+                    checked={theme === 'dark'}
+                    onCheckedChange={(dark) => onThemeChange(dark ? 'dark' : 'light')}
+                  />
+                  <MoonIcon className="size-4 text-muted-foreground" />
+                </div>
               </div>
             </section>
           </div>
