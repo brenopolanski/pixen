@@ -17,12 +17,12 @@ type ImageEditorFeatures = NonNullable<NonNullable<ImageEditorOptions['features'
 
 /**
  * Module-level so the object identity is stable: the component remounts the
- * editor whenever anything outside theme/locale/translations changes. AI is off
+ * editor whenever anything outside theme/locale/translations changes. Theme is
+ * passed separately so a settings change stays on `updateOptions`. AI is off
  * because Pixen has no account or project id. The tool rail defaults to the
  * right; `dock: 'left'` is the documented way to put it on the other side.
  */
 export const EDITOR_OPTIONS: ImageEditorOptions = {
-  theme: 'dark',
   features: { ai: false, imageEditor: { dock: 'left' } as ImageEditorFeatures },
 }
 

@@ -1,5 +1,5 @@
 import type { ImageEditorRef } from '@unlayer/react-image-editor'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 
 import { CutoutOverlay } from '@/components/CutoutOverlay'
 import { DropOverlay } from '@/components/DropOverlay'
@@ -8,10 +8,12 @@ import { EmptyState } from '@/components/EmptyState'
 import { ErrorBanner } from '@/components/ErrorBanner'
 import { IncrementOverlay } from '@/components/IncrementOverlay'
 import { PixelizeOverlay } from '@/components/PixelizeOverlay'
+import { Settings } from '@/components/settings/Settings'
 import { Toolbar } from '@/components/toolbar/Toolbar'
 import { Toaster } from '@/components/ui/sonner'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useCloseGuard } from '@/hooks/useCloseGuard'
+import { useEditorSettings } from '@/hooks/useEditorSettings'
 import { useFileDrop } from '@/hooks/useFileDrop'
 import { useImageSession } from '@/hooks/useImageSession'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
@@ -25,6 +27,8 @@ import { fileNameOf } from '@/lib/image/image'
 const App = () => {
   const editorRef = useRef<ImageEditorRef>(null)
   const session = useImageSession(editorRef)
+  const { theme, setTheme } = useEditorSettings()
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const hasImage = session.image !== null
 
   useLaunchSequence()
@@ -77,6 +81,9 @@ const App = () => {
         onFormatChange={session.setFormat}
         onIncrement={session.startIncrement}
         onOpenImage={session.openImage}
+        onOpenSettings={() => {
+          setSettingsOpen(true)
+        }}
         onPixelize={session.startPixelize}
         onSave={session.save}
         onSaveAs={session.saveAs}
@@ -89,6 +96,7 @@ const App = () => {
           <Editor
             editorRef={editorRef}
             image={session.image}
+            theme={theme}
             onCancel={session.discardEdits}
             onError={session.reportError}
             onSave={session.save}
@@ -127,8 +135,17 @@ const App = () => {
 
       {dragging && <DropOverlay />}
 
+      <Settings
+        open={settingsOpen}
+        theme={theme}
+        onClose={() => {
+          setSettingsOpen(false)
+        }}
+        onThemeChange={setTheme}
+      />
+
       {/* Last, so a toast sits above the editor and the overlays. */}
-      <Toaster position="bottom-right" />
+      <Toaster position="bottom-right" theme={theme} />
     </div>
   )
 }
