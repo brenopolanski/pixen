@@ -207,16 +207,23 @@ hides that group by position and lets the zoom controls take the space. That rul
 editor's DOM, so it needs a look after an editor release — the buttons stay wired to the session,
 and the worst case is that they reappear rather than stop working.
 
+The Settings sheet stores preferences in `localStorage` under `pixen.settings`. Appearance
+(`light` or `dark`) paints Pixen's chrome — empty state, toolbar, sheets — by toggling `.dark` on
+`<html>`, and is also passed to Unlayer beside the stable `EDITOR_OPTIONS` object. Unlayer applies
+it with `updateOptions()`, so changing theme does not remount the editor or wipe undo. The class is
+set from `readSettings()` before React mounts so the empty state does not flash the wrong palette.
+
 ## Architecture
 
 ```text
 src/
-├── components/          # Toolbar, Editor, EmptyState, DropOverlay, PixelizeOverlay, IncrementOverlay, CutoutOverlay, ErrorBanner, Splash, About
-│   └── ui/              # shadcn/ui primitives: Button, DropdownMenu, the Sonner toaster
-├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch
+├── components/          # Toolbar, Editor, Settings, EmptyState, DropOverlay, PixelizeOverlay, IncrementOverlay, CutoutOverlay, ErrorBanner, Splash, About
+│   └── ui/              # shadcn/ui primitives: Button, DropdownMenu, Sheet, the Sonner toaster
+├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch, settings
 └── lib/
     ├── editor/          # engine preload, editor options, unsaved-edit detection
     ├── image/           # paths and formats, clipboard, capture, pixelize and badge geometry, cutout, dialogs and I/O
+    ├── settings.ts      # localStorage preferences (appearance)
     └── menu.ts          # the native menu bar
 
 scripts/
