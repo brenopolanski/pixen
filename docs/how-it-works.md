@@ -207,15 +207,25 @@ hides that group by position and lets the zoom controls take the space. That rul
 editor's DOM, so it needs a look after an editor release — the buttons stay wired to the session,
 and the worst case is that they reappear rather than stop working.
 
+Double-clicking inside the crop box is the same kind of DOM coupling. The engine has no apply-crop
+API; leaving Crop (closing the panel or switching tools) is what commits the selection. Pixen
+listens for a double-click on `.cropper-crop-box` and clicks the panel's close control
+(`native-tool-options-close`) so the crop goes through Unlayer's own undoable path. Resize handles
+are ignored, and a double-click while another tool is open is left alone so the text tool's
+double-click-to-edit still works. The selectors need a look after an editor release too.
+
+The hook is attached after the editor container exists. If the close button is missing, the
+double-click is a no-op rather than falling through to Save.
+
 ## Architecture
 
 ```text
 src/
 ├── components/          # Toolbar, Editor, EmptyState, DropOverlay, PixelizeOverlay, IncrementOverlay, CutoutOverlay, ErrorBanner, Splash, About
 │   └── ui/              # shadcn/ui primitives: Button, DropdownMenu, the Sonner toaster
-├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch
+├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch, crop double-click
 └── lib/
-    ├── editor/          # engine preload, editor options, unsaved-edit detection
+    ├── editor/          # engine preload, editor options, unsaved-edit detection, crop double-click
     ├── image/           # paths and formats, clipboard, capture, pixelize and badge geometry, cutout, dialogs and I/O
     └── menu.ts          # the native menu bar
 
