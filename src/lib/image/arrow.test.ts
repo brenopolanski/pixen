@@ -21,6 +21,12 @@ describe('clampPixel', () => {
     expect(clampPixel(box, image, { x: 900, y: 900 })).toEqual({ x: 799, y: 399 })
   })
 
+  // A small image is blown up to fill the frame, so its visible corner has to
+  // map to its first pixel rather than being clamped in from the edge.
+  it('reaches the visible corner of a small image', () => {
+    expect(clampPixel(box, { width: 100, height: 50 }, { x: 0, y: 100 })).toEqual({ x: 0, y: 0 })
+  })
+
   it('collapses when there is nothing to measure against', () => {
     expect(clampPixel({ width: 0, height: 0 }, image, { x: 10, y: 10 })).toEqual({ x: 0, y: 0 })
   })
