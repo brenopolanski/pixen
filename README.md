@@ -22,6 +22,7 @@ The editor does the editing. Pixen owns the window, the native file dialogs, the
 - Copies the edited image to the system clipboard with `⌘⇧C` / `Ctrl+Shift+C`
 - Hides private data — an address, a token, a face — behind a mosaic, by dragging a box over it
 - Numbers a screenshot for a step-by-step guide: click each spot and the badge counts itself up
+- Points at what matters: drag an arrow towards it, as many as the guide needs
 - Cuts the background away from the subject with a local segmentation model, previewing the result before it is applied
 
 ## Tech stack

@@ -15,6 +15,7 @@ interface ToolbarProps {
   fileName: string | null
   format: SaveFormat
   hasImage: boolean
+  onArrow: () => void
   /** Passed only where capture is supported, so the item is absent elsewhere. */
   onCaptureScreen?: () => void
   onCopyImage: () => void
@@ -33,6 +34,7 @@ export const Toolbar = ({
   fileName,
   format,
   hasImage,
+  onArrow,
   onCaptureScreen,
   onCopyImage,
   onCutout,
@@ -102,6 +104,7 @@ export const Toolbar = ({
           busy={busy}
           hasImage={hasImage}
           mac={mac}
+          onArrow={onArrow}
           onCaptureScreen={onCaptureScreen}
           onCopyImage={onCopyImage}
           onCutout={onCutout}

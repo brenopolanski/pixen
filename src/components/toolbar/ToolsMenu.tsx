@@ -6,6 +6,7 @@ import {
   CopyIcon,
   Grid2x2Icon,
   ListOrderedIcon,
+  MoveUpRightIcon,
   WandSparklesIcon,
   WrenchIcon,
 } from '@/components/shared/Icons'
@@ -33,6 +34,7 @@ interface ToolsMenuProps {
   busy: boolean
   hasImage: boolean
   mac: boolean
+  onArrow: () => void
   onCaptureScreen?: () => void
   onCopyImage: () => void
   onCutout: () => void
@@ -44,6 +46,7 @@ export const ToolsMenu = ({
   busy,
   hasImage,
   mac,
+  onArrow,
   onCaptureScreen,
   onCopyImage,
   onCutout,
@@ -51,6 +54,12 @@ export const ToolsMenu = ({
   onPixelize,
 }: ToolsMenuProps) => {
   const items: ToolItem[] = [
+    {
+      label: 'Arrow',
+      disabled: busy || !hasImage,
+      icon: <MoveUpRightIcon className="size-3.5" />,
+      onSelect: onArrow,
+    },
     {
       label: 'Background',
       disabled: busy || !hasImage,

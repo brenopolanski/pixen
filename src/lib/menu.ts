@@ -8,6 +8,7 @@ export interface MenuHandlers {
   /** Only reachable on macOS, the one platform with a capture backend. */
   onCaptureScreen: () => void
   onCopyImage: () => void
+  onArrow: () => void
   onPixelize: () => void
   onIncrement: () => void
   onCutout: () => void
@@ -57,6 +58,13 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
     accelerator: 'CmdOrCtrl+Shift+C',
     enabled: false,
     action: handlers.onCopyImage,
+  })
+
+  const arrowItem = await MenuItem.new({
+    id: 'pixen-arrow',
+    text: 'Arrow…',
+    enabled: false,
+    action: handlers.onArrow,
   })
 
   // No accelerator, like the toolbar button: it opens a selection overlay
@@ -125,6 +133,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
           saveItem,
           saveAsItem,
           copyImageItem,
+          arrowItem,
           pixelizeItem,
           incrementItem,
           cutoutItem,
@@ -162,6 +171,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
               await PredefinedMenuItem.new({ item: 'SelectAll' }),
               await separator(),
               copyImageItem,
+              arrowItem,
               pixelizeItem,
               incrementItem,
               cutoutItem,
@@ -191,6 +201,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
       await saveItem.setEnabled(hasImage)
       await saveAsItem.setEnabled(hasImage)
       await copyImageItem.setEnabled(hasImage)
+      await arrowItem.setEnabled(hasImage)
       await pixelizeItem.setEnabled(hasImage)
       await incrementItem.setEnabled(hasImage)
       await cutoutItem.setEnabled(hasImage)
