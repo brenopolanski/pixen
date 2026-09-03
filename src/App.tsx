@@ -38,6 +38,8 @@ const App = () => {
   useNativeMenu(
     {
       onOpenImage: session.openImage,
+      onOpenRecent: session.openRecent,
+      onClearRecent: session.clearRecent,
       onCaptureScreen: session.captureScreen,
       onCopyImage: session.copyImage,
       onArrow: session.startArrow,
@@ -52,6 +54,7 @@ const App = () => {
       onQuit: session.requestClose,
     },
     hasImage,
+    session.recent,
   )
   useWindowTitle({ path: session.path, hasImage, dirty: session.dirty })
   useCloseGuard(session.requestClose)

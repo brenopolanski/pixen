@@ -16,6 +16,7 @@ The editor does the editing. Pixen owns the window, the native file dialogs, the
 
 - Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or through a native file dialog
 - Captures a region of the screen straight into the editor (**macOS only**)
+- Reopens the last ten images from **File → Open Recent**
 - Edits them with [`@unlayer/react-image-editor`](https://github.com/unlayer/react-image-editor) — crop, resize, filters, draw, text, shapes, stickers and frames
 - Saves as PNG, JPEG or WebP with `⌘S` / `Ctrl+S`, asking where to write the first time and reusing that destination afterwards
 - Saves to a new file with `⌘⇧S` / `Ctrl+Shift+S`

@@ -22,6 +22,19 @@ confirms unsaved work, then loads. Only where the image comes from differs.
   menu replaces the entire bar, so the App, Edit and Window submenus are rebuilt too — without an
   Edit menu the system copy, paste and select-all shortcuts stop working in text fields.
 
+### Open Recent
+
+The last ten paths live in `localStorage` under `pixen.recent-files`, newest first: a list of
+strings is exactly what the webview's own storage is for, and nothing here justifies a store plugin.
+A path is recorded only after a read or a write has succeeded, which is why a paste or a screenshot
+stays off the list until it has been saved somewhere. If a file has moved or been deleted since,
+opening it fails as usual and the entry drops off in the same breath, so the menu never offers the
+same dead file twice. Two files sharing a name are told apart by the folder holding them.
+
+The submenu is refilled in place — the items are removed and appended again — because installing a
+menu replaces the whole bar, and rebuilding it on every open would take the App, Edit and Window
+submenus with it. `Clear Menu` empties the list and the storage key with it.
+
 Quit is a plain menu item wired to Pixen's own close handler, not the predefined one. The predefined
 item calls `exit` directly, which would drop unsaved edits without asking.
 

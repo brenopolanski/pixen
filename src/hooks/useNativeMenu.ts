@@ -12,21 +12,29 @@ import { isMacPlatform } from '@/lib/platform'
  * so the items call through a ref rather than closing over the handlers they
  * were created with.
  */
-export const useNativeMenu = (handlers: MenuHandlers, hasImage: boolean) => {
+export const useNativeMenu = (
+  handlers: MenuHandlers,
+  hasImage: boolean,
+  recent: readonly string[],
+) => {
   const handlersRef = useRef(handlers)
   const menuRef = useRef<AppMenu | null>(null)
   const hasImageRef = useRef(hasImage)
+  const recentRef = useRef(recent)
 
   useEffect(() => {
     handlersRef.current = handlers
     hasImageRef.current = hasImage
-  }, [handlers, hasImage])
+    recentRef.current = recent
+  }, [handlers, hasImage, recent])
 
   useEffect(() => {
     let disposed = false
 
     void installAppMenu(isMacPlatform(), {
       onOpenImage: () => handlersRef.current.onOpenImage(),
+      onOpenRecent: (path) => handlersRef.current.onOpenRecent(path),
+      onClearRecent: () => handlersRef.current.onClearRecent(),
       onCaptureScreen: () => handlersRef.current.onCaptureScreen(),
       onCopyImage: () => handlersRef.current.onCopyImage(),
       onArrow: () => handlersRef.current.onArrow(),
@@ -48,6 +56,7 @@ export const useNativeMenu = (handlers: MenuHandlers, hasImage: boolean) => {
         // An image can already be open by the time the menu finishes building,
         // so the current state is applied rather than assumed empty.
         await menu.setHasImage(hasImageRef.current)
+        await menu.setRecent(recentRef.current)
       })
       .catch((failure: unknown) => {
         console.error('[pixen] could not install the native menu', failure)
@@ -61,4 +70,8 @@ export const useNativeMenu = (handlers: MenuHandlers, hasImage: boolean) => {
   useEffect(() => {
     void menuRef.current?.setHasImage(hasImage)
   }, [hasImage])
+
+  useEffect(() => {
+    void menuRef.current?.setRecent(recent)
+  }, [recent])
 }

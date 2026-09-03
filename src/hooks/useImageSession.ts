@@ -24,6 +24,7 @@ import type { Stamp } from '@/lib/image/increment'
 import { composeStamps } from '@/lib/image/increment'
 import type { Rect } from '@/lib/image/pixelize'
 import { pixelizeImage } from '@/lib/image/pixelize'
+import { readRecent, withoutRecent, withRecent, writeRecent } from '@/lib/recent'
 
 interface SessionState {
   /**
@@ -89,6 +90,11 @@ export interface ImageSession extends SessionState {
   /** Accepts the cutout the overlay produced and hands it to the editor. */
   applyCutout: (dataUrl: string) => void
   cancelCutout: () => void
+  /** Paths of images opened or saved before, newest first. */
+  recent: string[]
+  /** Opens a path off the recent list, dropping it if the file has gone. */
+  openRecent: (path: string) => void
+  clearRecent: () => void
   save: () => void
   saveAs: () => void
   discardEdits: () => void
@@ -113,6 +119,9 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   // Deliberately outside `session`: the chosen output format is the user's
   // preference, so opening another image must not reset it.
   const [format, setFormatState] = useState<SaveFormat>(DEFAULT_SAVE_FORMAT)
+  // Read once: nothing outside Pixen writes this key, so the stored list and
+  // this one cannot drift apart while the window is open.
+  const [recent, setRecent] = useState<string[]>(readRecent)
 
   // Mirrors `session` so callbacks wired to window listeners and native
   // dialogs always read current values without being rebuilt.
@@ -136,6 +145,35 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   const setFormat = useCallback((next: SaveFormat) => {
     formatRef.current = next
     setFormatState(next)
+  }, [])
+
+  /**
+   * Only a path that has just been read or written lands here, so the list
+   * never offers a file Pixen has not proved it can reach.
+   */
+  const rememberPath = useCallback((path: string) => {
+    setRecent((current) => {
+      const next = withRecent(current, path)
+
+      writeRecent(next)
+
+      return next
+    })
+  }, [])
+
+  const forgetPath = useCallback((path: string) => {
+    setRecent((current) => {
+      const next = withoutRecent(current, path)
+
+      writeRecent(next)
+
+      return next
+    })
+  }, [])
+
+  const clearRecent = useCallback(() => {
+    setRecent([])
+    writeRecent([])
   }, [])
 
   const load = useCallback(
@@ -236,10 +274,11 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       baselineRef.current = image
       bakedRef.current = false
       applySession({ ...current, path: destination, dirty: false })
+      rememberPath(destination)
 
       return true
     },
-    [applySession, setFormat],
+    [applySession, rememberPath, setFormat],
   )
 
   /**
@@ -263,8 +302,9 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       }
 
       load(await readImage(path), baseNameOf(path))
+      rememberPath(path)
     })
-  }, [confirmReplacingImage, load, run])
+  }, [confirmReplacingImage, load, rememberPath, run])
 
   const openFromPath = useCallback(
     (path: string) => {
@@ -274,9 +314,35 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
         }
 
         load(await readImage(path), baseNameOf(path))
+        rememberPath(path)
       })
     },
-    [confirmReplacingImage, load, run],
+    [confirmReplacingImage, load, rememberPath, run],
+  )
+
+  const openRecent = useCallback(
+    (path: string) => {
+      run(async () => {
+        if (!(await confirmReplacingImage())) {
+          return
+        }
+
+        let image: string
+
+        try {
+          image = await readImage(path)
+        } catch (failure) {
+          // Moved, renamed or deleted since it was opened. Offering it again
+          // would fail the same way, so the entry goes with the error.
+          forgetPath(path)
+          throw failure
+        }
+
+        load(image, baseNameOf(path))
+        rememberPath(path)
+      })
+    },
+    [confirmReplacingImage, forgetPath, load, rememberPath, run],
   )
 
   const openFromDataUrl = useCallback(
@@ -632,6 +698,9 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     startCutout,
     applyCutout,
     cancelCutout,
+    recent,
+    openRecent,
+    clearRecent,
     save,
     saveAs,
     discardEdits,
