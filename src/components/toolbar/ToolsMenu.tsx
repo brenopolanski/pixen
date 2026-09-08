@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import {
   CameraIcon,
@@ -54,6 +54,14 @@ export const ToolsMenu = ({
   onPixelize,
 }: ToolsMenuProps) => {
   const [open, setOpen] = useState(false)
+  const [tooltip, setTooltip] = useState<string | null>(null)
+  const hovering = useRef<string | null>(null)
+
+  const closeMenu = () => {
+    setOpen(false)
+    setTooltip(null)
+    hovering.current = null
+  }
 
   const items: ToolItem[] = [
     {
@@ -105,7 +113,16 @@ export const ToolsMenu = ({
   items.sort((left, right) => left.label.localeCompare(right.label))
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next)
+        if (!next) {
+          setTooltip(null)
+          hovering.current = null
+        }
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
@@ -118,19 +135,51 @@ export const ToolsMenu = ({
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent align="end" className="w-60 p-3" sideOffset={6}>
+      {/* Radix focuses the first grid button on open; a Tooltip treats that
+          focus as a hover. Skip auto-focus and only open a label from the
+          pointer, so Arrow does not flash the instant the menu appears. */}
+      <PopoverContent
+        align="end"
+        className="w-60 p-3"
+        sideOffset={6}
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
         <TooltipProvider delayDuration={300}>
           <div className="grid grid-cols-3 gap-2">
             {items.map((item) => (
-              <Tooltip key={generateReactKey('tool', item.label)}>
+              <Tooltip
+                key={generateReactKey('tool', item.label)}
+                open={tooltip === item.label}
+                onOpenChange={(next) => {
+                  if (next) {
+                    if (hovering.current === item.label) {
+                      setTooltip(item.label)
+                    }
+
+                    return
+                  }
+
+                  setTooltip((current) => (current === item.label ? null : current))
+                }}
+              >
                 <TooltipTrigger asChild>
                   <button
                     className="flex flex-col items-center gap-1.5 rounded-lg p-1 text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
                     disabled={item.disabled}
                     type="button"
                     onClick={() => {
-                      setOpen(false)
+                      closeMenu()
                       item.onSelect()
+                    }}
+                    onPointerEnter={() => {
+                      hovering.current = item.label
+                    }}
+                    onPointerLeave={() => {
+                      if (hovering.current === item.label) {
+                        hovering.current = null
+                      }
+
+                      setTooltip((current) => (current === item.label ? null : current))
                     }}
                   >
                     <span className="flex size-12 items-center justify-center rounded-xl border border-border bg-muted/40 text-foreground">
