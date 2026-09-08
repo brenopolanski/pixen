@@ -34,18 +34,23 @@ export interface Point {
 /**
  * Where a `contain`-fitted image actually lands inside its box.
  *
- * The overlay shows the whole image scaled down to fit, which leaves a margin
+ * The overlay shows the whole image fitted to its frame, which leaves a margin
  * on one axis. Selections have to be measured against this rect rather than the
  * box, or everything drifts by half the letterbox.
+ *
+ * A small image is blown up rather than left at its own size, because this has
+ * to agree with the `object-contain` the overlays show it with. Capping the
+ * scale at 1 made the mapping disown the outer part of what the user could see:
+ * corners of a small screenshot read as letterbox, so a click there was a miss
+ * and a drag there was clamped inwards, while the baked result — which only
+ * ever knew image pixels — reached the corner after all.
  */
 export const displayedImageRect = (box: Box, image: Size): Rect => {
   if (box.width <= 0 || box.height <= 0 || image.width <= 0 || image.height <= 0) {
     return { x: 0, y: 0, width: 0, height: 0 }
   }
 
-  // Never above 1: the image is fitted, not blown up, so its own pixels stay
-  // the ceiling and a small image is not resampled into blur.
-  const scale = Math.min(box.width / image.width, box.height / image.height, 1)
+  const scale = Math.min(box.width / image.width, box.height / image.height)
   const width = image.width * scale
   const height = image.height * scale
 

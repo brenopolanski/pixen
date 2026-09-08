@@ -1,6 +1,7 @@
 import type { ImageEditorRef } from '@unlayer/react-image-editor'
 import { useRef, useState } from 'react'
 
+import { ArrowOverlay } from '@/components/ArrowOverlay'
 import { CutoutOverlay } from '@/components/CutoutOverlay'
 import { DropOverlay } from '@/components/DropOverlay'
 import { Editor } from '@/components/Editor'
@@ -41,8 +42,11 @@ const App = () => {
   useNativeMenu(
     {
       onOpenImage: session.openImage,
+      onOpenRecent: session.openRecent,
+      onClearRecent: session.clearRecent,
       onCaptureScreen: session.captureScreen,
       onCopyImage: session.copyImage,
+      onArrow: session.startArrow,
       onPixelize: session.startPixelize,
       onIncrement: session.startIncrement,
       onCutout: session.startCutout,
@@ -54,6 +58,7 @@ const App = () => {
       onQuit: session.requestClose,
     },
     hasImage,
+    session.recent,
   )
   useWindowTitle({ path: session.path, hasImage, dirty: session.dirty })
   useCloseGuard(session.requestClose)
@@ -75,6 +80,7 @@ const App = () => {
         fileName={session.path && fileNameOf(session.path)}
         format={session.format}
         hasImage={hasImage}
+        onArrow={session.startArrow}
         onCaptureScreen={isCaptureSupported() ? session.captureScreen : undefined}
         onCopyImage={session.copyImage}
         onCutout={session.startCutout}
@@ -120,6 +126,14 @@ const App = () => {
             image={session.incrementPreview}
             onApply={session.applyIncrement}
             onCancel={session.cancelIncrement}
+          />
+        )}
+
+        {session.arrowPreview && (
+          <ArrowOverlay
+            image={session.arrowPreview}
+            onApply={session.applyArrow}
+            onCancel={session.cancelArrow}
           />
         )}
 
