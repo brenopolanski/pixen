@@ -1,4 +1,4 @@
-import { ImagePlusIcon, SaveAllIcon, SaveIcon } from '@/components/shared/Icons'
+import { ImagePlusIcon, SaveAllIcon, SaveIcon, SettingsIcon } from '@/components/shared/Icons'
 import { Logo } from '@/components/shared/Logo'
 import { Button } from '@/components/ui/button'
 import { APP_NAME, UNTITLED_NAME } from '@/lib/constants'
@@ -15,6 +15,7 @@ interface ToolbarProps {
   fileName: string | null
   format: SaveFormat
   hasImage: boolean
+  onArrow: () => void
   /** Passed only where capture is supported, so the item is absent elsewhere. */
   onCaptureScreen?: () => void
   onCopyImage: () => void
@@ -23,6 +24,7 @@ interface ToolbarProps {
   onIncrement: () => void
   onFormatChange: (format: SaveFormat) => void
   onOpenImage: () => void
+  onOpenSettings: () => void
   onSave: () => void
   onSaveAs: () => void
 }
@@ -33,6 +35,7 @@ export const Toolbar = ({
   fileName,
   format,
   hasImage,
+  onArrow,
   onCaptureScreen,
   onCopyImage,
   onCutout,
@@ -40,6 +43,7 @@ export const Toolbar = ({
   onIncrement,
   onFormatChange,
   onOpenImage,
+  onOpenSettings,
   onSave,
   onSaveAs,
 }: ToolbarProps) => {
@@ -102,6 +106,7 @@ export const Toolbar = ({
           busy={busy}
           hasImage={hasImage}
           mac={mac}
+          onArrow={onArrow}
           onCaptureScreen={onCaptureScreen}
           onCopyImage={onCopyImage}
           onCutout={onCutout}
@@ -110,6 +115,18 @@ export const Toolbar = ({
         />
 
         <ExportMenu disabled={busy} format={format} onChange={onFormatChange} />
+
+        {/* Icon-only, so the height is pinned rather than left to the icon:
+            the labelled buttons are 32px from their 12px text line box. */}
+        <Button
+          aria-label="Settings"
+          className="size-8 p-0"
+          title="Settings"
+          variant="outline"
+          onClick={onOpenSettings}
+        >
+          <SettingsIcon className="size-3.5" />
+        </Button>
       </div>
     </header>
   )

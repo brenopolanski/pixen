@@ -4,6 +4,22 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  color-scheme: light;
+  --background: #f4f4f5;
+  --foreground: #18181b;
+  --surface: #ffffff;
+  --muted: #ececee;
+  --muted-foreground: #71717a;
+  --accent: rgba(0, 0, 0, 0.05);
+  --border: #e4e4e7;
+  --brand: #7c5cff;
+  --brand-foreground: #ffffff;
+  --danger: #dc2626;
+  --danger-surface: #fef2f2;
+}
+
+/* Same element as :root — wins when Settings applies the class. */
+html.dark {
   color-scheme: dark;
   --background: #101114;
   --foreground: #f4f4f5;
@@ -16,7 +32,9 @@
   --brand-foreground: #ffffff;
   --danger: #fca5a5;
   --danger-surface: #241417;
+}
 
+:root {
   /* The names shadcn's components are written against, pointed at the palette
      above rather than at a second one. Pixen's own classes keep using --brand
      and --surface, so nothing here renames anything. */
