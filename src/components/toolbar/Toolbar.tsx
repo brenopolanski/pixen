@@ -1,4 +1,4 @@
-import { ImagePlusIcon, SaveAllIcon, SaveIcon } from '@/components/shared/Icons'
+import { ImagePlusIcon, SaveAllIcon, SaveIcon, SettingsIcon } from '@/components/shared/Icons'
 import { Logo } from '@/components/shared/Logo'
 import { Button } from '@/components/ui/button'
 import { APP_NAME } from '@/lib/constants'
@@ -18,6 +18,7 @@ interface ToolbarProps {
   tabs: ImageTab[]
   activeId: string | null
   overlayOpen: boolean
+  onArrow: () => void
   /** Passed only where capture is supported, so the item is absent elsewhere. */
   onCaptureScreen?: () => void
   onCopyImage: () => void
@@ -27,6 +28,7 @@ interface ToolbarProps {
   onFormatChange: (format: SaveFormat) => void
   onOpenImage: () => void
   onOpenNewTab: () => void
+  onOpenSettings: () => void
   onActivateTab: (tabId: string) => void
   onCloseTab: (tabId: string) => void
   onSave: () => void
@@ -40,6 +42,7 @@ export const Toolbar = ({
   tabs,
   activeId,
   overlayOpen,
+  onArrow,
   onCaptureScreen,
   onCopyImage,
   onCutout,
@@ -48,6 +51,7 @@ export const Toolbar = ({
   onFormatChange,
   onOpenImage,
   onOpenNewTab,
+  onOpenSettings,
   onActivateTab,
   onCloseTab,
   onSave,
@@ -106,6 +110,7 @@ export const Toolbar = ({
             busy={busy}
             hasImage={hasImage}
             mac={mac}
+            onArrow={onArrow}
             onCaptureScreen={onCaptureScreen}
             onCopyImage={onCopyImage}
             onCutout={onCutout}
@@ -114,6 +119,18 @@ export const Toolbar = ({
           />
 
           <ExportMenu disabled={busy} format={format} onChange={onFormatChange} />
+
+          {/* Icon-only, so the height is pinned rather than left to the icon:
+              the labelled buttons are 32px from their 12px text line box. */}
+          <Button
+            aria-label="Settings"
+            className="size-8 p-0"
+            title="Settings"
+            variant="outline"
+            onClick={onOpenSettings}
+          >
+            <SettingsIcon className="size-3.5" />
+          </Button>
         </div>
       </div>
 

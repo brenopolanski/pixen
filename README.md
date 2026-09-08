@@ -16,12 +16,15 @@ The editor does the editing. Pixen owns the window, the native file dialogs, the
 
 - Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or through a native file dialog — up to five tabs; a clean tab is replaced, a dirty one stays and a new tab opens. The tab strip’s **+** always opens another tab.
 - Captures a region of the screen straight into the editor (**macOS only**)
-- Edits them with [`@unlayer/react-image-editor`](https://github.com/unlayer/react-image-editor) — crop, resize, filters, draw, text, shapes, stickers and frames
+- Reopens the last ten images from **File → Open Recent**
+- Edits them with [`@unlayer/react-image-editor`](https://github.com/unlayer/react-image-editor) — crop, resize, filters, draw, text, shapes, stickers and frames. Double-click inside a crop to apply it.
+- Chooses a light or dark appearance in Settings — Pixen’s chrome and the image editor; the choice is remembered in `localStorage`
 - Saves as PNG, JPEG or WebP with `⌘S` / `Ctrl+S`, asking where to write the first time and reusing that destination afterwards
 - Saves to a new file with `⌘⇧S` / `Ctrl+Shift+S`
 - Copies the edited image to the system clipboard with `⌘⇧C` / `Ctrl+Shift+C`
 - Hides private data — an address, a token, a face — behind a mosaic, by dragging a box over it
 - Numbers a screenshot for a step-by-step guide: click each spot and the badge counts itself up
+- Points at what matters: drag an arrow towards it, as many as the guide needs
 - Cuts the background away from the subject with a local segmentation model, previewing the result before it is applied
 
 ## Tech stack

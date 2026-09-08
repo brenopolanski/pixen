@@ -13,6 +13,8 @@ import {
 import { askAboutUnsavedChanges, askToDiscardChanges, quitApp } from '@/lib/desktop'
 import { hasUnsavedEdits } from '@/lib/editor/engine'
 import { PixenError, toUserMessage } from '@/lib/errors'
+import type { Arrow } from '@/lib/image/arrow'
+import { composeArrows } from '@/lib/image/arrow'
 import { captureScreen as runCapture } from '@/lib/image/capture'
 import { copyImage as writeToClipboard } from '@/lib/image/clipboard'
 import type { SaveFormat } from '@/lib/image/image'
@@ -22,6 +24,7 @@ import type { Stamp } from '@/lib/image/increment'
 import { composeStamps } from '@/lib/image/increment'
 import type { Rect } from '@/lib/image/pixelize'
 import { pixelizeImage } from '@/lib/image/pixelize'
+import { readRecent, withoutRecent, withRecent, writeRecent } from '@/lib/recent'
 import type { ImageTab } from '@/lib/tabs'
 import {
   decideNewTabAction,
@@ -72,10 +75,23 @@ export interface ImageSession {
   startIncrement: () => void
   applyIncrement: (stamps: Stamp[]) => void
   cancelIncrement: () => void
+  /** The flattened image the arrow overlay draws on; null when closed. */
+  arrowPreview: string | null
+  /** Flattens the canvas and opens the arrow overlay. */
+  startArrow: () => void
+  /** Bakes every arrow in one pass and hands the result back to the editor. */
+  applyArrow: (arrows: Arrow[]) => void
+  cancelArrow: () => void
+  /** The flattened image the cutout overlay runs the model on; null when closed. */
   cutoutPreview: string | null
   startCutout: () => void
   applyCutout: (dataUrl: string) => void
   cancelCutout: () => void
+  /** Paths of images opened or saved before, newest first. */
+  recent: string[]
+  /** Opens a path off the recent list, dropping it if the file has gone. */
+  openRecent: (path: string) => void
+  clearRecent: () => void
   save: () => void
   saveAs: () => void
   discardEdits: () => void
@@ -102,8 +118,12 @@ export const useImageSession = (): ImageSession => {
   const [error, setError] = useState<string | null>(null)
   const [pixelizePreview, setPixelizePreview] = useState<string | null>(null)
   const [incrementPreview, setIncrementPreview] = useState<string | null>(null)
+  const [arrowPreview, setArrowPreview] = useState<string | null>(null)
   const [cutoutPreview, setCutoutPreview] = useState<string | null>(null)
   const [format, setFormatState] = useState<SaveFormat>(DEFAULT_SAVE_FORMAT)
+  // Read once: nothing outside Pixen writes this key, so the stored list and
+  // this one cannot drift apart while the window is open.
+  const [recent, setRecent] = useState<string[]>(readRecent)
 
   const sessionRef = useRef(session)
   const formatRef = useRef(format)
@@ -114,7 +134,10 @@ export const useImageSession = (): ImageSession => {
   const busyRef = useRef(false)
 
   const overlayOpen =
-    pixelizePreview !== null || incrementPreview !== null || cutoutPreview !== null
+    pixelizePreview !== null ||
+    incrementPreview !== null ||
+    arrowPreview !== null ||
+    cutoutPreview !== null
   const overlayOpenRef = useRef(overlayOpen)
 
   useEffect(() => {
@@ -142,6 +165,35 @@ export const useImageSession = (): ImageSession => {
     setFormatState(next)
   }, [])
 
+  /**
+   * Only a path that has just been read or written lands here, so the list
+   * never offers a file Pixen has not proved it can reach.
+   */
+  const rememberPath = useCallback((path: string) => {
+    setRecent((current) => {
+      const next = withRecent(current, path)
+
+      writeRecent(next)
+
+      return next
+    })
+  }, [])
+
+  const forgetPath = useCallback((path: string) => {
+    setRecent((current) => {
+      const next = withoutRecent(current, path)
+
+      writeRecent(next)
+
+      return next
+    })
+  }, [])
+
+  const clearRecent = useCallback(() => {
+    setRecent([])
+    writeRecent([])
+  }, [])
+
   const setEditorRef = useCallback((tabId: string, editor: ImageEditorRef | null) => {
     if (editor) {
       editorRefs.current.set(tabId, editor)
@@ -157,6 +209,7 @@ export const useImageSession = (): ImageSession => {
   const clearOverlays = useCallback(() => {
     setPixelizePreview(null)
     setIncrementPreview(null)
+    setArrowPreview(null)
     setCutoutPreview(null)
   }, [])
 
@@ -284,10 +337,11 @@ export const useImageSession = (): ImageSession => {
       baselinesRef.current.set(tab.id, image)
       bakedRef.current.set(tab.id, false)
       patchTab(tab.id, { path: destination, dirty: false })
+      rememberPath(destination)
 
       return true
     },
-    [patchTab, setFormat],
+    [patchTab, rememberPath, setFormat],
   )
 
   const openImage = useCallback(() => {
@@ -299,8 +353,9 @@ export const useImageSession = (): ImageSession => {
       }
 
       placeImage(await readImage(path), baseNameOf(path))
+      rememberPath(path)
     })
-  }, [placeImage, run])
+  }, [placeImage, rememberPath, run])
 
   const openInNewTab = useCallback(() => {
     run(async () => {
@@ -311,16 +366,39 @@ export const useImageSession = (): ImageSession => {
       }
 
       placeImage(await readImage(path), baseNameOf(path), { forceNew: true })
+      rememberPath(path)
     })
-  }, [placeImage, run])
+  }, [placeImage, rememberPath, run])
 
   const openFromPath = useCallback(
     (path: string) => {
       run(async () => {
         placeImage(await readImage(path), baseNameOf(path))
+        rememberPath(path)
       })
     },
-    [placeImage, run],
+    [placeImage, rememberPath, run],
+  )
+
+  const openRecent = useCallback(
+    (path: string) => {
+      run(async () => {
+        let image: string
+
+        try {
+          image = await readImage(path)
+        } catch (failure) {
+          // Moved, renamed or deleted since it was opened. Offering it again
+          // would fail the same way, so the entry goes with the error.
+          forgetPath(path)
+          throw failure
+        }
+
+        placeImage(image, baseNameOf(path))
+        rememberPath(path)
+      })
+    },
+    [forgetPath, placeImage, rememberPath, run],
   )
 
   const openFromDataUrl = useCallback(
@@ -363,6 +441,7 @@ export const useImageSession = (): ImageSession => {
 
       setPixelizePreview(readCurrentImage())
       setIncrementPreview(null)
+      setArrowPreview(null)
       setCutoutPreview(null)
     })
   }, [readCurrentImage, run])
@@ -399,6 +478,7 @@ export const useImageSession = (): ImageSession => {
 
       setIncrementPreview(readCurrentImage())
       setPixelizePreview(null)
+      setArrowPreview(null)
       setCutoutPreview(null)
     })
   }, [readCurrentImage, run])
@@ -427,6 +507,45 @@ export const useImageSession = (): ImageSession => {
     [incrementPreview, patchTab, run],
   )
 
+  const startArrow = useCallback(() => {
+    run(async () => {
+      if (!activeTabOf(sessionRef.current)) {
+        return
+      }
+
+      setArrowPreview(readCurrentImage())
+      setPixelizePreview(null)
+      setIncrementPreview(null)
+      setCutoutPreview(null)
+    })
+  }, [readCurrentImage, run])
+
+  const cancelArrow = useCallback(() => {
+    setArrowPreview(null)
+  }, [])
+
+  const applyArrow = useCallback(
+    (arrows: Arrow[]) => {
+      run(async () => {
+        const active = activeTabOf(sessionRef.current)
+        const preview = arrowPreview
+
+        if (!active || !preview || arrows.length === 0) {
+          return
+        }
+
+        // Every arrow in one composite, so the editor reloads — and loses its
+        // undo stack — once rather than once per arrow.
+        const annotated = await composeArrows(preview, arrows)
+
+        bakedRef.current.set(active.id, true)
+        patchTab(active.id, { image: annotated, dirty: true })
+        setArrowPreview(null)
+      })
+    },
+    [arrowPreview, patchTab, run],
+  )
+
   const startCutout = useCallback(() => {
     run(async () => {
       if (!activeTabOf(sessionRef.current)) {
@@ -436,6 +555,7 @@ export const useImageSession = (): ImageSession => {
       setCutoutPreview(readCurrentImage())
       setPixelizePreview(null)
       setIncrementPreview(null)
+      setArrowPreview(null)
     })
   }, [readCurrentImage, run])
 
@@ -691,10 +811,17 @@ export const useImageSession = (): ImageSession => {
     startIncrement,
     applyIncrement,
     cancelIncrement,
+    arrowPreview,
+    startArrow,
+    applyArrow,
+    cancelArrow,
     cutoutPreview,
     startCutout,
     applyCutout,
     cancelCutout,
+    recent,
+    openRecent,
+    clearRecent,
     save,
     saveAs,
     discardEdits,

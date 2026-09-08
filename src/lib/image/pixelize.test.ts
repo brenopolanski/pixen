@@ -19,12 +19,14 @@ describe('displayedImageRect', () => {
     })
   })
 
-  it('leaves a small image at its own size rather than upscaling it', () => {
+  // Upscaling is what `object-contain` does, and the mapping has to agree with
+  // it or the outer part of a small image is unreachable on the overlay.
+  it('blows a small image up to fill its frame', () => {
     expect(displayedImageRect({ width: 400, height: 400 }, { width: 100, height: 50 })).toEqual({
-      x: 150,
-      y: 175,
-      width: 100,
-      height: 50,
+      x: 0,
+      y: 100,
+      width: 400,
+      height: 200,
     })
   })
 
@@ -90,6 +92,12 @@ describe('clickToPixel', () => {
   it('keeps a click on the far edge inside the image', () => {
     expect(clickToPixel(box, image, { x: 400, y: 300 })).toEqual({ x: 799, y: 399 })
   })
+
+  // The corners of a blown-up image were letterbox while the scale was capped
+  // at 1, so a click the user could see landed nowhere.
+  it('takes a click on the visible corner of a small image', () => {
+    expect(clickToPixel(box, { width: 100, height: 50 }, { x: 0, y: 100 })).toEqual({ x: 0, y: 0 })
+  })
 })
 
 describe('pixelToDisplayed', () => {
@@ -120,8 +128,8 @@ describe('displayedScale', () => {
     expect(displayedScale({ width: 400, height: 400 }, { width: 800, height: 400 })).toBe(0.5)
   })
 
-  it('is 1 for an image that fits already', () => {
-    expect(displayedScale({ width: 400, height: 400 }, { width: 100, height: 50 })).toBe(1)
+  it('reports how much a small image grew to fill its frame', () => {
+    expect(displayedScale({ width: 400, height: 400 }, { width: 100, height: 50 })).toBe(4)
   })
 })
 

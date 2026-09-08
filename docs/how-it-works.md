@@ -19,10 +19,23 @@ image open. Only where the image comes from differs.
   — drag a region, or press Space to pick a window. Pixen hides itself for the duration and comes
   back whatever happens. A capture has no path either, so its first save offers `Screenshot.png`.
 - **The File menu** is built with `@tauri-apps/api/menu`, so its actions sit next to the session
-  rather than in Rust. Save, Save As, Copy Image and the three image tools are disabled until an
+  rather than in Rust. Save, Save As, Copy Image and the four image tools are disabled until an
   image is open. On macOS a
   menu replaces the entire bar, so the App, Edit and Window submenus are rebuilt too — without an
   Edit menu the system copy, paste and select-all shortcuts stop working in text fields.
+
+### Open Recent
+
+The last ten paths live in `localStorage` under `pixen.recent-files`, newest first: a list of
+strings is exactly what the webview's own storage is for, and nothing here justifies a store plugin.
+A path is recorded only after a read or a write has succeeded, which is why a paste or a screenshot
+stays off the list until it has been saved somewhere. If a file has moved or been deleted since,
+opening it fails as usual and the entry drops off in the same breath, so the menu never offers the
+same dead file twice. Two files sharing a name are told apart by the folder holding them.
+
+The submenu is refilled in place — the items are removed and appended again — because installing a
+menu replaces the whole bar, and rebuilding it on every open would take the App, Edit and Window
+submenus with it. `Clear Menu` empties the list and the storage key with it.
 
 Quit is a plain menu item wired to Pixen's own close handler, not the predefined one. The predefined
 item calls `exit` directly, which would drop unsaved edits without asking.
@@ -114,6 +127,32 @@ last one back, Escape or **Cancel** throws the lot away, and **Done** writes the
   inwards so it is not sliced in half, and the preview is nudged with it.
 - **One size, one colour, starting at 1.** Shutter's tool has no settings either, and a screenshot
   wants the numbers to look the same as each other more than it wants them configurable.
+
+## Pointing at things
+
+**Arrow** is the other half of a step-by-step guide: drag from somewhere clear towards whatever the
+reader should look at, and the head lands where you let go. Draw as many as the picture needs,
+Backspace takes the last one back, Escape or **Cancel** throws the lot away, and **Done** writes them
+onto the image.
+
+- **The tail is refused in the letterbox, the tip is clamped into it.** Starting off the picture is a
+  miss, and a miss should not cost the arrows drawn so far, so `clickToPixel` reports it and the
+  press is ignored. Dragging past the edge is how you point at something on the rim, though, so
+  `clampPixel` in `src/lib/image/arrow.ts` pulls the tip back onto the image instead of refusing it.
+  A drag shorter than an arrowhead is a slip of the mouse and is dropped.
+- **Preview and composite share their geometry.** `arrowOutline` returns where the shaft stops and
+  the three points of the head, and both the SVG in `ArrowOverlay` and the canvas in `composeArrows`
+  draw from it, so an arrow is baked exactly where it was shown. The metrics are in image pixels and
+  the overlay scales them by `displayedScale`, the same arrangement the step badges use.
+- **The compositing is canvas, not Rust**, for the same reason as the badges: the shapes are cheap to
+  draw in the webview, and PNG keeps alpha on the way back to the editor.
+- **One colour, one thickness**, matching the step badges so a guide annotated with both looks like
+  one kit rather than two tools.
+- **Done flattens once**, on the same terms as Pixelize and Steps: the save path, file name and
+  unsaved marker survive, the editor's undo history does not. See
+  [flattening costs](#what-a-flattened-save-costs).
+- **No keyboard shortcut**, for the same reason as Pixelize: it opens a mode rather than finishing on
+  its own.
 
 ## Removing a background
 
@@ -209,16 +248,35 @@ hides that group by position and lets the zoom controls take the space. That rul
 editor's DOM, so it needs a look after an editor release — the buttons stay wired to the session,
 and the worst case is that they reappear rather than stop working.
 
+Double-clicking inside the crop box is the same kind of DOM coupling. The engine has no apply-crop
+API; leaving Crop (closing the panel or switching tools) is what commits the selection. Pixen
+listens for a double-click on `.cropper-crop-box` and clicks the panel's close control
+(`native-tool-options-close`) so the crop goes through Unlayer's own undoable path. Resize handles
+are ignored, and a double-click while another tool is open is left alone so the text tool's
+double-click-to-edit still works. The selectors need a look after an editor release too.
+
+The hook is attached after the editor container exists. If the close button is missing, the
+double-click is a no-op rather than falling through to Save.
+
+The Settings sheet stores preferences in `localStorage` under `pixen.settings`. Appearance
+(`light` or `dark`) paints Pixen's chrome — empty state, toolbar, sheets — by toggling `.dark` on
+`<html>`, and is also passed to Unlayer beside the stable `EDITOR_OPTIONS` object. Unlayer applies
+it with `updateOptions()`, so changing theme does not remount the editor or wipe undo. The class is
+set from `readSettings()` before React mounts so the empty state does not flash the wrong palette.
+
 ## Architecture
 
 ```text
 src/
-├── components/          # Toolbar, TabBar, Editor, EmptyState, overlays, ErrorBanner, Splash, About
-│   └── ui/              # shadcn/ui primitives: Button, DropdownMenu, the Sonner toaster
-├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch
+├── components/          # Toolbar, TabBar, Editor, Settings, EmptyState, overlays, ErrorBanner, Splash, About
+│   └── ui/              # shadcn/ui primitives: Button, DropdownMenu, Sheet, Popover, Tooltip, the Sonner toaster
+├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch, settings, crop double-click
 └── lib/
-    ├── editor/          # engine preload, editor options, unsaved-edit detection
-    ├── image/           # paths and formats, clipboard, capture, pixelize and badge geometry, cutout, dialogs and I/O
+    ├── editor/          # engine preload, editor options, unsaved-edit detection, crop double-click
+    ├── image/           # paths and formats, clipboard, capture, pixelize, badge and arrow geometry, cutout, dialogs and I/O
+    ├── recent.ts        # last-opened paths for File → Open Recent
+    ├── settings.ts      # localStorage preferences (appearance)
+    ├── tabs.ts          # replace-if-clean / new-tab decisions
     └── menu.ts          # the native menu bar
 
 scripts/
