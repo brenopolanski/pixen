@@ -4,10 +4,12 @@ import type { RefObject } from 'react'
 
 import { EDITOR_CONTAINER_ID } from '@/lib/constants'
 import { EDITOR_OPTIONS } from '@/lib/editor/engine'
+import type { EditorTheme } from '@/lib/settings'
 
 interface EditorProps {
   editorRef: RefObject<ImageEditorRef | null>
   image: string
+  theme: EditorTheme
   onCancel: () => void
   onError: (message: string) => void
   onSave: () => void
@@ -23,14 +25,14 @@ interface EditorProps {
  * covers them, but they stay wired: if a future editor build moves them out of
  * reach of that rule, they act on the project instead of going dead.
  */
-export const Editor = ({ editorRef, image, onCancel, onError, onSave }: EditorProps) => {
+export const Editor = ({ editorRef, image, theme, onCancel, onError, onSave }: EditorProps) => {
   return (
     <ImageEditor
       ref={editorRef}
       editorId={EDITOR_CONTAINER_ID}
       image={image}
       minHeight={0}
-      options={EDITOR_OPTIONS}
+      options={{ ...EDITOR_OPTIONS, theme }}
       onCancel={onCancel}
       onError={(failure) => {
         console.error('[pixen] image editor failure', failure)
