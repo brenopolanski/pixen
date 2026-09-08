@@ -3,12 +3,14 @@
 ## Opening
 
 A drop, a paste, the File menu and the toolbar all end up in the same place: `useImageSession`
-confirms unsaved work, then loads. Only where the image comes from differs.
+places the image in a tab. A clean tab is replaced; a dirty tab is kept and a new one opens, up to
+five. The tab strip’s **+** always creates a tab (and refuses at the cap) so you can keep a clean
+image open. Only where the image comes from differs.
 
 - **Dropping** goes through the window's `onDragDropEvent`. Tauri intercepts file drops before the
   webview sees them, so `dragover` and `drop` never fire and an HTML5 drop zone would be dead. Paths
-  arrive unfiltered, so Pixen takes the first PNG, JPEG or WebP and ignores the rest — it is still a
-  one-document editor.
+  arrive unfiltered, so Pixen takes the first PNG, JPEG or WebP and ignores the rest. A clean tab is
+  replaced; a dirty tab is kept and a new one opens, up to five.
 - **Pasting** listens for the `paste` event rather than binding `⌘V`, so the clipboard's contents
   decide whether Pixen acts. A paste aimed at an `input`, `textarea`, `select` or `contenteditable`
   is left alone, which is what keeps the editor's text tool working. A pasted image has no path, so
@@ -266,7 +268,7 @@ set from `readSettings()` before React mounts so the empty state does not flash 
 
 ```text
 src/
-├── components/          # Toolbar, Editor, Settings, EmptyState, DropOverlay, PixelizeOverlay, IncrementOverlay, ArrowOverlay, CutoutOverlay, ErrorBanner, Splash, About
+├── components/          # Toolbar, TabBar, Editor, Settings, EmptyState, overlays, ErrorBanner, Splash, About
 │   └── ui/              # shadcn/ui primitives: Button, DropdownMenu, Sheet, Popover, Tooltip, the Sonner toaster
 ├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch, settings, crop double-click
 └── lib/
@@ -274,6 +276,7 @@ src/
     ├── image/           # paths and formats, clipboard, capture, pixelize, badge and arrow geometry, cutout, dialogs and I/O
     ├── recent.ts        # last-opened paths for File → Open Recent
     ├── settings.ts      # localStorage preferences (appearance)
+    ├── tabs.ts          # replace-if-clean / new-tab decisions
     └── menu.ts          # the native menu bar
 
 scripts/

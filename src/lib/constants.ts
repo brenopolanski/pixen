@@ -13,12 +13,20 @@ export const SPLASH_WINDOW_LABEL = 'splash'
 export const ABOUT_WINDOW_LABEL = 'about'
 
 /**
- * The editor mounts into this element. Pinning the id rather than letting the
- * package generate one gives the toolbar overrides a stable anchor.
- *
- * Keep in sync with the #pixen-editor rules in src/index.css
+ * Class on every editor mount. The Save/Cancel hide rule in `index.css` keys
+ * off this rather than a single id, because each tab has its own editor.
  */
-export const EDITOR_CONTAINER_ID = 'pixen-editor'
+export const EDITOR_CONTAINER_CLASS = 'pixen-editor'
+
+/** Prefix for a tab's editor id: `pixen-editor-${tabId}`. */
+export const EDITOR_CONTAINER_ID_PREFIX = 'pixen-editor'
+
+export const editorContainerId = (tabId: string): string => {
+  return `${EDITOR_CONTAINER_ID_PREFIX}-${tabId}`
+}
+
+/** How many images can be open at once. Opening past this asks to close a tab. */
+export const MAX_TABS = 5
 
 /** Floor on how long the splash screen shows, so it never flashes past. */
 export const SPLASH_MIN_DURATION_MS = 700

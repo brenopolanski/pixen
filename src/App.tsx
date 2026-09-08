@@ -1,5 +1,5 @@
 import type { ImageEditorRef } from '@unlayer/react-image-editor'
-import { useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import { ArrowOverlay } from '@/components/ArrowOverlay'
 import { CutoutOverlay } from '@/components/CutoutOverlay'
@@ -21,16 +21,63 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useLaunchSequence } from '@/hooks/useLaunchSequence'
 import { useNativeMenu } from '@/hooks/useNativeMenu'
 import { useWindowTitle } from '@/hooks/useWindowTitle'
+import { editorContainerId } from '@/lib/constants'
 import { showAboutWindow } from '@/lib/desktop'
 import { isCaptureSupported } from '@/lib/image/capture'
-import { fileNameOf } from '@/lib/image/image'
+import type { EditorTheme } from '@/lib/settings'
+import type { ImageTab } from '@/lib/tabs'
+
+interface EditorPaneProps {
+  tab: ImageTab
+  active: boolean
+  theme: EditorTheme
+  onCancel: () => void
+  onEditor: (tabId: string, editor: ImageEditorRef | null) => void
+  onError: (message: string) => void
+  onSave: () => void
+}
+
+/** Owns a stable callback ref so the editor is not remounted on every render. */
+const EditorPane = ({
+  tab,
+  active,
+  theme,
+  onCancel,
+  onEditor,
+  onError,
+  onSave,
+}: EditorPaneProps) => {
+  const bindEditor = useCallback(
+    (editor: ImageEditorRef | null) => {
+      onEditor(tab.id, editor)
+    },
+    [onEditor, tab.id],
+  )
+
+  return (
+    <div
+      className={
+        active ? 'flex min-h-0 flex-1 flex-col' : 'pointer-events-none invisible absolute inset-0'
+      }
+    >
+      <Editor
+        editorId={editorContainerId(tab.id)}
+        image={tab.image}
+        theme={theme}
+        onCancel={onCancel}
+        onEditor={bindEditor}
+        onError={onError}
+        onSave={onSave}
+      />
+    </div>
+  )
+}
 
 const App = () => {
-  const editorRef = useRef<ImageEditorRef>(null)
-  const session = useImageSession(editorRef)
+  const session = useImageSession()
   const { theme, setTheme } = useEditorSettings()
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const hasImage = session.image !== null
+  const hasImage = session.tabs.length > 0
 
   useLaunchSequence()
   useKeyboardShortcuts({
@@ -75,18 +122,22 @@ const App = () => {
   return (
     <div className="relative flex h-full flex-col bg-background">
       <Toolbar
+        activeId={session.activeId}
         busy={session.busy}
-        dirty={session.dirty}
-        fileName={session.path && fileNameOf(session.path)}
         format={session.format}
         hasImage={hasImage}
+        overlayOpen={session.overlayOpen}
+        tabs={session.tabs}
+        onActivateTab={session.activateTab}
         onArrow={session.startArrow}
         onCaptureScreen={isCaptureSupported() ? session.captureScreen : undefined}
+        onCloseTab={session.closeTab}
         onCopyImage={session.copyImage}
         onCutout={session.startCutout}
         onFormatChange={session.setFormat}
         onIncrement={session.startIncrement}
         onOpenImage={session.openImage}
+        onOpenNewTab={session.openInNewTab}
         onOpenSettings={() => {
           setSettingsOpen(true)
         }}
@@ -98,21 +149,23 @@ const App = () => {
       {session.error && <ErrorBanner message={session.error} onDismiss={session.dismissError} />}
 
       <main className="relative flex min-h-0 flex-1 flex-col">
-        {session.image ? (
-          <Editor
-            editorRef={editorRef}
-            image={session.image}
-            theme={theme}
-            onCancel={session.discardEdits}
-            onError={session.reportError}
-            onSave={session.save}
-          />
+        {hasImage ? (
+          session.tabs.map((tab) => (
+            <EditorPane
+              key={tab.id}
+              active={tab.id === session.activeId}
+              tab={tab}
+              theme={theme}
+              onCancel={session.discardEdits}
+              onEditor={session.setEditorRef}
+              onError={session.reportError}
+              onSave={session.save}
+            />
+          ))
         ) : (
           <EmptyState busy={session.busy} onOpenImage={session.openImage} />
         )}
 
-        {/* Over the editor rather than beside it: the selection needs the whole
-            area, and the editor must not see the drag. */}
         {session.pixelizePreview && (
           <PixelizeOverlay
             image={session.pixelizePreview}
