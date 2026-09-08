@@ -13,6 +13,8 @@ import {
 import { askAboutUnsavedChanges, askToDiscardChanges, quitApp } from '@/lib/desktop'
 import { hasUnsavedEdits } from '@/lib/editor/engine'
 import { PixenError, toUserMessage } from '@/lib/errors'
+import type { Arrow } from '@/lib/image/arrow'
+import { composeArrows } from '@/lib/image/arrow'
 import { captureScreen as runCapture } from '@/lib/image/capture'
 import { copyImage as writeToClipboard } from '@/lib/image/clipboard'
 import type { SaveFormat } from '@/lib/image/image'
@@ -22,6 +24,7 @@ import type { Stamp } from '@/lib/image/increment'
 import { composeStamps } from '@/lib/image/increment'
 import type { Rect } from '@/lib/image/pixelize'
 import { pixelizeImage } from '@/lib/image/pixelize'
+import { readRecent, withoutRecent, withRecent, writeRecent } from '@/lib/recent'
 
 interface SessionState {
   /**
@@ -73,6 +76,13 @@ export interface ImageSession extends SessionState {
   /** Bakes every badge in one pass and hands the result back to the editor. */
   applyIncrement: (stamps: Stamp[]) => void
   cancelIncrement: () => void
+  /** The flattened image the arrow overlay draws on; null when closed. */
+  arrowPreview: string | null
+  /** Flattens the canvas and opens the arrow overlay. */
+  startArrow: () => void
+  /** Bakes every arrow in one pass and hands the result back to the editor. */
+  applyArrow: (arrows: Arrow[]) => void
+  cancelArrow: () => void
   /** The flattened image the cutout overlay runs the model on; null when closed. */
   cutoutPreview: string | null
   /** Flattens the canvas and opens the background removal overlay. */
@@ -80,6 +90,11 @@ export interface ImageSession extends SessionState {
   /** Accepts the cutout the overlay produced and hands it to the editor. */
   applyCutout: (dataUrl: string) => void
   cancelCutout: () => void
+  /** Paths of images opened or saved before, newest first. */
+  recent: string[]
+  /** Opens a path off the recent list, dropping it if the file has gone. */
+  openRecent: (path: string) => void
+  clearRecent: () => void
   save: () => void
   saveAs: () => void
   discardEdits: () => void
@@ -99,10 +114,14 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
   const [error, setError] = useState<string | null>(null)
   const [pixelizePreview, setPixelizePreview] = useState<string | null>(null)
   const [incrementPreview, setIncrementPreview] = useState<string | null>(null)
+  const [arrowPreview, setArrowPreview] = useState<string | null>(null)
   const [cutoutPreview, setCutoutPreview] = useState<string | null>(null)
   // Deliberately outside `session`: the chosen output format is the user's
   // preference, so opening another image must not reset it.
   const [format, setFormatState] = useState<SaveFormat>(DEFAULT_SAVE_FORMAT)
+  // Read once: nothing outside Pixen writes this key, so the stored list and
+  // this one cannot drift apart while the window is open.
+  const [recent, setRecent] = useState<string[]>(readRecent)
 
   // Mirrors `session` so callbacks wired to window listeners and native
   // dialogs always read current values without being rebuilt.
@@ -128,6 +147,35 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     setFormatState(next)
   }, [])
 
+  /**
+   * Only a path that has just been read or written lands here, so the list
+   * never offers a file Pixen has not proved it can reach.
+   */
+  const rememberPath = useCallback((path: string) => {
+    setRecent((current) => {
+      const next = withRecent(current, path)
+
+      writeRecent(next)
+
+      return next
+    })
+  }, [])
+
+  const forgetPath = useCallback((path: string) => {
+    setRecent((current) => {
+      const next = withoutRecent(current, path)
+
+      writeRecent(next)
+
+      return next
+    })
+  }, [])
+
+  const clearRecent = useCallback(() => {
+    setRecent([])
+    writeRecent([])
+  }, [])
+
   const load = useCallback(
     (image: string, name: string) => {
       baselineRef.current = null
@@ -136,6 +184,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       setError(null)
       setPixelizePreview(null)
       setIncrementPreview(null)
+      setArrowPreview(null)
       setCutoutPreview(null)
     },
     [applySession],
@@ -225,10 +274,11 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       baselineRef.current = image
       bakedRef.current = false
       applySession({ ...current, path: destination, dirty: false })
+      rememberPath(destination)
 
       return true
     },
-    [applySession, setFormat],
+    [applySession, rememberPath, setFormat],
   )
 
   /**
@@ -252,8 +302,9 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       }
 
       load(await readImage(path), baseNameOf(path))
+      rememberPath(path)
     })
-  }, [confirmReplacingImage, load, run])
+  }, [confirmReplacingImage, load, rememberPath, run])
 
   const openFromPath = useCallback(
     (path: string) => {
@@ -263,9 +314,35 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
         }
 
         load(await readImage(path), baseNameOf(path))
+        rememberPath(path)
       })
     },
-    [confirmReplacingImage, load, run],
+    [confirmReplacingImage, load, rememberPath, run],
+  )
+
+  const openRecent = useCallback(
+    (path: string) => {
+      run(async () => {
+        if (!(await confirmReplacingImage())) {
+          return
+        }
+
+        let image: string
+
+        try {
+          image = await readImage(path)
+        } catch (failure) {
+          // Moved, renamed or deleted since it was opened. Offering it again
+          // would fail the same way, so the entry goes with the error.
+          forgetPath(path)
+          throw failure
+        }
+
+        load(image, baseNameOf(path))
+        rememberPath(path)
+      })
+    },
+    [confirmReplacingImage, forgetPath, load, rememberPath, run],
   )
 
   const openFromDataUrl = useCallback(
@@ -324,6 +401,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       // canvas, whose zoom and pan Unlayer does not report.
       setPixelizePreview(readCurrentImage())
       setIncrementPreview(null)
+      setArrowPreview(null)
       setCutoutPreview(null)
     })
   }, [readCurrentImage, run])
@@ -363,6 +441,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
 
       setIncrementPreview(readCurrentImage())
       setPixelizePreview(null)
+      setArrowPreview(null)
       setCutoutPreview(null)
     })
   }, [readCurrentImage, run])
@@ -393,6 +472,45 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     [applySession, incrementPreview, run],
   )
 
+  const startArrow = useCallback(() => {
+    run(async () => {
+      if (!sessionRef.current.image) {
+        return
+      }
+
+      setArrowPreview(readCurrentImage())
+      setPixelizePreview(null)
+      setIncrementPreview(null)
+      setCutoutPreview(null)
+    })
+  }, [readCurrentImage, run])
+
+  const cancelArrow = useCallback(() => {
+    setArrowPreview(null)
+  }, [])
+
+  const applyArrow = useCallback(
+    (arrows: Arrow[]) => {
+      run(async () => {
+        const current = sessionRef.current
+        const preview = arrowPreview
+
+        if (!current.image || !preview || arrows.length === 0) {
+          return
+        }
+
+        // Every arrow in one composite, so the editor reloads — and loses its
+        // undo stack — once rather than once per arrow.
+        const annotated = await composeArrows(preview, arrows)
+
+        bakedRef.current = true
+        applySession({ ...current, image: annotated, dirty: true })
+        setArrowPreview(null)
+      })
+    },
+    [applySession, arrowPreview, run],
+  )
+
   const startCutout = useCallback(() => {
     run(async () => {
       if (!sessionRef.current.image) {
@@ -402,6 +520,7 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
       setCutoutPreview(readCurrentImage())
       setPixelizePreview(null)
       setIncrementPreview(null)
+      setArrowPreview(null)
     })
   }, [readCurrentImage, run])
 
@@ -571,10 +690,17 @@ export const useImageSession = (editorRef: RefObject<ImageEditorRef | null>): Im
     startIncrement,
     applyIncrement,
     cancelIncrement,
+    arrowPreview,
+    startArrow,
+    applyArrow,
+    cancelArrow,
     cutoutPreview,
     startCutout,
     applyCutout,
     cancelCutout,
+    recent,
+    openRecent,
+    clearRecent,
     save,
     saveAs,
     discardEdits,
