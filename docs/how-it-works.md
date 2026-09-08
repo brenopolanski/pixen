@@ -246,6 +246,16 @@ hides that group by position and lets the zoom controls take the space. That rul
 editor's DOM, so it needs a look after an editor release — the buttons stay wired to the session,
 and the worst case is that they reappear rather than stop working.
 
+Double-clicking inside the crop box is the same kind of DOM coupling. The engine has no apply-crop
+API; leaving Crop (closing the panel or switching tools) is what commits the selection. Pixen
+listens for a double-click on `.cropper-crop-box` and clicks the panel's close control
+(`native-tool-options-close`) so the crop goes through Unlayer's own undoable path. Resize handles
+are ignored, and a double-click while another tool is open is left alone so the text tool's
+double-click-to-edit still works. The selectors need a look after an editor release too.
+
+The hook is attached after the editor container exists. If the close button is missing, the
+double-click is a no-op rather than falling through to Save.
+
 The Settings sheet stores preferences in `localStorage` under `pixen.settings`. Appearance
 (`light` or `dark`) paints Pixen's chrome — empty state, toolbar, sheets — by toggling `.dark` on
 `<html>`, and is also passed to Unlayer beside the stable `EDITOR_OPTIONS` object. Unlayer applies
@@ -258,9 +268,9 @@ set from `readSettings()` before React mounts so the empty state does not flash 
 src/
 ├── components/          # Toolbar, Editor, Settings, EmptyState, DropOverlay, PixelizeOverlay, IncrementOverlay, ArrowOverlay, CutoutOverlay, ErrorBanner, Splash, About
 │   └── ui/              # shadcn/ui primitives: Button, DropdownMenu, Sheet, Popover, Tooltip, the Sonner toaster
-├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch, settings
+├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch, settings, crop double-click
 └── lib/
-    ├── editor/          # engine preload, editor options, unsaved-edit detection
+    ├── editor/          # engine preload, editor options, unsaved-edit detection, crop double-click
     ├── image/           # paths and formats, clipboard, capture, pixelize, badge and arrow geometry, cutout, dialogs and I/O
     ├── recent.ts        # last-opened paths for File → Open Recent
     ├── settings.ts      # localStorage preferences (appearance)
