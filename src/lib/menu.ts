@@ -2,12 +2,17 @@ import { Menu, MenuItem, PredefinedMenuItem, Submenu } from '@tauri-apps/api/men
 import { getCurrentWindow } from '@tauri-apps/api/window'
 
 import { APP_NAME } from '@/lib/constants'
+import { labelForRecent } from '@/lib/recent'
 
 export interface MenuHandlers {
   onOpenImage: () => void
+  /** Reopens a path from Open Recent. */
+  onOpenRecent: (path: string) => void
+  onClearRecent: () => void
   /** Only reachable on macOS, the one platform with a capture backend. */
   onCaptureScreen: () => void
   onCopyImage: () => void
+  onArrow: () => void
   onPixelize: () => void
   onIncrement: () => void
   onCutout: () => void
@@ -22,6 +27,8 @@ export interface MenuHandlers {
 export interface AppMenu {
   /** Greys out the save and copy entries while there is nothing to act on. */
   setHasImage: (hasImage: boolean) => Promise<void>
+  /** Refills Open Recent; the rest of the bar is left in place. */
+  setRecent: (paths: readonly string[]) => Promise<void>
 }
 
 /**
@@ -43,6 +50,8 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
     action: handlers.onOpenImage,
   })
 
+  const recentMenu = await Submenu.new({ id: 'pixen-recent', text: 'Open Recent', items: [] })
+
   const captureItem = await MenuItem.new({
     id: 'pixen-capture',
     text: 'Take Screenshot…',
@@ -57,6 +66,13 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
     accelerator: 'CmdOrCtrl+Shift+C',
     enabled: false,
     action: handlers.onCopyImage,
+  })
+
+  const arrowItem = await MenuItem.new({
+    id: 'pixen-arrow',
+    text: 'Arrow…',
+    enabled: false,
+    action: handlers.onArrow,
   })
 
   // No accelerator, like the toolbar button: it opens a selection overlay
@@ -118,13 +134,15 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
   const fileMenu = await Submenu.new({
     text: 'File',
     items: mac
-      ? [openItem, captureItem, await separator(), saveItem, saveAsItem]
+      ? [openItem, recentMenu, captureItem, await separator(), saveItem, saveAsItem]
       : [
           openItem,
+          recentMenu,
           await separator(),
           saveItem,
           saveAsItem,
           copyImageItem,
+          arrowItem,
           pixelizeItem,
           incrementItem,
           cutoutItem,
@@ -162,6 +180,7 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
               await PredefinedMenuItem.new({ item: 'SelectAll' }),
               await separator(),
               copyImageItem,
+              arrowItem,
               pixelizeItem,
               incrementItem,
               cutoutItem,
@@ -186,14 +205,60 @@ export const installAppMenu = async (mac: boolean, handlers: MenuHandlers): Prom
     await menu.setAsWindowMenu(getCurrentWindow())
   }
 
+  const fillRecent = async (paths: readonly string[]) => {
+    for (const item of await recentMenu.items()) {
+      await recentMenu.remove(item)
+    }
+
+    if (paths.length === 0) {
+      await recentMenu.append(
+        await MenuItem.new({ id: 'pixen-recent-empty', text: 'No Recent Files', enabled: false }),
+      )
+    } else {
+      for (const [index, path] of paths.entries()) {
+        await recentMenu.append(
+          await MenuItem.new({
+            // Positional ids: the same path can move up the list, and reusing
+            // its id for a fresh item would clash with the one being replaced.
+            id: `pixen-recent-${index}`,
+            text: labelForRecent(path, paths),
+            action: () => handlers.onOpenRecent(path),
+          }),
+        )
+      }
+    }
+
+    await recentMenu.append(await separator())
+    await recentMenu.append(
+      await MenuItem.new({
+        id: 'pixen-recent-clear',
+        text: 'Clear Menu',
+        enabled: paths.length > 0,
+        action: handlers.onClearRecent,
+      }),
+    )
+  }
+
+  await fillRecent([])
+
+  // Rebuilds run one after another: two of them interleaving would leave the
+  // submenu holding items from both lists.
+  let pending = Promise.resolve()
+
   return {
     setHasImage: async (hasImage: boolean) => {
       await saveItem.setEnabled(hasImage)
       await saveAsItem.setEnabled(hasImage)
       await copyImageItem.setEnabled(hasImage)
+      await arrowItem.setEnabled(hasImage)
       await pixelizeItem.setEnabled(hasImage)
       await incrementItem.setEnabled(hasImage)
       await cutoutItem.setEnabled(hasImage)
+    },
+    setRecent: (paths: readonly string[]) => {
+      pending = pending.then(() => fillRecent(paths))
+
+      return pending
     },
   }
 }
