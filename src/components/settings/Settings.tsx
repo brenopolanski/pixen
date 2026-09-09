@@ -40,7 +40,7 @@ export const Settings = ({ open, theme, onClose, onThemeChange }: SettingsProps)
             <section className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <span className="text-sm font-medium">Appearance</span>
+                  <span className="text-sm font-medium">Theme</span>
                   <p className="text-xs text-muted-foreground">
                     Toggle between light and dark themes
                   </p>
