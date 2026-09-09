@@ -18,7 +18,7 @@ The editor does the editing. Pixen owns the window, the native file dialogs, the
 - Captures a region of the screen straight into the editor
 - Reopens the last ten images from **File → Open Recent**
 - Edits them with [`@unlayer/react-image-editor`](https://github.com/unlayer/react-image-editor) — crop, resize, filters, draw, text, shapes, stickers and frames. Double-click inside a crop to apply it.
-- Chooses a light or dark appearance in Settings — Pixen’s chrome and the image editor; the choice is remembered in `localStorage`
+- Chooses a light or dark theme in Settings — Pixen’s chrome and the image editor; the choice is remembered in `localStorage`
 - Saves as PNG, JPEG or WebP with `⌘S`, asking where to write the first time and reusing that destination afterwards
 - Saves to a new file with `⌘⇧S`
 - Copies the edited image to the system clipboard with `⌘⇧C`
