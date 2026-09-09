@@ -253,7 +253,7 @@ double-click-to-edit still works. The selectors need a look after an editor rele
 The hook is attached after the editor container exists. If the close button is missing, the
 double-click is a no-op rather than falling through to Save.
 
-The Settings sheet stores preferences in `localStorage` under `pixen.settings`. Appearance
+The Settings sheet stores preferences in `localStorage` under `pixen.settings`. Theme
 (`light` or `dark`) paints Pixen's chrome — empty state, toolbar, sheets — by toggling `.dark` on
 `<html>`, and is also passed to Unlayer beside the stable `EDITOR_OPTIONS` object. Unlayer applies
 it with `updateOptions()`, so changing theme does not remount the editor or wipe undo. The class is
@@ -270,7 +270,7 @@ src/
     ├── editor/          # engine preload, editor options, unsaved-edit detection, crop double-click
     ├── image/           # paths and formats, clipboard, capture, pixelize, badge and arrow geometry, cutout, dialogs and I/O
     ├── recent.ts        # last-opened paths for File → Open Recent
-    ├── settings.ts      # localStorage preferences (appearance)
+    ├── settings.ts      # localStorage preferences (theme)
     ├── tabs.ts          # replace-if-clean / new-tab decisions
     └── menu.ts          # the native menu bar
 
