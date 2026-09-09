@@ -3,7 +3,7 @@ import { MAX_TABS, UNTITLED_NAME } from '@/lib/constants'
 import { fileNameOf } from '@/lib/image/image'
 import type { ImageTab } from '@/lib/tabs'
 import { tabsFullMessage } from '@/lib/tabs'
-import { cn } from '@/lib/utils'
+import { cn, generateReactKey } from '@/lib/utils'
 
 interface TabBarProps {
   tabs: ImageTab[]
@@ -30,7 +30,7 @@ export const TabBar = ({ tabs, activeId, locked, onActivate, onClose, onNewTab }
 
         return (
           <div
-            key={tab.id}
+            key={generateReactKey('tab', tab.id)}
             className={cn(
               'flex max-w-45 shrink-0 items-center gap-1 rounded-md border px-2 py-1',
               active

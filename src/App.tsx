@@ -27,6 +27,8 @@ import { isCaptureSupported } from '@/lib/image/capture'
 import type { EditorTheme } from '@/lib/settings'
 import type { ImageTab } from '@/lib/tabs'
 
+import { generateReactKey } from './lib/utils'
+
 interface EditorPaneProps {
   tab: ImageTab
   active: boolean
@@ -152,7 +154,7 @@ const App = () => {
         {hasImage ? (
           session.tabs.map((tab) => (
             <EditorPane
-              key={tab.id}
+              key={generateReactKey('editor', tab.id)}
               active={tab.id === session.activeId}
               tab={tab}
               theme={theme}
