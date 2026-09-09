@@ -270,7 +270,7 @@ src/
     ├── editor/          # engine preload, editor options, unsaved-edit detection, crop double-click
     ├── image/           # paths and formats, clipboard, capture, pixelize, badge and arrow geometry, cutout, dialogs and I/O
     ├── recent.ts        # last-opened paths for File → Open Recent
-    ├── settings.ts      # localStorage preferences (appearance)
+    ├── settings.ts      # localStorage preferences (theme)
     ├── tabs.ts          # replace-if-clean / new-tab decisions
     └── menu.ts          # the native menu bar
 

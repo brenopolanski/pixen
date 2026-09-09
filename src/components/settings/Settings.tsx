@@ -1,4 +1,4 @@
-import { MoonIcon, SunIcon } from '@/components/shared/Icons'
+import { ThemeSwitch } from '@/components/settings/ThemeSwitch'
 import {
   Sheet,
   SheetContent,
@@ -6,7 +6,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { Switch } from '@/components/ui/switch'
 import type { EditorTheme } from '@/lib/settings'
 
 interface SettingsProps {
@@ -31,7 +30,9 @@ export const Settings = ({ open, theme, onClose, onThemeChange }: SettingsProps)
           <div className="px-6 pt-6">
             <SheetHeader className="p-0">
               <SheetTitle className="text-left">Settings</SheetTitle>
-              <SheetDescription className="text-left">Configure appearance.</SheetDescription>
+              <SheetDescription className="text-left">
+                Configure your app preferences.
+              </SheetDescription>
             </SheetHeader>
           </div>
 
@@ -39,21 +40,13 @@ export const Settings = ({ open, theme, onClose, onThemeChange }: SettingsProps)
             <section className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <span className="text-sm font-medium">Appearance</span>
+                  <span className="text-sm font-medium">Theme</span>
                   <p className="text-xs text-muted-foreground">
                     Toggle between light and dark themes
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <SunIcon className="size-4 text-muted-foreground" />
-                  <Switch
-                    aria-label="Appearance"
-                    checked={theme === 'dark'}
-                    onCheckedChange={(dark) => onThemeChange(dark ? 'dark' : 'light')}
-                  />
-                  <MoonIcon className="size-4 text-muted-foreground" />
-                </div>
+                <ThemeSwitch theme={theme} onThemeChange={onThemeChange} />
               </div>
             </section>
           </div>

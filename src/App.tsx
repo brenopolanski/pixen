@@ -212,7 +212,6 @@ const App = () => {
         onThemeChange={setTheme}
       />
 
-      {/* Last, so a toast sits above the editor and the overlays. */}
       <Toaster position="bottom-right" theme={theme} />
     </div>
   )
