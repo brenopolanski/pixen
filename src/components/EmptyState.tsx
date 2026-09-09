@@ -13,10 +13,10 @@ export const EmptyState = ({ busy, onOpenImage }: EmptyStateProps) => {
   return (
     <div className="flex flex-1 items-center justify-center p-4">
       <div className="flex h-1/2 min-h-75 w-1/2 min-w-75 flex-col items-center justify-center gap-6 rounded-lg border border-dashed border-border bg-surface p-8 text-center fade-in">
-        <SplashDropIcon />
+        <SplashDropIcon className="text-muted-foreground" />
 
         <div className="flex flex-col gap-1.5">
-          <p className="text-[15px] font-semibold text-foreground">No image open</p>
+          <p className="text-[15px] font-bold text-foreground">No image open</p>
           <p className="max-w-sm text-[13px] leading-relaxed text-muted-foreground">
             Drop a PNG, JPEG or WebP image here to start editing
           </p>

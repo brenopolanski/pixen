@@ -167,22 +167,6 @@ const App = () => {
           <EmptyState busy={session.busy} onOpenImage={session.openImage} />
         )}
 
-        {session.pixelizePreview && (
-          <PixelizeOverlay
-            image={session.pixelizePreview}
-            onApply={session.applyPixelize}
-            onCancel={session.cancelPixelize}
-          />
-        )}
-
-        {session.incrementPreview && (
-          <IncrementOverlay
-            image={session.incrementPreview}
-            onApply={session.applyIncrement}
-            onCancel={session.cancelIncrement}
-          />
-        )}
-
         {session.arrowPreview && (
           <ArrowOverlay
             image={session.arrowPreview}
@@ -197,6 +181,22 @@ const App = () => {
             onApply={session.applyCutout}
             onCancel={session.cancelCutout}
             onError={session.reportError}
+          />
+        )}
+
+        {session.pixelizePreview && (
+          <PixelizeOverlay
+            image={session.pixelizePreview}
+            onApply={session.applyPixelize}
+            onCancel={session.cancelPixelize}
+          />
+        )}
+
+        {session.incrementPreview && (
+          <IncrementOverlay
+            image={session.incrementPreview}
+            onApply={session.applyIncrement}
+            onCancel={session.cancelIncrement}
           />
         )}
       </main>
