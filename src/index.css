@@ -16,6 +16,21 @@
   --brand-foreground: #ffffff;
   --danger: #dc2626;
   --danger-surface: #fef2f2;
+  /* The names shadcn's components are written against, pointed at the palette
+     above rather than at a second one. Pixen's own classes keep using --brand
+     and --surface, so nothing here renames anything. */
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--foreground);
+  --accent-foreground: var(--foreground);
+  --popover: var(--surface);
+  --popover-foreground: var(--foreground);
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --destructive: var(--danger);
+  --input: var(--border);
+  --ring: var(--brand);
 }
 
 /* Same element as :root — wins when Settings applies the class. */
@@ -32,24 +47,6 @@ html.dark {
   --brand-foreground: #ffffff;
   --danger: #fca5a5;
   --danger-surface: #241417;
-}
-
-:root {
-  /* The names shadcn's components are written against, pointed at the palette
-     above rather than at a second one. Pixen's own classes keep using --brand
-     and --surface, so nothing here renames anything. */
-  --primary: var(--brand);
-  --primary-foreground: var(--brand-foreground);
-  --secondary: var(--surface);
-  --secondary-foreground: var(--foreground);
-  --accent-foreground: var(--foreground);
-  --popover: var(--surface);
-  --popover-foreground: var(--foreground);
-  --card: var(--surface);
-  --card-foreground: var(--foreground);
-  --destructive: var(--danger);
-  --input: var(--border);
-  --ring: var(--brand);
 }
 
 @theme inline {
