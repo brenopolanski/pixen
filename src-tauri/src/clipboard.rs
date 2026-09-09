@@ -10,9 +10,8 @@ use crate::image::rgba_from_data_url;
 /// save format has no bearing here: whichever app receives the paste decides
 /// how to store it.
 ///
-/// `async` because decoding a large canvas into RGBA is real work, and because
-/// the clipboard libraries can deadlock on Linux when driven from the main
-/// thread.
+/// `async` because decoding a large canvas into RGBA is real work and has no
+/// business blocking the main thread.
 #[tauri::command]
 pub async fn copy_image(app: AppHandle, data_url: String) -> Result<(), String> {
     let (rgba, width, height) = rgba_from_data_url(&data_url)?;

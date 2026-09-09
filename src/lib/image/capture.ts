@@ -1,7 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
 
-import { isMacPlatform } from '@/lib/platform'
-
 /**
  * Interactive region capture, backed by macOS's own `screencapture`.
  *
@@ -12,11 +10,3 @@ import { isMacPlatform } from '@/lib/platform'
 export const captureScreen = (): Promise<string | null> => {
   return invoke('capture_screen')
 }
-
-/**
- * Whether this platform has a capture backend. Windows and Linux have none yet,
- * so the action is hidden rather than offered and then failing.
- */
-export const supportsCapture = (mac: boolean): boolean => mac
-
-export const isCaptureSupported = (): boolean => supportsCapture(isMacPlatform())

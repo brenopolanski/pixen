@@ -7,35 +7,28 @@ export interface ShortcutEvent {
   shiftKey: boolean
 }
 
-/** macOS uses ⌘; Windows and Linux use Ctrl. Never both. */
-const hasPrimaryModifier = (event: ShortcutEvent, mac: boolean): boolean =>
-  mac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey
+/** ⌘, never Control: Pixen is a macOS app. */
+const hasPrimaryModifier = (event: ShortcutEvent): boolean => event.metaKey && !event.ctrlKey
 
-const matches = (event: ShortcutEvent, mac: boolean, key: string, shift: boolean): boolean =>
-  hasPrimaryModifier(event, mac) &&
+const matches = (event: ShortcutEvent, key: string, shift: boolean): boolean =>
+  hasPrimaryModifier(event) &&
   !event.altKey &&
   event.shiftKey === shift &&
   event.key.toLowerCase() === key
 
-export const isSaveShortcut = (event: ShortcutEvent, mac: boolean): boolean =>
-  matches(event, mac, 's', false)
+export const isSaveShortcut = (event: ShortcutEvent): boolean => matches(event, 's', false)
 
-export const isSaveAsShortcut = (event: ShortcutEvent, mac: boolean): boolean =>
-  matches(event, mac, 's', true)
+export const isSaveAsShortcut = (event: ShortcutEvent): boolean => matches(event, 's', true)
 
-export const isOpenImageShortcut = (event: ShortcutEvent, mac: boolean): boolean =>
-  matches(event, mac, 'o', false)
+export const isOpenImageShortcut = (event: ShortcutEvent): boolean => matches(event, 'o', false)
 
 /**
  * Shift is part of it deliberately. Plain ⌘C belongs to the system Copy, which
  * the editor's text tool and Pixen's own inputs need; ⌘⇧C is what other
  * editors use for copying the image itself.
  */
-export const isCopyImageShortcut = (event: ShortcutEvent, mac: boolean): boolean =>
-  matches(event, mac, 'c', true)
+export const isCopyImageShortcut = (event: ShortcutEvent): boolean => matches(event, 'c', true)
 
-/** Writes a shortcut the way the host platform writes it. */
-export const formatShortcut = (mac: boolean, key: string, shift = false): string =>
-  mac
-    ? `⌘${shift ? '⇧' : ''}${key.toUpperCase()}`
-    : `Ctrl+${shift ? 'Shift+' : ''}${key.toUpperCase()}`
+/** Writes a shortcut the way macOS writes it. */
+export const formatShortcut = (key: string, shift = false): string =>
+  `⌘${shift ? '⇧' : ''}${key.toUpperCase()}`

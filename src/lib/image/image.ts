@@ -1,6 +1,6 @@
 import { APP_NAME, IMAGE_EXTENSIONS, UNTITLED_NAME } from '@/lib/constants'
 
-/** Splits on both separators so Windows and POSIX paths behave the same. */
+/** Splits on either separator, so a pasted foreign path still parses. */
 export const fileNameOf = (path: string): string => {
   return path.split(/[/\\]/).pop() ?? ''
 }

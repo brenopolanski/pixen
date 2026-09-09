@@ -24,8 +24,8 @@ const PIXELIZE_BLOCK: u32 = 12;
 /// The formats Pixen can open and save.
 ///
 /// Encoding lives here rather than in a canvas because WebKit has never
-/// implemented `toDataURL('image/webp')` — it silently hands back PNG — which
-/// left WebP working on Windows and nowhere else.
+/// implemented `toDataURL('image/webp')` — it silently hands back PNG — so a
+/// WebP save has to be encoded in Rust.
 ///
 /// Keep in sync with IMAGE_EXTENSIONS in src/lib/constants.ts and SAVE_FORMATS
 /// in src/lib/image/image.ts.

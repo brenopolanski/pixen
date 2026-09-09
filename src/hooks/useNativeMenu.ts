@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react'
 
 import type { AppMenu, MenuHandlers } from '@/lib/menu'
 import { installAppMenu } from '@/lib/menu'
-import { isMacPlatform } from '@/lib/platform'
 
 /**
  * Builds the native menu once and keeps its enabled state in step with the
@@ -31,7 +30,7 @@ export const useNativeMenu = (
   useEffect(() => {
     let disposed = false
 
-    void installAppMenu(isMacPlatform(), {
+    void installAppMenu({
       onOpenImage: () => handlersRef.current.onOpenImage(),
       onOpenRecent: (path) => handlersRef.current.onOpenRecent(path),
       onClearRecent: () => handlersRef.current.onClearRecent(),

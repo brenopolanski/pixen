@@ -3,7 +3,6 @@ import { Logo } from '@/components/shared/Logo'
 import { Button } from '@/components/ui/button'
 import { APP_NAME } from '@/lib/constants'
 import type { SaveFormat } from '@/lib/image/image'
-import { isMacPlatform } from '@/lib/platform'
 import { formatShortcut } from '@/lib/shortcuts'
 import type { ImageTab } from '@/lib/tabs'
 
@@ -19,8 +18,7 @@ interface ToolbarProps {
   activeId: string | null
   overlayOpen: boolean
   onArrow: () => void
-  /** Passed only where capture is supported, so the item is absent elsewhere. */
-  onCaptureScreen?: () => void
+  onCaptureScreen: () => void
   onCopyImage: () => void
   onCutout: () => void
   onPixelize: () => void
@@ -57,8 +55,6 @@ export const Toolbar = ({
   onSave,
   onSaveAs,
 }: ToolbarProps) => {
-  const mac = isMacPlatform()
-
   return (
     <header className="shrink-0 border-b border-border bg-surface">
       <div className="flex h-12 items-center gap-3 px-3" data-tauri-drag-region>
@@ -73,7 +69,7 @@ export const Toolbar = ({
           <Button
             className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
             disabled={busy}
-            title={`Open Image (${formatShortcut(mac, 'o')})`}
+            title={`Open Image (${formatShortcut('o')})`}
             variant="outline"
             onClick={onOpenImage}
           >
@@ -84,7 +80,7 @@ export const Toolbar = ({
           <Button
             className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
             disabled={busy || !hasImage}
-            title={`Save As (${formatShortcut(mac, 's', true)})`}
+            title={`Save As (${formatShortcut('s', true)})`}
             variant="outline"
             onClick={onSaveAs}
           >
@@ -95,7 +91,7 @@ export const Toolbar = ({
           <Button
             className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
             disabled={busy || !hasImage}
-            title={`Save (${formatShortcut(mac, 's')})`}
+            title={`Save (${formatShortcut('s')})`}
             onClick={onSave}
           >
             <SaveIcon className="size-3.5" />
@@ -109,7 +105,6 @@ export const Toolbar = ({
           <ToolsMenu
             busy={busy}
             hasImage={hasImage}
-            mac={mac}
             onArrow={onArrow}
             onCaptureScreen={onCaptureScreen}
             onCopyImage={onCopyImage}

@@ -1,5 +1,4 @@
 import { Button } from '@/components/ui/button'
-import { isMacPlatform } from '@/lib/platform'
 import { formatShortcut } from '@/lib/shortcuts'
 
 import { ImagePlusIcon, SplashDropIcon } from './shared/Icons'
@@ -11,8 +10,6 @@ interface EmptyStateProps {
 }
 
 export const EmptyState = ({ busy, onOpenImage }: EmptyStateProps) => {
-  const mac = isMacPlatform()
-
   return (
     <div className="flex flex-1 items-center justify-center p-4">
       <div className="flex h-1/2 min-h-75 w-1/2 min-w-75 flex-col items-center justify-center gap-6 rounded-lg border border-dashed border-border bg-surface p-8 text-center fade-in">
@@ -31,8 +28,8 @@ export const EmptyState = ({ busy, onOpenImage }: EmptyStateProps) => {
         </Button>
 
         <p className="text-[12px] text-muted-foreground">
-          Use <Kbd>{formatShortcut(mac, 'o')}</Kbd> to browse and{' '}
-          <Kbd>{formatShortcut(mac, 'v')}</Kbd> to paste from the clipboard
+          Use <Kbd>{formatShortcut('o')}</Kbd> to browse and <Kbd>{formatShortcut('v')}</Kbd> to
+          paste from the clipboard
         </p>
       </div>
     </div>

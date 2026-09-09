@@ -55,12 +55,9 @@ pub fn show_about_window(app: AppHandle) {
     .resizable(false)
     .maximizable(false)
     .minimizable(false)
-    .center();
-
-    #[cfg(target_os = "macos")]
-    let builder = builder
-        .title_bar_style(tauri::TitleBarStyle::Overlay)
-        .hidden_title(true);
+    .center()
+    .title_bar_style(tauri::TitleBarStyle::Overlay)
+    .hidden_title(true);
 
     let Ok(window) = builder.build() else {
         return;

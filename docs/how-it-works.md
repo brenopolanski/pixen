@@ -20,9 +20,9 @@ image open. Only where the image comes from differs.
   back whatever happens. A capture has no path either, so its first save offers `Screenshot.png`.
 - **The File menu** is built with `@tauri-apps/api/menu`, so its actions sit next to the session
   rather than in Rust. Save, Save As, Copy Image and the four image tools are disabled until an
-  image is open. On macOS a
-  menu replaces the entire bar, so the App, Edit and Window submenus are rebuilt too — without an
-  Edit menu the system copy, paste and select-all shortcuts stop working in text fields.
+  image is open. A menu replaces the entire bar, so the App, Edit and Window submenus are rebuilt
+  too — without an Edit menu the system copy, paste and select-all shortcuts stop working in text
+  fields.
 
 ### Open Recent
 
@@ -45,11 +45,10 @@ credits sheet, not Pixen's window. `About Pixen` invokes `show_about_window`, wh
 window on demand (`index.html?window=about`) or focuses it if it is already open. `⌘W` / `Escape`
 close it.
 
-### Screenshots are macOS-only for now
+### Screenshots
 
-The button and the menu item are absent on Windows and Linux, both of which would need a capture
-stack of their own — and none of them offer a crosshair, which is the part that makes this worth
-having. Two things to know on macOS:
+**Take Screenshot** shells out to `/usr/sbin/screencapture`, which is what gives Pixen the same
+crosshair as `⌘⇧4` without shipping a capture stack of its own. Two things to know:
 
 - **The first capture asks for Screen Recording permission**, and macOS grants it to a specific app
   binary. A dev build's path changes as it is rebuilt, so the prompt can reappear or the capture can
@@ -62,24 +61,21 @@ Capturing over unsaved edits asks before replacing them, the same as any other w
 
 ## Copying
 
-`⌘⇧C` / `Ctrl+Shift+C` puts the edited image on the system clipboard, so an annotated screenshot can
-go straight into a chat or a ticket without becoming a file first. A toast confirms it; there is no
-other feedback a clipboard write can honestly give. The toast is raised by the session rather than by
-the menu, so a copy from the keyboard or the native Edit menu says so too.
-
-Unlike the screenshot, this works on all three platforms.
+`⌘⇧C` puts the edited image on the system clipboard, so an annotated screenshot can go straight into
+a chat or a ticket without becoming a file first. A toast confirms it; there is no other feedback a
+clipboard write can honestly give. The toast is raised by the session rather than by the menu, so a
+copy from the keyboard or the native Edit menu says so too.
 
 - **The clipboard carries pixels, not a file**, so the toolbar's format selector does not apply and
   the receiving app decides how to store what it gets. `copy_image` hands over raw RGBA:
-  [`arboard`](https://docs.rs/arboard), under `tauri-plugin-clipboard-manager`, then offers it as
-  TIFF on macOS, a DIB on Windows and `image/png` on Linux. Transparency survives on all three.
+  [`arboard`](https://docs.rs/arboard), under `tauri-plugin-clipboard-manager`, then offers it to
+  the pasteboard as TIFF, transparency included.
 - **Shift is part of the shortcut on purpose.** Plain `⌘C` belongs to the system Copy, which the
   editor's text tool and Pixen's own inputs need, so Copy Image takes the shifted variant that other
-  editors use for the same job. It sits in the Edit menu on macOS, next to that system Copy, and in
-  the File menu on Windows and Linux, where there is no Edit menu.
+  editors use for the same job. It sits in the Edit menu, next to that system Copy.
 - **The plugin is registered for its Rust API only.** Nothing on the webview side calls it, so no
   clipboard permission is granted in `src-tauri/capabilities/` — the same arrangement as the file
-  commands. It is pure Rust on every platform, so Linux gains no new system libraries.
+  commands.
 
 ## Pixelizing
 
@@ -101,8 +97,7 @@ or **Cancel** closes without touching the image, and a stray click does the same
   a grey square. This is an edit passing through, not a save, so the toolbar's format has no say in
   it. The region is clamped to the image on both sides of the boundary.
 - **No keyboard shortcut.** It opens a drag-to-select overlay rather than finishing on its own, so a
-  keystroke would only ever get you halfway. It sits in the Edit menu on macOS beside Copy Image,
-  and in the File menu elsewhere.
+  keystroke would only ever get you halfway. It sits in the Edit menu beside Copy Image.
 
 ## Numbering steps
 
@@ -207,11 +202,11 @@ a PNG. Instead the dialog is shown a single filter matching the toolbar, and:
 ### Why encoding happens in Rust
 
 `write_image` decodes the editor's output and re-encodes it with the [`image`](https://docs.rs/image)
-crate, rather than asking the webview's canvas to do it. A canvas cannot be used here because Tauri
-embeds a different engine per platform and `toDataURL` disagrees across them: WebKit — WKWebView on
-macOS, WebKitGTK on Linux — has never implemented WebP encoding and answers the request with PNG
-instead, [silently](https://caniuse.com/mdn-api_htmlcanvaselement_toblob_type_parameter_webp). Only
-WebView2 on Windows would have produced a real WebP. Encoding in Rust is the same code on all three.
+crate, rather than asking the webview's canvas to do it. A canvas cannot be used here because
+WKWebView, the engine Tauri embeds on macOS, has never implemented WebP encoding and answers the
+request with PNG instead,
+[silently](https://caniuse.com/mdn-api_htmlcanvaselement_toblob_type_parameter_webp). Asking for a
+WebP save would quietly hand back a PNG.
 
 Two details of that encoder:
 
