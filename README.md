@@ -15,13 +15,13 @@ The editor does the editing. Pixen owns the window, the native file dialogs, the
 ## What it does
 
 - Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or through a native file dialog — up to five tabs; a clean tab is replaced, a dirty one stays and a new tab opens. The tab strip’s **+** always opens another tab.
-- Captures a region of the screen straight into the editor (**macOS only**)
+- Captures a region of the screen straight into the editor
 - Reopens the last ten images from **File → Open Recent**
 - Edits them with [`@unlayer/react-image-editor`](https://github.com/unlayer/react-image-editor) — crop, resize, filters, draw, text, shapes, stickers and frames. Double-click inside a crop to apply it.
 - Chooses a light or dark appearance in Settings — Pixen’s chrome and the image editor; the choice is remembered in `localStorage`
-- Saves as PNG, JPEG or WebP with `⌘S` / `Ctrl+S`, asking where to write the first time and reusing that destination afterwards
-- Saves to a new file with `⌘⇧S` / `Ctrl+Shift+S`
-- Copies the edited image to the system clipboard with `⌘⇧C` / `Ctrl+Shift+C`
+- Saves as PNG, JPEG or WebP with `⌘S`, asking where to write the first time and reusing that destination afterwards
+- Saves to a new file with `⌘⇧S`
+- Copies the edited image to the system clipboard with `⌘⇧C`
 - Hides private data — an address, a token, a face — behind a mosaic, by dragging a box over it
 - Numbers a screenshot for a step-by-step guide: click each spot and the badge counts itself up
 - Points at what matters: drag an arrow towards it, as many as the guide needs
@@ -40,19 +40,17 @@ The editor does the editing. Pixen owns the window, the native file dialogs, the
 
 ## Supported platforms
 
-| Platform | Status                                             |
-| -------- | -------------------------------------------------- |
-| macOS    | 10.15+, unsigned `.dmg` from the tag workflow      |
-| Windows  | Unsigned NSIS installer from the tag workflow      |
-| Linux    | Unsigned `.deb` and AppImage from the tag workflow |
+| Platform | Status                                        |
+| -------- | --------------------------------------------- |
+| macOS    | 10.15+, unsigned `.dmg` from the tag workflow |
 
 ## Requirements
 
+- macOS 10.15+
 - [pnpm](https://pnpm.io) 10
 - Node.js 20+
 - Rust 1.77.2+ (`rustup`)
-- Platform build tools: Xcode Command Line Tools on macOS, MSVC on Windows,
-  `webkit2gtk` and `libayatana-appindicator` on Linux
+- Xcode Command Line Tools (`xcode-select --install`)
 
 ## Development
 
@@ -81,7 +79,7 @@ connection.
 | Script              | Description                                       |
 | ------------------- | ------------------------------------------------- |
 | `tauri:dev`         | Run the desktop app                               |
-| `tauri:build`       | Build the installers for the current platform     |
+| `tauri:build`       | Build the macOS `.app` and `.dmg`                 |
 | `dev`               | Vite UI only (no native shell)                    |
 | `build`             | Type-check and build the frontend                 |
 | `assets:bg-removal` | Download the background removal model to `public` |
@@ -99,12 +97,11 @@ connection.
 pnpm tauri:build
 ```
 
-Bundles land in `src-tauri/target/release/bundle/`: `.app` and `.dmg` on macOS, an NSIS installer
-on Windows, `.deb` and AppImage on Linux. Builds are unsigned, so on macOS the first launch is
-right-click the app → Open, and on Windows SmartScreen may warn.
+Bundles land in `src-tauri/target/release/bundle/` as a `.app` and a `.dmg`. Builds are unsigned, so
+the first launch is right-click the app → Open.
 
-Pushing a `v*` tag runs the release workflow on macOS, Ubuntu 22.04 and Windows. Each job attaches
-its installer to the same GitHub Release.
+Pushing a `v*` tag runs the release workflow on macOS and attaches a universal `.dmg` to the GitHub
+Release.
 
 ## How it works
 
@@ -112,16 +109,16 @@ Why a drop is not an HTML5 drop zone, why encoding is in Rust, and what a flatte
 
 ## Keyboard shortcuts
 
-| Shortcut               | Action                          |
-| ---------------------- | ------------------------------- |
-| `⌘S` / `Ctrl+S`        | Save                            |
-| `⌘⇧S` / `Ctrl+Shift+S` | Save As                         |
-| `⌘O` / `Ctrl+O`        | Open an image                   |
-| `⌘V` / `Ctrl+V`        | Open the image on the clipboard |
-| `⌘⇧C` / `Ctrl+Shift+C` | Copy the image to the clipboard |
-| `⌘Q` / `Ctrl+Q`        | Quit, guarding unsaved work     |
-| `⌘W` / `Ctrl+W`        | Close the About window          |
-| `Escape`               | Close the About window          |
+| Shortcut | Action                          |
+| -------- | ------------------------------- |
+| `⌘S`     | Save                            |
+| `⌘⇧S`    | Save As                         |
+| `⌘O`     | Open an image                   |
+| `⌘V`     | Open the image on the clipboard |
+| `⌘⇧C`    | Copy the image to the clipboard |
+| `⌘Q`     | Quit, guarding unsaved work     |
+| `⌘W`     | Close the About window          |
+| `Escape` | Close the About window          |
 
 ## License
 

@@ -71,7 +71,7 @@ describe('labelForRecent', () => {
     expect(labelForRecent(paths[1], paths)).toBe('Screenshot.png — friday')
   })
 
-  it('reads a Windows path the same way', () => {
+  it('reads a backslash-separated path the same way', () => {
     const paths = ['C:\\shots\\today\\Screenshot.png', 'C:\\shots\\friday\\Screenshot.png']
 
     expect(labelForRecent(paths[0], paths)).toBe('Screenshot.png — today')

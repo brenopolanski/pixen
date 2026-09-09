@@ -23,7 +23,6 @@ import { useNativeMenu } from '@/hooks/useNativeMenu'
 import { useWindowTitle } from '@/hooks/useWindowTitle'
 import { editorContainerId } from '@/lib/constants'
 import { showAboutWindow } from '@/lib/desktop'
-import { isCaptureSupported } from '@/lib/image/capture'
 import type { EditorTheme } from '@/lib/settings'
 import type { ImageTab } from '@/lib/tabs'
 
@@ -132,7 +131,7 @@ const App = () => {
         tabs={session.tabs}
         onActivateTab={session.activateTab}
         onArrow={session.startArrow}
-        onCaptureScreen={isCaptureSupported() ? session.captureScreen : undefined}
+        onCaptureScreen={session.captureScreen}
         onCloseTab={session.closeTab}
         onCopyImage={session.copyImage}
         onCutout={session.startCutout}

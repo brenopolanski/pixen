@@ -18,7 +18,7 @@ const JPEG = formatById('jpeg')
 const WEBP = formatById('webp')
 
 describe('fileNameOf', () => {
-  it('reads POSIX and Windows paths', () => {
+  it('reads slash- and backslash-separated paths', () => {
     expect(fileNameOf('/Users/dev/pictures/photo.png')).toBe('photo.png')
     expect(fileNameOf('C:\\Users\\dev\\pictures\\photo.png')).toBe('photo.png')
   })

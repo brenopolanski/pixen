@@ -29,9 +29,8 @@ interface ToolItem {
 interface ToolsMenuProps {
   busy: boolean
   hasImage: boolean
-  mac: boolean
   onArrow: () => void
-  onCaptureScreen?: () => void
+  onCaptureScreen: () => void
   onCopyImage: () => void
   onCutout: () => void
   onIncrement: () => void
@@ -40,12 +39,11 @@ interface ToolsMenuProps {
 
 /**
  * A grid rather than a list: the tools are picked by their icon far more often
- * than they are read, and five of them fit in two rows.
+ * than they are read, and six of them fit in two rows.
  */
 export const ToolsMenu = ({
   busy,
   hasImage,
-  mac,
   onArrow,
   onCaptureScreen,
   onCopyImage,
@@ -80,7 +78,7 @@ export const ToolsMenu = ({
       label: 'Copy',
       disabled: busy || !hasImage,
       icon: <CopyIcon className="size-5" />,
-      shortcut: formatShortcut(mac, 'c', true),
+      shortcut: formatShortcut('c', true),
       // Confirmed by a toast from the session, so this closes like the rest:
       // the confirmation no longer needs the menu to stay open to be seen.
       onSelect: onCopyImage,
@@ -92,6 +90,12 @@ export const ToolsMenu = ({
       onSelect: onPixelize,
     },
     {
+      label: 'Screenshot',
+      disabled: busy,
+      icon: <CameraIcon className="size-5" />,
+      onSelect: onCaptureScreen,
+    },
+    {
       label: 'Steps',
       disabled: busy || !hasImage,
       icon: <ListOrderedIcon className="size-5" />,
@@ -99,17 +103,8 @@ export const ToolsMenu = ({
     },
   ]
 
-  if (onCaptureScreen) {
-    items.push({
-      label: 'Screenshot',
-      disabled: busy,
-      icon: <CameraIcon className="size-5" />,
-      onSelect: onCaptureScreen,
-    })
-  }
-
-  // Sorted on what the user reads, so the order does not depend on which
-  // optional tools are present.
+  // Sorted on what the user reads, so the grid does not depend on the order
+  // the items happen to be declared in.
   items.sort((left, right) => left.label.localeCompare(right.label))
 
   return (
