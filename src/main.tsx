@@ -19,8 +19,18 @@ if (splash) {
   document.documentElement.classList.add('splash')
 }
 
-const view = about ? <About /> : splash ? <Splash /> : <App />
+const renderView = () => {
+  if (about) {
+    return <About />
+  }
+
+  if (splash) {
+    return <Splash />
+  }
+
+  return <App />
+}
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>{view}</React.StrictMode>,
+  <React.StrictMode>{renderView()}</React.StrictMode>,
 )
