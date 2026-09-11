@@ -176,9 +176,7 @@ export const ToolsMenu = ({
                     <span className="flex size-12 items-center justify-center rounded-xl border border-border bg-muted/40 text-foreground">
                       {item.icon}
                     </span>
-                    <span className="max-w-full truncate text-[11px] font-medium">
-                      {item.label}
-                    </span>
+                    <span className="max-w-full text-[11px] font-medium">{item.label}</span>
                   </button>
                 </TooltipTrigger>
 
