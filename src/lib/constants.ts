@@ -25,9 +25,6 @@ export const editorContainerId = (tabId: string): string => {
   return `${EDITOR_CONTAINER_ID_PREFIX}-${tabId}`
 }
 
-/** How many images can be open at once. Opening past this asks to close a tab. */
-export const MAX_TABS = 5
-
 /** Floor on how long the splash screen shows, so it never flashes past. */
 export const SPLASH_MIN_DURATION_MS = 700
 /** Ceiling on waiting for the editor engine before revealing the main window. */

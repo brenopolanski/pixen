@@ -3,14 +3,14 @@
 ## Opening
 
 A drop, a paste, the File menu and the toolbar all end up in the same place: `useImageSession`
-places the image in a tab. A clean tab is replaced; a dirty tab is kept and a new one opens, up to
-five. The tab strip’s **+** always creates a tab (and refuses at the cap) so you can keep a clean
-image open. Only where the image comes from differs.
+places the image in a tab. A clean tab is replaced; a dirty tab is kept and a new one opens. The
+tab strip’s **+** always creates a tab so you can keep a clean image open. Only where the image
+comes from differs.
 
 - **Dropping** goes through the window's `onDragDropEvent`. Tauri intercepts file drops before the
   webview sees them, so `dragover` and `drop` never fire and an HTML5 drop zone would be dead. Paths
   arrive unfiltered, so Pixen takes the first PNG, JPEG or WebP and ignores the rest. A clean tab is
-  replaced; a dirty tab is kept and a new one opens, up to five.
+  replaced; a dirty tab is kept and a new one opens.
 - **Pasting** listens for the `paste` event rather than binding `⌘V`, so the clipboard's contents
   decide whether Pixen acts. A paste aimed at an `input`, `textarea`, `select` or `contenteditable`
   is left alone, which is what keeps the editor's text tool working. A pasted image has no path, so

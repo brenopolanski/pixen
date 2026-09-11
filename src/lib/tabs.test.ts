@@ -1,42 +1,32 @@
 import { describe, expect, it } from 'vitest'
 
-import { decideNewTabAction, decideOpenAction, nextTabAfterClose, tabsFullMessage } from './tabs'
+import { decideOpenAction, nextTabAfterClose } from './tabs'
 
 const tab = (id: string, dirty: boolean) => ({ id, dirty })
 
 describe('decideOpenAction', () => {
   it('creates the first tab', () => {
-    expect(decideOpenAction([], null, 5)).toEqual({ type: 'create' })
+    expect(decideOpenAction([], null)).toEqual({ type: 'create' })
   })
 
   it('replaces a clean active tab', () => {
-    expect(decideOpenAction([tab('a', false)], 'a', 5)).toEqual({ type: 'replace', tabId: 'a' })
+    expect(decideOpenAction([tab('a', false)], 'a')).toEqual({ type: 'replace', tabId: 'a' })
   })
 
   it('opens a new tab when the active one is dirty', () => {
-    expect(decideOpenAction([tab('a', true)], 'a', 5)).toEqual({ type: 'create' })
+    expect(decideOpenAction([tab('a', true)], 'a')).toEqual({ type: 'create' })
   })
 
-  it('refuses when every slot is taken and the active tab is dirty', () => {
+  it('still creates when many dirty tabs are already open', () => {
     const tabs = [tab('a', true), tab('b', true), tab('c', true), tab('d', true), tab('e', true)]
 
-    expect(decideOpenAction(tabs, 'c', 5)).toEqual({ type: 'refuse' })
+    expect(decideOpenAction(tabs, 'c')).toEqual({ type: 'create' })
   })
 
-  it('still replaces a clean tab at the cap', () => {
+  it('still replaces a clean tab among many dirty ones', () => {
     const tabs = [tab('a', true), tab('b', false), tab('c', true), tab('d', true), tab('e', true)]
 
-    expect(decideOpenAction(tabs, 'b', 5)).toEqual({ type: 'replace', tabId: 'b' })
-  })
-})
-
-describe('decideNewTabAction', () => {
-  it('creates even when the current tab is clean', () => {
-    expect(decideNewTabAction(1, 5)).toEqual({ type: 'create' })
-  })
-
-  it('refuses at the cap instead of replacing', () => {
-    expect(decideNewTabAction(5, 5)).toEqual({ type: 'refuse' })
+    expect(decideOpenAction(tabs, 'b')).toEqual({ type: 'replace', tabId: 'b' })
   })
 })
 
@@ -50,11 +40,5 @@ describe('nextTabAfterClose', () => {
 
   it('returns null when the last tab closes', () => {
     expect(nextTabAfterClose([{ id: 'a' }], 'a')).toBeNull()
-  })
-})
-
-describe('tabsFullMessage', () => {
-  it('names the cap rather than a hardcoded five', () => {
-    expect(tabsFullMessage(5)).toContain('5')
   })
 })

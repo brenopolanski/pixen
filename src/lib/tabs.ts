@@ -1,5 +1,3 @@
-import { MAX_TABS } from '@/lib/constants'
-
 /** One open image. The editor for it stays mounted until the tab is closed. */
 export interface ImageTab {
   id: string
@@ -15,17 +13,14 @@ export interface ImageTab {
   dirty: boolean
 }
 
-export type OpenAction =
-  { type: 'create' } | { type: 'replace'; tabId: string } | { type: 'refuse' }
+export type OpenAction = { type: 'create' } | { type: 'replace'; tabId: string }
 
 /**
- * Replace-if-clean: a dirty tab is kept, so the next image becomes a new tab
- * unless `MAX_TABS` are already open.
+ * Replace-if-clean: a dirty tab is kept, so the next image becomes a new tab.
  */
 export const decideOpenAction = (
   tabs: Pick<ImageTab, 'id' | 'dirty'>[],
   activeId: string | null,
-  maxTabs: number = MAX_TABS,
 ): OpenAction => {
   if (tabs.length === 0 || activeId === null) {
     return { type: 'create' }
@@ -41,30 +36,7 @@ export const decideOpenAction = (
     return { type: 'replace', tabId: active.id }
   }
 
-  if (tabs.length >= maxTabs) {
-    return { type: 'refuse' }
-  }
-
   return { type: 'create' }
-}
-
-/**
- * The tab strip's "+" always creates. It never replaces a clean tab, and it
- * refuses once `maxTabs` are already open.
- */
-export const decideNewTabAction = (
-  tabCount: number,
-  maxTabs: number = MAX_TABS,
-): Extract<OpenAction, { type: 'create' | 'refuse' }> => {
-  if (tabCount >= maxTabs) {
-    return { type: 'refuse' }
-  }
-
-  return { type: 'create' }
-}
-
-export const tabsFullMessage = (maxTabs: number = MAX_TABS): string => {
-  return `Pixen can keep ${maxTabs} images open. Close a tab to open another.`
 }
 
 export const nextTabAfterClose = <T extends { id: string }>(

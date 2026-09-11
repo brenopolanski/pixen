@@ -4,7 +4,6 @@ import { toast } from 'sonner'
 
 import {
   COPIED_FEEDBACK_MS,
-  MAX_TABS,
   SCREENSHOT_NAME,
   UNSAVED_CHECK_DEBOUNCE_MS,
   UNSAVED_CHECK_INTERVAL_MS,
@@ -26,12 +25,7 @@ import type { Rect } from '@/lib/image/pixelize'
 import { pixelizeImage } from '@/lib/image/pixelize'
 import { readRecent, withoutRecent, withRecent, writeRecent } from '@/lib/recent'
 import type { ImageTab } from '@/lib/tabs'
-import {
-  decideNewTabAction,
-  decideOpenAction,
-  nextTabAfterClose,
-  tabsFullMessage,
-} from '@/lib/tabs'
+import { decideOpenAction, nextTabAfterClose } from '@/lib/tabs'
 
 interface SessionState {
   tabs: ImageTab[]
@@ -223,12 +217,8 @@ export const useImageSession = (): ImageSession => {
     (image: string, name: string, options?: { forceNew?: boolean }) => {
       const current = sessionRef.current
       const action = options?.forceNew
-        ? decideNewTabAction(current.tabs.length, MAX_TABS)
-        : decideOpenAction(current.tabs, current.activeId, MAX_TABS)
-
-      if (action.type === 'refuse') {
-        throw new PixenError(tabsFullMessage(MAX_TABS))
-      }
+        ? { type: 'create' as const }
+        : decideOpenAction(current.tabs, current.activeId)
 
       clearOverlays()
       setError(null)
