@@ -21,7 +21,7 @@ const tabLabel = (tab: ImageTab): string => {
 export const TabBar = ({ tabs, activeId, locked, onActivate, onClose, onNewTab }: TabBarProps) => {
   return (
     <div className="flex min-w-0 items-center gap-1 border-t border-border px-3 py-1.5">
-      <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
+      <div className="no-scrollbar flex min-w-0 scroll-fade-x items-center gap-1 overflow-x-auto">
         {tabs.map((tab) => {
           const active = tab.id === activeId
 
@@ -38,12 +38,11 @@ export const TabBar = ({ tabs, activeId, locked, onActivate, onClose, onNewTab }
               <button
                 className="flex min-w-0 items-center gap-1.5 text-left"
                 disabled={locked}
+                title={tabLabel(tab)}
                 type="button"
                 onClick={() => onActivate(tab.id)}
               >
-                <span className="max-w-[120px] truncate text-[12px] font-medium">
-                  {tabLabel(tab)}
-                </span>
+                <span className="max-w-30 truncate text-[12px] font-medium">{tabLabel(tab)}</span>
                 {tab.dirty && (
                   <span
                     aria-label="Unsaved changes"
