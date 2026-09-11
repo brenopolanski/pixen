@@ -1,6 +1,6 @@
 [package]
 name = "pixen"
-version = "0.1.0"
+version = "0.2.0"
 description = "An open-source desktop image editor, ideal for screenshots — crop, annotate, hide private information, and make quick edits."
 authors = ["Breno Polanski <breno.polanski@gmail.com>"]
 edition = "2021"
