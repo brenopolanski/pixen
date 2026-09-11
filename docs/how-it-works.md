@@ -189,13 +189,13 @@ while it works, then the cutout on a checkerboard. **Apply** writes it to the do
 
 ## Saving
 
-PNG, JPEG and WebP are picked from the selector in Pixen's own toolbar, not from the save dialog. A
-native dialog only reports where to write, never which of its file types was selected, so a dialog
-listing all three would advertise a choice it cannot honour — pick JPEG there and you would still get
-a PNG. Instead the dialog is shown a single filter matching the toolbar, and:
+PNG, JPEG and WebP are picked from **Save → Export as** in Pixen's toolbar, not from the save
+dialog. A native dialog only reports where to write, never which of its file types was selected, so
+a dialog listing all three would advertise a choice it cannot honour — pick JPEG there and you would
+still get a PNG. Instead the dialog is shown a single filter matching the selected format, and:
 
-- **An extension you type yourself wins.** Naming the file `photo.webp` while the selector says PNG
-  saves WebP, and the selector moves to WebP to match.
+- **An extension you type yourself wins.** Naming the file `photo.webp` while **Export as** says PNG
+  saves WebP, and the menu moves to WebP to match.
 - **Changing format sends the next Save through the dialog again.** The extension is part of the
   name, so reusing the old path would put JPEG bytes inside the `.png` already on disk.
 
