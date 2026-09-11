@@ -119,11 +119,7 @@ export const ToolsMenu = ({
       }}
     >
       <PopoverTrigger asChild>
-        <Button
-          className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
-          title="Tools"
-          variant="outline"
-        >
+        <Button className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]" variant="outline">
           <WrenchIcon className="size-3.5" />
           Tools
           <ChevronDownIcon className="size-3 text-muted-foreground" />

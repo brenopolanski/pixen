@@ -27,7 +27,6 @@ export const ExportMenu = ({ disabled, format, onChange }: ExportMenuProps) => {
         <Button
           className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
           disabled={disabled}
-          title="Export"
           variant="outline"
         >
           <FileDownIcon className="size-3.5" />
@@ -42,7 +41,6 @@ export const ExportMenu = ({ disabled, format, onChange }: ExportMenuProps) => {
             key={generateReactKey('format', option.id)}
             checked={option.id === format.id}
             className="gap-1.5 py-1.5 pr-2.5 text-[12px] font-medium"
-            title={option.name}
             onSelect={() => onChange(option)}
           >
             {option.name}

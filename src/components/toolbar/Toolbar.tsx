@@ -3,7 +3,6 @@ import { Logo } from '@/components/shared/Logo'
 import { Button } from '@/components/ui/button'
 import { APP_NAME } from '@/lib/constants'
 import type { SaveFormat } from '@/lib/image/image'
-import { formatShortcut } from '@/lib/shortcuts'
 import type { ImageTab } from '@/lib/tabs'
 
 import { ExportMenu } from './ExportMenu'
@@ -69,18 +68,16 @@ export const Toolbar = ({
           <Button
             className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
             disabled={busy}
-            title={`Open Image (${formatShortcut('o')})`}
             variant="outline"
             onClick={onOpenImage}
           >
             <ImagePlusIcon className="size-3.5" />
-            Open Image
+            Open
           </Button>
 
           <Button
             className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
             disabled={busy || !hasImage}
-            title={`Save As (${formatShortcut('s', true)})`}
             variant="outline"
             onClick={onSaveAs}
           >
@@ -91,7 +88,6 @@ export const Toolbar = ({
           <Button
             className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
             disabled={busy || !hasImage}
-            title={`Save (${formatShortcut('s')})`}
             onClick={onSave}
           >
             <SaveIcon className="size-3.5" />
@@ -120,7 +116,6 @@ export const Toolbar = ({
           <Button
             aria-label="Settings"
             className="size-8 p-0"
-            title="Settings"
             variant="outline"
             onClick={onOpenSettings}
           >

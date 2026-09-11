@@ -71,7 +71,6 @@ export const TabBar = ({ tabs, activeId, locked, onActivate, onClose, onNewTab }
         aria-label={newTabTitle}
         className="flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
         disabled={locked || atCap}
-        title={newTabTitle}
         type="button"
         onClick={onNewTab}
       >
