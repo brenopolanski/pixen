@@ -1,11 +1,11 @@
-import { ImagePlusIcon, SaveAllIcon, SaveIcon, SettingsIcon } from '@/components/shared/Icons'
+import { ImagePlusIcon, SettingsIcon } from '@/components/shared/Icons'
 import { Logo } from '@/components/shared/Logo'
 import { Button } from '@/components/ui/button'
 import { APP_NAME } from '@/lib/constants'
 import type { SaveFormat } from '@/lib/image/image'
 import type { ImageTab } from '@/lib/tabs'
 
-import { ExportMenu } from './ExportMenu'
+import { SaveMenu } from './SaveMenu'
 import { TabBar } from './TabBar'
 import { ToolsMenu } from './ToolsMenu'
 
@@ -75,24 +75,15 @@ export const Toolbar = ({
             Open
           </Button>
 
-          <Button
-            className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
-            disabled={busy || !hasImage}
-            variant="outline"
-            onClick={onSaveAs}
-          >
-            <SaveAllIcon className="size-3.5" />
-            Save As
-          </Button>
-
-          <Button
-            className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]"
-            disabled={busy || !hasImage}
-            onClick={onSave}
-          >
-            <SaveIcon className="size-3.5" />
-            Save
-          </Button>
+          <SaveMenu
+            busy={busy}
+            format={format}
+            hasImage={hasImage}
+            onCopyImage={onCopyImage}
+            onFormatChange={onFormatChange}
+            onSave={onSave}
+            onSaveAs={onSaveAs}
+          />
         </div>
 
         <div className="min-w-0 flex-1" />
@@ -108,8 +99,6 @@ export const Toolbar = ({
             onIncrement={onIncrement}
             onPixelize={onPixelize}
           />
-
-          <ExportMenu disabled={busy} format={format} onChange={onFormatChange} />
 
           {/* Icon-only, so the height is pinned rather than left to the icon:
               the labelled buttons are 32px from their 12px text line box. */}
