@@ -8,6 +8,9 @@ import { ABOUT_WINDOW_LABEL, SPLASH_WINDOW_LABEL } from '@/lib/constants'
 /** What the user chose in the unsaved-changes prompt. */
 export type CloseDecision = 'save' | 'discard' | 'cancel'
 
+/** What the user chose when leaving a tool with unapplied marks. */
+export type OverlayDecision = 'apply' | 'discard' | 'cancel'
+
 /** Both windows load the same bundle, so the query string picks the view. */
 export const isSplashWindow = (): boolean => {
   return new URLSearchParams(window.location.search).get('window') === SPLASH_WINDOW_LABEL
@@ -86,6 +89,11 @@ export const onFileDrop = (
 /** Native three-button prompt; see confirm_unsaved_changes in Rust. */
 export const askAboutUnsavedChanges = (): Promise<CloseDecision> => {
   return invoke('confirm_unsaved_changes')
+}
+
+/** Native three-button prompt; see confirm_apply_overlay in Rust. */
+export const askToApplyOverlay = (): Promise<OverlayDecision> => {
+  return invoke('confirm_apply_overlay')
 }
 
 /** Native two-button prompt; resolves true when the user confirms. */

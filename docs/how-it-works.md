@@ -110,6 +110,8 @@ last one back, Escape or **Cancel** throws the lot away, and **Done** writes the
   number — and, since every apply would start over, never get past 1.
 - **Done flattens once**, on the same terms as Pixelize: the save path, file name and unsaved marker
   survive, the editor's undo history does not. See [flattening costs](#what-a-flattened-save-costs).
+  Opening another tool or image while badges are waiting asks Apply / Don't Apply / Cancel. Apply
+  flattens them the same way **Done** does; it does not write a file.
 - **The compositing is canvas, not Rust.** The mosaic belongs in Rust because it only averages
   pixels, but a badge has a digit in it, and drawing a digit needs a font — one the webview already
   has and the Rust binary would have to bundle. `src/lib/image/increment.ts` draws the circles and
@@ -145,7 +147,8 @@ onto the image.
   one kit rather than two tools.
 - **Done flattens once**, on the same terms as Pixelize and Steps: the save path, file name and
   unsaved marker survive, the editor's undo history does not. See
-  [flattening costs](#what-a-flattened-save-costs).
+  [flattening costs](#what-a-flattened-save-costs). Opening another tool or image while arrows
+  are waiting asks Apply / Don't Apply / Cancel. Apply is the same flatten; it does not save.
 - **No keyboard shortcut**, for the same reason as Pixelize: it opens a mode rather than finishing on
   its own.
 
@@ -180,7 +183,9 @@ while it works, then the cutout on a checkerboard. **Apply** writes it to the do
   be called back — the library offers no cancellation.
 - **Apply flattens**, on the same terms as Pixelize and Steps: the save path, file name and unsaved
   marker survive, the editor's undo history does not. See
-  [flattening costs](#what-a-flattened-save-costs).
+  [flattening costs](#what-a-flattened-save-costs). Opening another tool or image once the preview
+  is ready asks Apply / Don't Apply / Cancel. Apply is the same flatten; it does not save. A run
+  that is still in flight has nothing to bake, so leaving just closes.
 - **The result is transparent, so save it as PNG.** The cutout is nothing but an alpha channel, and
   JPEG has none — saving to JPEG composites the transparency onto white, exactly as it does for any
   other transparent image. WebP keeps it. Pixen does not switch the format selector for you.
@@ -270,6 +275,7 @@ src/
     ├── editor/          # engine preload, editor options, unsaved-edit detection, crop double-click
     ├── image/           # paths and formats, clipboard, capture, pixelize, badge and arrow geometry, cutout, dialogs and I/O
     ├── recent.ts        # last-opened paths for File → Open Recent
+    ├── overlay.ts       # whether leaving a tool should ask to bake marks
     ├── settings.ts      # localStorage preferences (theme)
     ├── tabs.ts          # replace-if-clean / new-tab decisions
     └── menu.ts          # the native menu bar

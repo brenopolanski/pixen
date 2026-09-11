@@ -14,6 +14,7 @@ interface IncrementOverlayProps {
   image: string
   onApply: (stamps: Stamp[]) => void
   onCancel: () => void
+  onDraftChange: (stamps: Stamp[]) => void
 }
 
 /**
@@ -24,10 +25,19 @@ interface IncrementOverlayProps {
  * count and the last one can be taken back. Baking each click straight into the
  * image would flatten the editor once per number and never get past 1.
  */
-export const IncrementOverlay = ({ image, onApply, onCancel }: IncrementOverlayProps) => {
+export const IncrementOverlay = ({
+  image,
+  onApply,
+  onCancel,
+  onDraftChange,
+}: IncrementOverlayProps) => {
   const [frame, setFrame] = useState<HTMLDivElement | null>(null)
   const [size, setSize] = useState<{ width: number; height: number } | null>(null)
   const [stamps, setStamps] = useState<Stamp[]>([])
+
+  useEffect(() => {
+    onDraftChange(stamps)
+  }, [onDraftChange, stamps])
 
   const undoLast = useCallback(() => {
     setStamps((current) => current.slice(0, -1))

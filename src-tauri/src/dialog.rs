@@ -45,3 +45,39 @@ pub async fn confirm_unsaved_changes(app: AppHandle) -> CloseDecision {
         _ => CloseDecision::Cancel,
     }
 }
+
+const APPLY_LABEL: &str = "Apply";
+const DONT_APPLY_LABEL: &str = "Don't Apply";
+
+#[derive(Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OverlayDecision {
+    Apply,
+    Discard,
+    Cancel,
+}
+
+/// Three-button prompt when leaving a tool that still has unapplied marks.
+/// Apply bakes them onto the image; it does not write a file.
+#[tauri::command]
+pub async fn confirm_apply_overlay(app: AppHandle) -> OverlayDecision {
+    let result = app
+        .dialog()
+        .message("The marks you added in this tool are not on the image yet.")
+        .title("Apply these changes?")
+        .kind(MessageDialogKind::Warning)
+        .buttons(MessageDialogButtons::YesNoCancelCustom(
+            APPLY_LABEL.to_string(),
+            DONT_APPLY_LABEL.to_string(),
+            CANCEL_LABEL.to_string(),
+        ))
+        .blocking_show_with_result();
+
+    match result {
+        MessageDialogResult::Yes | MessageDialogResult::Ok => OverlayDecision::Apply,
+        MessageDialogResult::No => OverlayDecision::Discard,
+        MessageDialogResult::Custom(label) if label == APPLY_LABEL => OverlayDecision::Apply,
+        MessageDialogResult::Custom(label) if label == DONT_APPLY_LABEL => OverlayDecision::Discard,
+        _ => OverlayDecision::Cancel,
+    }
+}

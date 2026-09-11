@@ -20,6 +20,7 @@ interface ArrowOverlayProps {
   image: string
   onApply: (arrows: Arrow[]) => void
   onCancel: () => void
+  onDraftChange: (arrows: Arrow[]) => void
 }
 
 /**
@@ -30,11 +31,15 @@ interface ArrowOverlayProps {
  * last one can be taken back and the editor is flattened once rather than once
  * per arrow.
  */
-export const ArrowOverlay = ({ image, onApply, onCancel }: ArrowOverlayProps) => {
+export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowOverlayProps) => {
   const [frame, setFrame] = useState<HTMLDivElement | null>(null)
   const [size, setSize] = useState<{ width: number; height: number } | null>(null)
   const [arrows, setArrows] = useState<Arrow[]>([])
   const [drawing, setDrawing] = useState<Arrow | null>(null)
+
+  useEffect(() => {
+    onDraftChange(arrows)
+  }, [arrows, onDraftChange])
 
   const undoLast = useCallback(() => {
     setArrows((current) => current.slice(0, -1))
