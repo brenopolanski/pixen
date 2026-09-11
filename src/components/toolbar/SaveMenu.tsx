@@ -29,8 +29,6 @@ interface SaveMenuProps {
   onSaveAs: () => void
 }
 
-const itemClass = 'py-1.5 pr-2.5 text-[12px] font-medium'
-
 /**
  * The format lives here rather than in the save dialog because a native dialog
  * reports only a path back, never which of its file types was picked.
@@ -71,12 +69,12 @@ export const SaveMenu = ({
         </DropdownMenuTrigger>
 
         <DropdownMenuContent align="start" className="min-w-52" sideOffset={6}>
-          <DropdownMenuItem className={itemClass} onSelect={onSave}>
+          <DropdownMenuItem className="py-1.5 pr-2.5 text-[12px] font-medium" onSelect={onSave}>
             Save
             <DropdownMenuShortcut>{formatShortcut('s')}</DropdownMenuShortcut>
           </DropdownMenuItem>
 
-          <DropdownMenuItem className={itemClass} onSelect={onSaveAs}>
+          <DropdownMenuItem className="py-1.5 pr-2.5 text-[12px] font-medium" onSelect={onSaveAs}>
             Save As…
             <DropdownMenuShortcut>{formatShortcut('s', true)}</DropdownMenuShortcut>
           </DropdownMenuItem>
@@ -84,7 +82,7 @@ export const SaveMenu = ({
           <DropdownMenuSeparator />
 
           <DropdownMenuSub>
-            <DropdownMenuSubTrigger className={itemClass}>
+            <DropdownMenuSubTrigger className="py-1.5 pr-2.5 text-[12px] font-medium">
               Export as {format.name}
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
@@ -95,7 +93,7 @@ export const SaveMenu = ({
                 <DropdownMenuCheckboxItem
                   key={generateReactKey('format', option.id)}
                   checked={option.id === format.id}
-                  className={itemClass}
+                  className="py-1.5 pr-2.5 text-[12px] font-medium"
                   onSelect={() => onFormatChange(option)}
                 >
                   {option.name}
@@ -104,7 +102,10 @@ export const SaveMenu = ({
             </DropdownMenuSubContent>
           </DropdownMenuSub>
 
-          <DropdownMenuItem className={itemClass} onSelect={onCopyImage}>
+          <DropdownMenuItem
+            className="py-1.5 pr-2.5 text-[12px] font-medium"
+            onSelect={onCopyImage}
+          >
             Copy to clipboard
             <DropdownMenuShortcut>{formatShortcut('c', true)}</DropdownMenuShortcut>
           </DropdownMenuItem>
