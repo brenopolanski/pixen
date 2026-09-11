@@ -552,10 +552,16 @@ export const useImageSession = (): ImageSession => {
         return
       }
 
-      await writeToClipboard(readCurrentImage())
+      const image = await settleOverlay()
+
+      if (image === false || image === '') {
+        return
+      }
+
+      await writeToClipboard(image)
       toast.success('Copied to clipboard', { duration: COPIED_FEEDBACK_MS })
     })
-  }, [readCurrentImage, run])
+  }, [run, settleOverlay])
 
   const startPixelize = useCallback(() => {
     run(async () => {

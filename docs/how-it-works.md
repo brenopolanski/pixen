@@ -67,7 +67,9 @@ clipboard write can honestly give. The toast is raised by the session rather tha
 copy from the keyboard or the native Edit menu says so too.
 
 - **The clipboard carries pixels, not a file**, so the toolbar's format selector does not apply and
-  the receiving app decides how to store what it gets. `copy_image` hands over raw RGBA:
+  the receiving app decides how to store what it gets. If a tool overlay still has unapplied marks,
+  Copy asks Apply / Don't Apply / Cancel first — Apply bakes then copies; it does not save.
+  `copy_image` hands over raw RGBA:
   [`arboard`](https://docs.rs/arboard), under `tauri-plugin-clipboard-manager`, then offers it to
   the pasteboard as TIFF, transparency included.
 - **Shift is part of the shortcut on purpose.** Plain `⌘C` belongs to the system Copy, which the
