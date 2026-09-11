@@ -564,6 +564,10 @@ export const useImageSession = (): ImageSession => {
   }, [run, settleOverlay])
 
   const startPixelize = useCallback(() => {
+    if (pixelizePreviewRef.current !== null) {
+      return
+    }
+
     run(async () => {
       if (!activeTabOf(sessionRef.current)) {
         return
@@ -610,6 +614,10 @@ export const useImageSession = (): ImageSession => {
   )
 
   const startIncrement = useCallback(() => {
+    if (incrementPreviewRef.current !== null) {
+      return
+    }
+
     run(async () => {
       if (!activeTabOf(sessionRef.current)) {
         return
@@ -658,6 +666,10 @@ export const useImageSession = (): ImageSession => {
   )
 
   const startArrow = useCallback(() => {
+    if (arrowPreviewRef.current !== null) {
+      return
+    }
+
     run(async () => {
       if (!activeTabOf(sessionRef.current)) {
         return
@@ -708,6 +720,10 @@ export const useImageSession = (): ImageSession => {
   )
 
   const startCutout = useCallback(() => {
+    if (cutoutPreviewRef.current !== null) {
+      return
+    }
+
     run(async () => {
       if (!activeTabOf(sessionRef.current)) {
         return
