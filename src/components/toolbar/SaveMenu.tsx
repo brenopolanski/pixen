@@ -29,10 +29,6 @@ interface SaveMenuProps {
   onSaveAs: () => void
 }
 
-/**
- * The format lives here rather than in the save dialog because a native dialog
- * reports only a path back, never which of its file types was picked.
- */
 export const SaveMenu = ({
   busy,
   format,
