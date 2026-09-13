@@ -12,6 +12,19 @@ export const SPLASH_WINDOW_LABEL = 'splash'
 /** Keep in sync with ABOUT_WINDOW_LABEL in src-tauri/src/window.rs */
 export const ABOUT_WINDOW_LABEL = 'about'
 
+/** Keep in sync with CAPTURE_REQUESTED_EVENT in src-tauri/src/tray.rs */
+export const CAPTURE_REQUESTED_EVENT = 'pixen-capture-requested'
+/** Keep in sync with QUIT_REQUESTED_EVENT in src-tauri/src/tray.rs */
+export const QUIT_REQUESTED_EVENT = 'pixen-quit-requested'
+
+/**
+ * The tray registers this system-wide, so the webview must not also bind it.
+ * It is listed here only so the File menu can show it.
+ *
+ * Keep in sync with CAPTURE_SHORTCUT in src-tauri/src/tray.rs
+ */
+export const CAPTURE_ACCELERATOR = 'Cmd+Shift+9'
+
 /**
  * Class on every editor mount. The Save/Cancel hide rule in `index.css` keys
  * off this rather than a single id, because each tab has its own editor.

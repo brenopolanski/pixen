@@ -58,6 +58,20 @@ export const onCloseRequested = (handler: () => void): Promise<() => void> => {
     .then((unlisten) => () => unlisten())
 }
 
+/**
+ * Subscribes to a request from the menu bar item or the global shortcut.
+ *
+ * The tray cannot capture on its own: the shot still has to land in a tab,
+ * which is the session's job, so Rust asks the window to do it.
+ */
+export const onTrayRequest = (event: string, handler: () => void): Promise<() => void> => {
+  return getCurrentWindow()
+    .listen(event, () => {
+      handler()
+    })
+    .then((unlisten) => () => unlisten())
+}
+
 /** Where a drag currently is, as far as the window is concerned. */
 export type DragState = 'over' | 'away'
 

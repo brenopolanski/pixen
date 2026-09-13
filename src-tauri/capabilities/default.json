@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Native dialogs and the window title for the editor window. All filesystem access goes through Rust commands, so the webview is granted no filesystem scope.",
+  "description": "Native dialogs and the window title for the editor window. All filesystem access goes through Rust commands, so the webview is granted no filesystem scope. Autostart and the capture shortcut are driven from the tray in Rust, so they are granted nothing here either.",
   "windows": ["main"],
   "permissions": [
     "core:default",

@@ -15,7 +15,8 @@ The editor does the editing. Pixen owns the window, the native file dialogs, the
 ## What it does
 
 - Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or through a native file dialog. A clean tab is replaced; a dirty one stays and a new tab opens. The tab strip’s **+** always opens another tab.
-- Captures a region of the screen straight into the editor
+- Captures a region of the screen straight into the editor, from the toolbar or from the menu bar
+- Lives in the menu bar as well as the Dock: click the icon or press `⌘⇧9` from any app to capture, right-click it for **Take Screenshot**, **Start at Login**, **About** and **Quit**
 - Reopens the last ten images from **File → Open Recent**
 - Edits them with [`@unlayer/react-image-editor`](https://github.com/unlayer/react-image-editor) — crop, resize, filters, draw, text, shapes, stickers and frames. Double-click inside a crop to apply it.
 - Chooses a light or dark theme in Settings — Pixen’s chrome and the image editor; the choice is remembered in `localStorage`
@@ -116,9 +117,29 @@ Why a drop is not an HTML5 drop zone, why encoding is in Rust, and what a flatte
 | `⌘O`     | Open an image                   |
 | `⌘V`     | Open the image on the clipboard |
 | `⌘⇧C`    | Copy the image to the clipboard |
+| `⌘⇧9`    | Take a screenshot, from any app |
 | `⌘Q`     | Quit, guarding unsaved work     |
 | `⌘W`     | Close the About window          |
 | `Escape` | Close the About window          |
+
+`⌘⇧9` is registered system-wide in `src-tauri/src/tray.rs` (`CAPTURE_SHORTCUT`), which is what lets
+it fire while another app is in front. During `tauri dev`, macOS may ask for Accessibility
+permission so the terminal can register it.
+
+## Menu bar
+
+Pixen keeps its Dock icon and editor window and adds a menu bar item next to them. Left-click it to
+capture, right-click it for the menu.
+
+| Item              | Action                                             |
+| ----------------- | -------------------------------------------------- |
+| `Take Screenshot` | Capture into a tab (`⌘⇧9`)                         |
+| `Start at Login`  | Toggle launch at login (checked when on)           |
+| `About Pixen`     | Open the About window                              |
+| `Quit Pixen`      | Quit, still asking about unsaved work first (`⌘Q`) |
+
+A capture from the tray goes through the same session as one from the toolbar, so it replaces a
+clean tab, opens a new one next to a dirty one, and asks before dropping unapplied marks.
 
 ## License
 

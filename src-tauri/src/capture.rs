@@ -1,6 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use tauri::{AppHandle, Manager};
@@ -11,6 +12,30 @@ use crate::window::MAIN_WINDOW_LABEL;
 /// macOS's own capture tool, which is what gives Pixen the same crosshair as
 /// Cmd+Shift+4 without shipping a capture stack of its own.
 const SCREENCAPTURE: &str = "/usr/sbin/screencapture";
+
+/// The toolbar, the native menu, the tray and a system-wide shortcut can all
+/// ask for a capture, and the shortcut fires even while the tray menu is open.
+/// `screencapture` takes over the screen for the duration, so a second request
+/// is dropped rather than queued behind the first.
+static CAPTURE_IN_FLIGHT: AtomicBool = AtomicBool::new(false);
+
+/// Clears the flag however the capture ends, including on an early return.
+struct InFlight;
+
+impl InFlight {
+    fn claim() -> Option<Self> {
+        CAPTURE_IN_FLIGHT
+            .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+            .ok()
+            .map(|_| Self)
+    }
+}
+
+impl Drop for InFlight {
+    fn drop(&mut self) {
+        CAPTURE_IN_FLIGHT.store(false, Ordering::SeqCst);
+    }
+}
 
 /// Somewhere to land the shot before it is read and deleted. The stamp keeps
 /// two captures in the same session from colliding.
@@ -50,6 +75,12 @@ fn run_screencapture(path: &PathBuf) -> Result<bool, String> {
 /// would otherwise stall the window this command was invoked from.
 #[tauri::command]
 pub async fn capture_screen(app: AppHandle) -> Result<Option<String>, String> {
+    // A second request while one is already up reads as a cancellation, so the
+    // caller closes its overlay and leaves the running capture alone.
+    let Some(_in_flight) = InFlight::claim() else {
+        return Ok(None);
+    };
+
     let path = screenshot_path();
     let main = app.get_webview_window(MAIN_WINDOW_LABEL);
 
@@ -93,5 +124,16 @@ mod tests {
             Some("png")
         );
         assert_ne!(first, second);
+    }
+
+    #[test]
+    fn only_one_capture_is_in_flight_at_a_time() {
+        let first = InFlight::claim().expect("the first request claims the capture");
+
+        assert!(InFlight::claim().is_none());
+
+        drop(first);
+
+        assert!(InFlight::claim().is_some());
     }
 }
