@@ -11,6 +11,7 @@ interface CutoutOverlayProps {
   image: string
   onApply: (dataUrl: string) => void
   onCancel: () => void
+  onDraftChange: (image: string | null) => void
   onError: (message: string) => void
 }
 
@@ -21,7 +22,13 @@ interface CutoutOverlayProps {
  * applying it reloads the editor and clears its undo, so a bad cutout has to be
  * refusable while the original is still intact.
  */
-export const CutoutOverlay = ({ image, onApply, onCancel, onError }: CutoutOverlayProps) => {
+export const CutoutOverlay = ({
+  image,
+  onApply,
+  onCancel,
+  onDraftChange,
+  onError,
+}: CutoutOverlayProps) => {
   const [cutout, setCutout] = useState<string | null>(null)
   const [ratio, setRatio] = useState(0)
 
@@ -59,6 +66,10 @@ export const CutoutOverlay = ({ image, onApply, onCancel, onError }: CutoutOverl
       active = false
     }
   }, [image, onCancel, onError])
+
+  useEffect(() => {
+    onDraftChange(cutout)
+  }, [cutout, onDraftChange])
 
   const apply = useCallback(() => {
     if (cutout) {

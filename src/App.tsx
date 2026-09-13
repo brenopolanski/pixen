@@ -172,6 +172,7 @@ const App = () => {
             image={session.arrowPreview}
             onApply={session.applyArrow}
             onCancel={session.cancelArrow}
+            onDraftChange={session.reportArrowDraft}
           />
         )}
 
@@ -180,6 +181,7 @@ const App = () => {
             image={session.cutoutPreview}
             onApply={session.applyCutout}
             onCancel={session.cancelCutout}
+            onDraftChange={session.reportCutoutDraft}
             onError={session.reportError}
           />
         )}
@@ -197,6 +199,7 @@ const App = () => {
             image={session.incrementPreview}
             onApply={session.applyIncrement}
             onCancel={session.cancelIncrement}
+            onDraftChange={session.reportIncrementDraft}
           />
         )}
       </main>

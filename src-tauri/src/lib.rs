@@ -22,6 +22,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             capture::capture_screen,
             clipboard::copy_image,
+            dialog::confirm_apply_overlay,
             dialog::confirm_unsaved_changes,
             image::pixelize_image,
             image::read_image,

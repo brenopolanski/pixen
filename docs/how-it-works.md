@@ -3,14 +3,14 @@
 ## Opening
 
 A drop, a paste, the File menu and the toolbar all end up in the same place: `useImageSession`
-places the image in a tab. A clean tab is replaced; a dirty tab is kept and a new one opens, up to
-five. The tab strip’s **+** always creates a tab (and refuses at the cap) so you can keep a clean
-image open. Only where the image comes from differs.
+places the image in a tab. A clean tab is replaced; a dirty tab is kept and a new one opens. The
+tab strip’s **+** always creates a tab so you can keep a clean image open. Only where the image
+comes from differs.
 
 - **Dropping** goes through the window's `onDragDropEvent`. Tauri intercepts file drops before the
   webview sees them, so `dragover` and `drop` never fire and an HTML5 drop zone would be dead. Paths
   arrive unfiltered, so Pixen takes the first PNG, JPEG or WebP and ignores the rest. A clean tab is
-  replaced; a dirty tab is kept and a new one opens, up to five.
+  replaced; a dirty tab is kept and a new one opens.
 - **Pasting** listens for the `paste` event rather than binding `⌘V`, so the clipboard's contents
   decide whether Pixen acts. A paste aimed at an `input`, `textarea`, `select` or `contenteditable`
   is left alone, which is what keeps the editor's text tool working. A pasted image has no path, so
@@ -67,7 +67,9 @@ clipboard write can honestly give. The toast is raised by the session rather tha
 copy from the keyboard or the native Edit menu says so too.
 
 - **The clipboard carries pixels, not a file**, so the toolbar's format selector does not apply and
-  the receiving app decides how to store what it gets. `copy_image` hands over raw RGBA:
+  the receiving app decides how to store what it gets. If a tool overlay still has unapplied marks,
+  Copy asks Apply / Don't Apply / Cancel first — Apply bakes then copies; it does not save.
+  `copy_image` hands over raw RGBA:
   [`arboard`](https://docs.rs/arboard), under `tauri-plugin-clipboard-manager`, then offers it to
   the pasteboard as TIFF, transparency included.
 - **Shift is part of the shortcut on purpose.** Plain `⌘C` belongs to the system Copy, which the
@@ -110,6 +112,8 @@ last one back, Escape or **Cancel** throws the lot away, and **Done** writes the
   number — and, since every apply would start over, never get past 1.
 - **Done flattens once**, on the same terms as Pixelize: the save path, file name and unsaved marker
   survive, the editor's undo history does not. See [flattening costs](#what-a-flattened-save-costs).
+  Opening another tool or image while badges are waiting asks Apply / Don't Apply / Cancel. Apply
+  flattens them the same way **Done** does; it does not write a file.
 - **The compositing is canvas, not Rust.** The mosaic belongs in Rust because it only averages
   pixels, but a badge has a digit in it, and drawing a digit needs a font — one the webview already
   has and the Rust binary would have to bundle. `src/lib/image/increment.ts` draws the circles and
@@ -145,7 +149,8 @@ onto the image.
   one kit rather than two tools.
 - **Done flattens once**, on the same terms as Pixelize and Steps: the save path, file name and
   unsaved marker survive, the editor's undo history does not. See
-  [flattening costs](#what-a-flattened-save-costs).
+  [flattening costs](#what-a-flattened-save-costs). Opening another tool or image while arrows
+  are waiting asks Apply / Don't Apply / Cancel. Apply is the same flatten; it does not save.
 - **No keyboard shortcut**, for the same reason as Pixelize: it opens a mode rather than finishing on
   its own.
 
@@ -180,7 +185,9 @@ while it works, then the cutout on a checkerboard. **Apply** writes it to the do
   be called back — the library offers no cancellation.
 - **Apply flattens**, on the same terms as Pixelize and Steps: the save path, file name and unsaved
   marker survive, the editor's undo history does not. See
-  [flattening costs](#what-a-flattened-save-costs).
+  [flattening costs](#what-a-flattened-save-costs). Opening another tool or image once the preview
+  is ready asks Apply / Don't Apply / Cancel. Apply is the same flatten; it does not save. A run
+  that is still in flight has nothing to bake, so leaving just closes.
 - **The result is transparent, so save it as PNG.** The cutout is nothing but an alpha channel, and
   JPEG has none — saving to JPEG composites the transparency onto white, exactly as it does for any
   other transparent image. WebP keeps it. Pixen does not switch the format selector for you.
@@ -270,6 +277,7 @@ src/
     ├── editor/          # engine preload, editor options, unsaved-edit detection, crop double-click
     ├── image/           # paths and formats, clipboard, capture, pixelize, badge and arrow geometry, cutout, dialogs and I/O
     ├── recent.ts        # last-opened paths for File → Open Recent
+    ├── overlay.ts       # whether leaving a tool should ask to bake marks
     ├── settings.ts      # localStorage preferences (theme)
     ├── tabs.ts          # replace-if-clean / new-tab decisions
     └── menu.ts          # the native menu bar
