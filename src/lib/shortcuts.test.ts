@@ -14,6 +14,8 @@ import {
   isReservedShortcut,
   isSaveAsShortcut,
   isSaveShortcut,
+  isSettingsShortcut,
+  isShortcutsShortcut,
   isStepsShortcut,
   shortcutCatalog,
 } from './shortcuts'
@@ -95,6 +97,33 @@ describe('overlay shortcuts', () => {
   })
 })
 
+describe('isShortcutsShortcut', () => {
+  it('matches Cmd+? and the Shift+/ forms browsers also send', () => {
+    expect(isShortcutsShortcut(event({ key: '?', metaKey: true, shiftKey: true }))).toBe(true)
+    expect(isShortcutsShortcut(event({ key: '/', metaKey: true, shiftKey: true }))).toBe(true)
+    expect(
+      isShortcutsShortcut(event({ key: '/', code: 'Slash', metaKey: true, shiftKey: true })),
+    ).toBe(true)
+  })
+
+  it('leaves Cmd+/ without Shift alone', () => {
+    expect(isShortcutsShortcut(event({ key: '/', metaKey: true }))).toBe(false)
+    expect(isShortcutsShortcut(event({ key: '/', code: 'Slash', metaKey: true }))).toBe(false)
+  })
+})
+
+describe('isSettingsShortcut', () => {
+  it('matches Cmd+, from the character or the physical key', () => {
+    expect(isSettingsShortcut(event({ key: ',', metaKey: true }))).toBe(true)
+    expect(isSettingsShortcut(event({ key: ',', code: 'Comma', metaKey: true }))).toBe(true)
+  })
+
+  it('ignores Shift and a missing Command', () => {
+    expect(isSettingsShortcut(event({ key: ',', metaKey: true, shiftKey: true }))).toBe(false)
+    expect(isSettingsShortcut(event({ key: ',' }))).toBe(false)
+  })
+})
+
 describe('formatShortcut', () => {
   it('uses macOS symbols', () => {
     expect(formatShortcut('s')).toBe('⌘S')
@@ -115,7 +144,7 @@ describe('shortcutCatalog', () => {
     expect(byGroup).toEqual({
       File: ['⌘O', '⌘V', '⌘S', '⌘⇧S', '⌘⇧C', '⌘⇧9'],
       Tools: ['⌘⇧A', '⌘⇧P', '⌘⇧N', '⌘⇧B'],
-      App: ['⌘Q', '⌘W', 'Escape'],
+      App: ['⌘,', '⌘?', '⌘Q', '⌘W', 'Escape'],
     })
   })
 
@@ -158,6 +187,8 @@ describe('isReservedShortcut', () => {
   it('refuses combos Pixen already answers', () => {
     expect(isReservedShortcut('CommandOrControl+S')).toBe(true)
     expect(isReservedShortcut('CommandOrControl+Shift+A')).toBe(true)
+    expect(isReservedShortcut('CommandOrControl+,')).toBe(true)
+    expect(isReservedShortcut('CommandOrControl+Shift+/')).toBe(true)
   })
 
   it('allows the capture default and a free combo', () => {

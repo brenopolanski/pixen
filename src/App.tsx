@@ -93,6 +93,12 @@ const App = () => {
     onCutout: session.startCutout,
     onIncrement: session.startIncrement,
     onOpenImage: session.openImage,
+    onOpenSettings: () => {
+      setSettingsOpen(true)
+    },
+    onOpenShortcuts: () => {
+      setShortcutsOpen(true)
+    },
     onPixelize: session.startPixelize,
     onSave: session.save,
     onSaveAs: session.saveAs,

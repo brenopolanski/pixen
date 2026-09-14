@@ -9,6 +9,8 @@ import {
   isRecordingCaptureShortcut,
   isSaveAsShortcut,
   isSaveShortcut,
+  isSettingsShortcut,
+  isShortcutsShortcut,
   isStepsShortcut,
 } from '@/lib/shortcuts'
 
@@ -19,6 +21,8 @@ interface ShortcutHandlers {
   onCutout: () => void
   onIncrement: () => void
   onOpenImage: () => void
+  onOpenSettings: () => void
+  onOpenShortcuts: () => void
   onPixelize: () => void
   onSave: () => void
   onSaveAs: () => void
@@ -31,6 +35,8 @@ export const useKeyboardShortcuts = ({
   onCutout,
   onIncrement,
   onOpenImage,
+  onOpenSettings,
+  onOpenShortcuts,
   onPixelize,
   onSave,
   onSaveAs,
@@ -62,6 +68,18 @@ export const useKeyboardShortcuts = ({
       if (isCopyImageShortcut(event)) {
         event.preventDefault()
         onCopyImage()
+        return
+      }
+
+      if (isSettingsShortcut(event)) {
+        event.preventDefault()
+        onOpenSettings()
+        return
+      }
+
+      if (isShortcutsShortcut(event)) {
+        event.preventDefault()
+        onOpenShortcuts()
         return
       }
 
@@ -108,6 +126,8 @@ export const useKeyboardShortcuts = ({
     onCutout,
     onIncrement,
     onOpenImage,
+    onOpenSettings,
+    onOpenShortcuts,
     onPixelize,
     onSave,
     onSaveAs,

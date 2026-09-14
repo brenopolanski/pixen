@@ -5,6 +5,8 @@ export interface ShortcutEvent {
   ctrlKey: boolean
   metaKey: boolean
   shiftKey: boolean
+  /** Physical key; used when `key` is layout-dependent (`/` vs `?`, comma). */
+  code?: string
 }
 
 /** ⌘, never Control: Pixen is a macOS app. */
@@ -37,6 +39,21 @@ export const isPixelizeShortcut = (event: ShortcutEvent): boolean => matches(eve
 export const isStepsShortcut = (event: ShortcutEvent): boolean => matches(event, 'n', true)
 
 export const isCutoutShortcut = (event: ShortcutEvent): boolean => matches(event, 'b', true)
+
+/**
+ * ⌘? — browsers disagree whether Shift+/ reports `key` as `?` or `/`.
+ */
+export const isShortcutsShortcut = (event: ShortcutEvent): boolean =>
+  hasPrimaryModifier(event) &&
+  !event.altKey &&
+  (event.key === '?' || (event.shiftKey && (event.key === '/' || event.code === 'Slash')))
+
+/** ⌘, — macOS Settings / Preferences. */
+export const isSettingsShortcut = (event: ShortcutEvent): boolean =>
+  hasPrimaryModifier(event) &&
+  !event.altKey &&
+  !event.shiftKey &&
+  (event.key === ',' || event.code === 'Comma')
 
 /** Writes a shortcut the way macOS writes it. */
 export const formatShortcut = (key: string, shift = false): string =>
@@ -77,6 +94,8 @@ export const RESERVED_SHORTCUTS: readonly string[] = [
   // App chrome.
   'CommandOrControl+H',
   'CommandOrControl+M',
+  'CommandOrControl+,',
+  'CommandOrControl+Shift+/',
 ]
 
 export const isReservedShortcut = (accelerator: string): boolean =>
@@ -200,6 +219,8 @@ export const shortcutCatalog = (captureAccelerator: string): ShortcutCatalogGrou
   {
     group: 'App',
     items: [
+      { keys: formatShortcut(','), action: 'Open Settings' },
+      { keys: formatShortcut('?'), action: 'Open keyboard shortcuts' },
       { keys: '⌘Q', action: 'Quit' },
       { keys: '⌘W', action: 'Close About' },
       { keys: 'Escape', action: 'Cancel overlay or close About' },

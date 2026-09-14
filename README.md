@@ -124,6 +124,8 @@ The same list is in the app: the **?** button next to Settings.
 | `⌘⇧N`    | Numbered steps                  |
 | `⌘⇧B`    | Remove background               |
 | `⌘⇧9`    | Take a screenshot, from any app |
+| `⌘,`     | Open Settings                   |
+| `⌘?`     | Open keyboard shortcuts         |
 | `⌘Q`     | Quit, guarding unsaved work     |
 | `⌘W`     | Close the About window          |
 | `Escape` | Close the About window          |

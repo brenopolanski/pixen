@@ -43,6 +43,8 @@ const RESERVED: &[&str] = &[
     // App chrome.
     "CommandOrControl+H",
     "CommandOrControl+M",
+    "CommandOrControl+,",
+    "CommandOrControl+Shift+/",
 ];
 
 #[derive(Deserialize, Serialize)]
@@ -252,7 +254,12 @@ mod tests {
 
     #[test]
     fn refuses_shortcuts_pixen_already_answers() {
-        for entry in ["CommandOrControl+S", "CommandOrControl+Shift+C"] {
+        for entry in [
+            "CommandOrControl+S",
+            "CommandOrControl+Shift+C",
+            "CommandOrControl+,",
+            "CommandOrControl+Shift+/",
+        ] {
             let parsed = parse(entry).expect("the reserved entry parses");
 
             assert!(is_reserved(&parsed), "{entry} should be reserved");
