@@ -1,6 +1,6 @@
 import { MoonIcon, SunIcon } from '@/components/shared/Icons'
 import type { EditorTheme } from '@/lib/settings'
-import { cn } from '@/lib/utils'
+import { cn, generateReactKey } from '@/lib/utils'
 
 interface ThemeSwitchProps {
   theme: EditorTheme
@@ -21,7 +21,7 @@ export const ThemeSwitch = ({ theme, onThemeChange }: ThemeSwitchProps) => {
     >
       {THEMES.map(({ id, icon: Icon, label }) => (
         <button
-          key={id}
+          key={generateReactKey('theme', id)}
           aria-checked={theme === id}
           aria-label={label}
           className={cn(
@@ -31,7 +31,6 @@ export const ThemeSwitch = ({ theme, onThemeChange }: ThemeSwitchProps) => {
               : 'text-muted-foreground hover:text-foreground',
           )}
           role="radio"
-          title={label}
           type="button"
           onClick={() => {
             onThemeChange(id)
