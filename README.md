@@ -117,6 +117,10 @@ Why a drop is not an HTML5 drop zone, why encoding is in Rust, and what a flatte
 | `⌘O`     | Open an image                   |
 | `⌘V`     | Open the image on the clipboard |
 | `⌘⇧C`    | Copy the image to the clipboard |
+| `⌘⇧A`    | Arrow                           |
+| `⌘⇧P`    | Pixelize                        |
+| `⌘⇧N`    | Numbered steps                  |
+| `⌘⇧B`    | Remove background               |
 | `⌘⇧9`    | Take a screenshot, from any app |
 | `⌘Q`     | Quit, guarding unsaved work     |
 | `⌘W`     | Close the About window          |

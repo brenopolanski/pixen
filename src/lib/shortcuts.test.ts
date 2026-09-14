@@ -3,10 +3,14 @@ import { describe, expect, it } from 'vitest'
 import type { ShortcutEvent } from './shortcuts'
 import {
   formatShortcut,
+  isArrowShortcut,
   isCopyImageShortcut,
+  isCutoutShortcut,
   isOpenImageShortcut,
+  isPixelizeShortcut,
   isSaveAsShortcut,
   isSaveShortcut,
+  isStepsShortcut,
 } from './shortcuts'
 
 const event = (overrides: Partial<ShortcutEvent>): ShortcutEvent => ({
@@ -61,6 +65,28 @@ describe('isCopyImageShortcut', () => {
 
   it('leaves plain Copy alone, which text fields need', () => {
     expect(isCopyImageShortcut(event({ key: 'c', metaKey: true }))).toBe(false)
+  })
+})
+
+describe('overlay shortcuts', () => {
+  it('matches Cmd+Shift+A for Arrow, and leaves Select All alone', () => {
+    expect(isArrowShortcut(event({ key: 'A', metaKey: true, shiftKey: true }))).toBe(true)
+    expect(isArrowShortcut(event({ key: 'a', metaKey: true }))).toBe(false)
+  })
+
+  it('matches Cmd+Shift+P for Pixelize', () => {
+    expect(isPixelizeShortcut(event({ key: 'P', metaKey: true, shiftKey: true }))).toBe(true)
+    expect(isPixelizeShortcut(event({ key: 'p', metaKey: true }))).toBe(false)
+  })
+
+  it('matches Cmd+Shift+N for Steps', () => {
+    expect(isStepsShortcut(event({ key: 'N', metaKey: true, shiftKey: true }))).toBe(true)
+    expect(isStepsShortcut(event({ key: 'n', metaKey: true }))).toBe(false)
+  })
+
+  it('matches Cmd+Shift+B for Cutout', () => {
+    expect(isCutoutShortcut(event({ key: 'B', metaKey: true, shiftKey: true }))).toBe(true)
+    expect(isCutoutShortcut(event({ key: 'b', metaKey: true }))).toBe(false)
   })
 })
 

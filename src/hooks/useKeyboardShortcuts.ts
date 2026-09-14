@@ -1,22 +1,36 @@
 import { useEffect } from 'react'
 
 import {
+  isArrowShortcut,
   isCopyImageShortcut,
+  isCutoutShortcut,
   isOpenImageShortcut,
+  isPixelizeShortcut,
   isSaveAsShortcut,
   isSaveShortcut,
+  isStepsShortcut,
 } from '@/lib/shortcuts'
 
 interface ShortcutHandlers {
+  hasImage: boolean
+  onArrow: () => void
   onCopyImage: () => void
+  onCutout: () => void
+  onIncrement: () => void
   onOpenImage: () => void
+  onPixelize: () => void
   onSave: () => void
   onSaveAs: () => void
 }
 
 export const useKeyboardShortcuts = ({
+  hasImage,
+  onArrow,
   onCopyImage,
+  onCutout,
+  onIncrement,
   onOpenImage,
+  onPixelize,
   onSave,
   onSaveAs,
 }: ShortcutHandlers) => {
@@ -43,6 +57,36 @@ export const useKeyboardShortcuts = ({
       if (isCopyImageShortcut(event)) {
         event.preventDefault()
         onCopyImage()
+        return
+      }
+
+      // Overlay tools only make sense with an image open. Swallowing the key
+      // on the empty state would do nothing useful.
+      if (!hasImage) {
+        return
+      }
+
+      if (isArrowShortcut(event)) {
+        event.preventDefault()
+        onArrow()
+        return
+      }
+
+      if (isPixelizeShortcut(event)) {
+        event.preventDefault()
+        onPixelize()
+        return
+      }
+
+      if (isStepsShortcut(event)) {
+        event.preventDefault()
+        onIncrement()
+        return
+      }
+
+      if (isCutoutShortcut(event)) {
+        event.preventDefault()
+        onCutout()
       }
     }
 
@@ -52,5 +96,15 @@ export const useKeyboardShortcuts = ({
     return () => {
       window.removeEventListener('keydown', onKeyDown, { capture: true })
     }
-  }, [onCopyImage, onOpenImage, onSave, onSaveAs])
+  }, [
+    hasImage,
+    onArrow,
+    onCopyImage,
+    onCutout,
+    onIncrement,
+    onOpenImage,
+    onPixelize,
+    onSave,
+    onSaveAs,
+  ])
 }

@@ -72,15 +72,15 @@ export const installAppMenu = async (handlers: MenuHandlers): Promise<AppMenu> =
   const arrowItem = await MenuItem.new({
     id: 'pixen-arrow',
     text: 'Arrow…',
+    accelerator: 'Cmd+Shift+A',
     enabled: false,
     action: handlers.onArrow,
   })
 
-  // No accelerator, like the toolbar button: it opens a selection overlay
-  // rather than performing an edit outright.
   const pixelizeItem = await MenuItem.new({
     id: 'pixen-pixelize',
     text: 'Pixelize…',
+    accelerator: 'Cmd+Shift+P',
     enabled: false,
     action: handlers.onPixelize,
   })
@@ -88,6 +88,7 @@ export const installAppMenu = async (handlers: MenuHandlers): Promise<AppMenu> =
   const incrementItem = await MenuItem.new({
     id: 'pixen-increment',
     text: 'Numbered Steps…',
+    accelerator: 'Cmd+Shift+N',
     enabled: false,
     action: handlers.onIncrement,
   })
@@ -95,6 +96,7 @@ export const installAppMenu = async (handlers: MenuHandlers): Promise<AppMenu> =
   const cutoutItem = await MenuItem.new({
     id: 'pixen-cutout',
     text: 'Remove Background…',
+    accelerator: 'Cmd+Shift+B',
     enabled: false,
     action: handlers.onCutout,
   })

@@ -83,8 +83,13 @@ const App = () => {
 
   useLaunchSequence()
   useKeyboardShortcuts({
+    hasImage,
+    onArrow: session.startArrow,
     onCopyImage: session.copyImage,
+    onCutout: session.startCutout,
+    onIncrement: session.startIncrement,
     onOpenImage: session.openImage,
+    onPixelize: session.startPixelize,
     onSave: session.save,
     onSaveAs: session.saveAs,
   })

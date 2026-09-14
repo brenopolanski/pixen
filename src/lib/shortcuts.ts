@@ -29,6 +29,15 @@ export const isOpenImageShortcut = (event: ShortcutEvent): boolean => matches(ev
  */
 export const isCopyImageShortcut = (event: ShortcutEvent): boolean => matches(event, 'c', true)
 
+/** Shift so plain ⌘A stays Select All. */
+export const isArrowShortcut = (event: ShortcutEvent): boolean => matches(event, 'a', true)
+
+export const isPixelizeShortcut = (event: ShortcutEvent): boolean => matches(event, 'p', true)
+
+export const isStepsShortcut = (event: ShortcutEvent): boolean => matches(event, 'n', true)
+
+export const isCutoutShortcut = (event: ShortcutEvent): boolean => matches(event, 'b', true)
+
 /** Writes a shortcut the way macOS writes it. */
 export const formatShortcut = (key: string, shift = false): string =>
   `⌘${shift ? '⇧' : ''}${key.toUpperCase()}`

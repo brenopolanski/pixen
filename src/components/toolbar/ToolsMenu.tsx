@@ -66,12 +66,14 @@ export const ToolsMenu = ({
       label: 'Arrow',
       disabled: busy || !hasImage,
       icon: <MoveUpRightIcon className="size-3.5" />,
+      shortcut: formatShortcut('a', true),
       onSelect: onArrow,
     },
     {
       label: 'Background',
       disabled: busy || !hasImage,
       icon: <WandSparklesIcon className="size-5" />,
+      shortcut: formatShortcut('b', true),
       onSelect: onCutout,
     },
     {
@@ -87,18 +89,21 @@ export const ToolsMenu = ({
       label: 'Pixelize',
       disabled: busy || !hasImage,
       icon: <Grid2x2Icon className="size-5" />,
+      shortcut: formatShortcut('p', true),
       onSelect: onPixelize,
     },
     {
       label: 'Screenshot',
       disabled: busy,
       icon: <CameraIcon className="size-5" />,
+      shortcut: formatShortcut('9', true),
       onSelect: onCaptureScreen,
     },
     {
       label: 'Steps',
       disabled: busy || !hasImage,
       icon: <ListOrderedIcon className="size-5" />,
+      shortcut: formatShortcut('n', true),
       onSelect: onIncrement,
     },
   ]
