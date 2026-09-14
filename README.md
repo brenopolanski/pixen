@@ -110,6 +110,8 @@ Why a drop is not an HTML5 drop zone, why encoding is in Rust, and what a flatte
 
 ## Keyboard shortcuts
 
+The same list is in the app: the **?** button next to Settings.
+
 | Shortcut | Action                          |
 | -------- | ------------------------------- |
 | `⌘S`     | Save                            |

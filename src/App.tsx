@@ -10,6 +10,7 @@ import { ErrorBanner } from '@/components/ErrorBanner'
 import { IncrementOverlay } from '@/components/IncrementOverlay'
 import { PixelizeOverlay } from '@/components/PixelizeOverlay'
 import { Settings } from '@/components/settings/Settings'
+import { ShortcutsDialog } from '@/components/shortcuts/ShortcutsDialog'
 import { Toolbar } from '@/components/toolbar/Toolbar'
 import { Toaster } from '@/components/ui/sonner'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
@@ -79,6 +80,7 @@ const App = () => {
   const session = useImageSession()
   const { theme, setTheme } = useEditorSettings()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const hasImage = session.tabs.length > 0
 
   useLaunchSequence()
@@ -152,6 +154,9 @@ const App = () => {
         onOpenSettings={() => {
           setSettingsOpen(true)
         }}
+        onOpenShortcuts={() => {
+          setShortcutsOpen(true)
+        }}
         onPixelize={session.startPixelize}
         onSave={session.save}
         onSaveAs={session.saveAs}
@@ -223,6 +228,13 @@ const App = () => {
           setSettingsOpen(false)
         }}
         onThemeChange={setTheme}
+      />
+
+      <ShortcutsDialog
+        open={shortcutsOpen}
+        onClose={() => {
+          setShortcutsOpen(false)
+        }}
       />
 
       <Toaster position="bottom-right" theme={theme} />

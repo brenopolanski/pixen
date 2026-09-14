@@ -1,4 +1,4 @@
-import { ImagePlusIcon, SettingsIcon } from '@/components/shared/Icons'
+import { CircleHelpIcon, ImagePlusIcon, SettingsIcon } from '@/components/shared/Icons'
 import { Logo } from '@/components/shared/Logo'
 import { Button } from '@/components/ui/button'
 import { APP_NAME } from '@/lib/constants'
@@ -26,6 +26,7 @@ interface ToolbarProps {
   onOpenImage: () => void
   onOpenNewTab: () => void
   onOpenSettings: () => void
+  onOpenShortcuts: () => void
   onActivateTab: (tabId: string) => void
   onCloseTab: (tabId: string) => void
   onSave: () => void
@@ -49,6 +50,7 @@ export const Toolbar = ({
   onOpenImage,
   onOpenNewTab,
   onOpenSettings,
+  onOpenShortcuts,
   onActivateTab,
   onCloseTab,
   onSave,
@@ -102,6 +104,15 @@ export const Toolbar = ({
 
           {/* Icon-only, so the height is pinned rather than left to the icon:
               the labelled buttons are 32px from their 12px text line box. */}
+          <Button
+            aria-label="Keyboard shortcuts"
+            className="size-8 p-0"
+            variant="outline"
+            onClick={onOpenShortcuts}
+          >
+            <CircleHelpIcon className="size-3.5" />
+          </Button>
+
           <Button
             aria-label="Settings"
             className="size-8 p-0"

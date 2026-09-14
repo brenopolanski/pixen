@@ -41,3 +41,48 @@ export const isCutoutShortcut = (event: ShortcutEvent): boolean => matches(event
 /** Writes a shortcut the way macOS writes it. */
 export const formatShortcut = (key: string, shift = false): string =>
   `⌘${shift ? '⇧' : ''}${key.toUpperCase()}`
+
+export interface ShortcutCatalogItem {
+  keys: string
+  action: string
+}
+
+export interface ShortcutCatalogGroup {
+  group: string
+  items: ShortcutCatalogItem[]
+}
+
+/**
+ * What the shortcuts dialog shows. Keys that `formatShortcut` can write go
+ * through it so a matcher change and the help list stay on the same string.
+ */
+export const SHORTCUT_CATALOG: ShortcutCatalogGroup[] = [
+  {
+    group: 'File',
+    items: [
+      { keys: formatShortcut('o'), action: 'Open an image' },
+      { keys: formatShortcut('v'), action: 'Paste an image' },
+      { keys: formatShortcut('s'), action: 'Save' },
+      { keys: formatShortcut('s', true), action: 'Save As' },
+      { keys: formatShortcut('c', true), action: 'Copy the image' },
+      { keys: formatShortcut('9', true), action: 'Take a screenshot' },
+    ],
+  },
+  {
+    group: 'Tools',
+    items: [
+      { keys: formatShortcut('a', true), action: 'Arrow' },
+      { keys: formatShortcut('p', true), action: 'Pixelize' },
+      { keys: formatShortcut('n', true), action: 'Numbered steps' },
+      { keys: formatShortcut('b', true), action: 'Remove background' },
+    ],
+  },
+  {
+    group: 'App',
+    items: [
+      { keys: '⌘Q', action: 'Quit' },
+      { keys: '⌘W', action: 'Close About' },
+      { keys: 'Escape', action: 'Cancel overlay or close About' },
+    ],
+  },
+]

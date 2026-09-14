@@ -11,6 +11,7 @@ import {
   isSaveAsShortcut,
   isSaveShortcut,
   isStepsShortcut,
+  SHORTCUT_CATALOG,
 } from './shortcuts'
 
 const event = (overrides: Partial<ShortcutEvent>): ShortcutEvent => ({
@@ -95,5 +96,19 @@ describe('formatShortcut', () => {
     expect(formatShortcut('s')).toBe('⌘S')
     expect(formatShortcut('s', true)).toBe('⌘⇧S')
     expect(formatShortcut('o')).toBe('⌘O')
+  })
+})
+
+describe('SHORTCUT_CATALOG', () => {
+  it('lists the keys the README documents, grouped', () => {
+    const byGroup = Object.fromEntries(
+      SHORTCUT_CATALOG.map((entry) => [entry.group, entry.items.map((item) => item.keys)]),
+    )
+
+    expect(byGroup).toEqual({
+      File: ['⌘O', '⌘V', '⌘S', '⌘⇧S', '⌘⇧C', '⌘⇧9'],
+      Tools: ['⌘⇧A', '⌘⇧P', '⌘⇧N', '⌘⇧B'],
+      App: ['⌘Q', '⌘W', 'Escape'],
+    })
   })
 })
