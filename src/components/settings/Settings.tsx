@@ -1,5 +1,5 @@
-import { ShortcutRecorder } from '@/components/settings/ShortcutRecorder'
-import { ThemeSwitch } from '@/components/settings/ThemeSwitch'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 import {
   Sheet,
   SheetContent,
@@ -8,6 +8,9 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import type { EditorTheme } from '@/lib/settings'
+
+import { CaptureSettings } from './capture/CaptureSettings'
+import { ThemeSettings } from './theme/ThemeSettings'
 
 interface SettingsProps {
   open: boolean
@@ -46,31 +49,22 @@ export const Settings = ({
             </SheetHeader>
           </div>
 
-          <div className="space-y-6 px-6 pt-8 pb-6">
-            <section className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <span className="text-sm font-medium">Theme</span>
-                  <p className="text-xs text-muted-foreground">
-                    Toggle between light and dark themes
-                  </p>
-                </div>
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="space-y-6 px-6 pt-8 pb-6">
+              <section>
+                <ThemeSettings theme={theme} onThemeChange={onThemeChange} />
+              </section>
 
-                <ThemeSwitch theme={theme} onThemeChange={onThemeChange} />
-              </div>
-            </section>
+              <Separator />
 
-            <section className="space-y-3">
-              <div className="space-y-0.5">
-                <span className="text-sm font-medium">Capture Screenshot</span>
-                <p className="text-xs text-muted-foreground">
-                  Works from any app while Pixen is running
-                </p>
-              </div>
-
-              <ShortcutRecorder accelerator={captureAccelerator} onRebind={onRebindCapture} />
-            </section>
-          </div>
+              <section>
+                <CaptureSettings
+                  captureAccelerator={captureAccelerator}
+                  onRebindCapture={onRebindCapture}
+                />
+              </section>
+            </div>
+          </ScrollArea>
         </div>
       </SheetContent>
     </Sheet>
