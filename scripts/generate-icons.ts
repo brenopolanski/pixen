@@ -17,6 +17,11 @@ const PLATE_SIZE = 824
 const PLATE_CORNER_RADIUS = 185
 /** Breathing room between the plate edge and the mark. */
 const MARK_MARGIN = 0.16
+/**
+ * A menu bar item is 22pt tall, so 44 px covers a Retina display. The logo's
+ * own viewBox already insets the mark, which is the padding the bar wants.
+ */
+const TRAY_SIZE = 44
 /** Matches --background in src/index.css so the icon plate and app agree. */
 const APP_BACKGROUND = { r: 16, g: 17, b: 20, alpha: 1 }
 const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 }
@@ -25,6 +30,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const svgPath = join(root, 'src', 'assets', 'pixen-logo.svg')
 const iconsDir = join(root, 'src-tauri', 'icons')
 const appIconPath = join(iconsDir, 'app-icon.png')
+const trayIconPath = join(iconsDir, 'tray-icon.png')
 
 function rasterize(svg: Buffer, fit: number): Buffer {
   return Buffer.from(
@@ -82,6 +88,31 @@ async function padToCanvas(plate: Buffer): Promise<Buffer> {
     .toBuffer()
 }
 
+/**
+ * The mark as a macOS template image: macOS tints it from the alpha channel
+ * and ignores the colour, so the brand purples are flattened to black. That is
+ * what lets one icon read on a light and a dark menu bar.
+ */
+async function buildTrayIcon(svg: Buffer): Promise<Buffer> {
+  const { data, info } = await sharp(rasterize(svg, TRAY_SIZE))
+    .resize(TRAY_SIZE, TRAY_SIZE, { fit: 'contain', background: TRANSPARENT })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+
+  for (let index = 0; index < data.length; index += 4) {
+    data[index] = 0
+    data[index + 1] = 0
+    data[index + 2] = 0
+  }
+
+  return sharp(data, {
+    raw: { width: info.width, height: info.height, channels: 4 },
+  })
+    .png()
+    .toBuffer()
+}
+
 function runTauriIcon(source: string): void {
   const tauri = join(root, 'node_modules', '.bin', 'tauri')
   const cargoBin = join(homedir(), '.cargo', 'bin')
@@ -108,6 +139,10 @@ async function generate(): Promise<void> {
   const plate = await buildPlate(rasterize(svg, markSize))
   writeFileSync(appIconPath, await padToCanvas(plate))
   runTauriIcon(appIconPath)
+
+  // Not part of `tauri icon`'s output: the tray asks for one flat template
+  // image rather than the set of sized app icons.
+  writeFileSync(trayIconPath, await buildTrayIcon(svg))
 }
 
 await generate()

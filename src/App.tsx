@@ -20,6 +20,7 @@ import { useImageSession } from '@/hooks/useImageSession'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 import { useLaunchSequence } from '@/hooks/useLaunchSequence'
 import { useNativeMenu } from '@/hooks/useNativeMenu'
+import { useTrayRequests } from '@/hooks/useTrayRequests'
 import { useWindowTitle } from '@/hooks/useWindowTitle'
 import { editorContainerId } from '@/lib/constants'
 import { showAboutWindow } from '@/lib/desktop'
@@ -109,6 +110,10 @@ const App = () => {
     session.recent,
   )
   useWindowTitle({ path: session.path, hasImage, dirty: session.dirty })
+  useTrayRequests({
+    onCaptureScreen: session.captureScreen,
+    onQuit: session.requestClose,
+  })
   useCloseGuard(session.requestClose)
   useClipboardPaste({
     onOpenDataUrl: session.openFromDataUrl,

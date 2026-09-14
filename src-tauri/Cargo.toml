@@ -20,10 +20,18 @@ path = "src/main.rs"
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["macos-private-api"] }
+tauri = { version = "2", features = [
+  "image-png",
+  "macos-private-api",
+  "tray-icon",
+] }
 tauri-plugin-dialog = "2"
 # Registered for its Rust API only, so the webview gets no clipboard permission.
 tauri-plugin-clipboard-manager = "2"
+tauri-plugin-autostart = "2"
+# The capture shortcut has to fire while another app is in front, which only a
+# system-wide shortcut can do.
+tauri-plugin-global-shortcut = "2"
 base64 = "0.22"
 # Only the three formats Pixen offers: the default feature set pulls in a dozen
 # more codecs, all of it compiled and none of it reachable.

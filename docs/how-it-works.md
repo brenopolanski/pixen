@@ -59,6 +59,46 @@ crosshair as `⌘⇧4` without shipping a capture stack of its own. Two things t
 
 Capturing over unsaved edits asks before replacing them, the same as any other way of opening.
 
+## The menu bar item
+
+Pixen is a Dock app that also puts an item in the menu bar, so a screenshot does not need the
+editor window in front first. The activation policy is left alone — this is a second way in, not a
+conversion into a menu-bar-only app.
+
+`setup_tray` in `src-tauri/src/tray.rs` builds it with `show_menu_on_left_click(false)`, which is
+what splits the two gestures the way [Lightshot](https://app.prntscr.com/en/) does: left-click
+captures, right-click opens **Take Screenshot**, **Start at Login**, **About Pixen** and **Quit**.
+The icon is a template image, so macOS tints it to match a light or a dark menu bar.
+
+### Why the tray does not capture directly
+
+It could call `capture_screen` itself, but the shot would then have nowhere to go. Landing an image
+is the session's job: it decides whether to replace a clean tab or open a new one, and it asks
+before dropping marks that an open tool has not baked yet. So the tray emits
+`pixen-capture-requested` on the main window and `useTrayRequests` calls `session.captureScreen()`
+— the same entry point as the toolbar button. Quit works the same way, through
+`pixen-quit-requested` and `requestClose`, rather than DefiLlama Search's `app.exit(0)`, which
+would take unsaved edits with it.
+
+### The global shortcut
+
+`⌘⇧9` is registered with `tauri-plugin-global-shortcut` in Rust, not in `useKeyboardShortcuts`: a
+webview key handler only runs while Pixen is focused, and the point of the shortcut is capturing
+whatever app is in front. The File menu's **Take Screenshot…** shows the same accelerator without
+binding it — macOS serves the Carbon hot key before the menu bar sees the key.
+
+Four things can now ask for a capture at once, and `screencapture` owns the screen while it runs,
+so `capture.rs` holds an in-flight flag and reports a second request as a cancellation instead of
+starting a second crosshair.
+
+### Start at Login
+
+`tauri-plugin-autostart`, toggled from the check item. A packaged build turns it on once on first
+launch and drops a marker file in the app config directory, so unchecking it stays unchecked. Debug
+builds skip that entirely — otherwise `tauri dev` would register the debug binary to launch at
+login. Both plugins are driven from Rust only, so neither is granted anything in
+`capabilities/default.json`.
+
 ## Copying
 
 `⌘⇧C` puts the edited image on the system clipboard, so an annotated screenshot can go straight into
@@ -272,7 +312,7 @@ set from `readSettings()` before React mounts so the empty state does not flash 
 src/
 ├── components/          # Toolbar, TabBar, Editor, Settings, EmptyState, overlays, ErrorBanner, Splash, About
 │   └── ui/              # shadcn/ui primitives: Button, DropdownMenu, Sheet, Popover, Tooltip, the Sonner toaster
-├── hooks/               # session state, drop, paste, menu, shortcuts, title, close guard, launch, settings, crop double-click
+├── hooks/               # session state, drop, paste, menu, shortcuts, tray requests, title, close guard, launch, settings, crop double-click
 └── lib/
     ├── editor/          # engine preload, editor options, unsaved-edit detection, crop double-click
     ├── image/           # paths and formats, clipboard, capture, pixelize, badge and arrow geometry, cutout, dialogs and I/O
@@ -290,6 +330,7 @@ src-tauri/src/
 ├── capture.rs           # macOS interactive screen capture
 ├── clipboard.rs         # copying the edited image out as pixels
 ├── dialog.rs            # the three-button unsaved-changes prompt
+├── tray.rs              # menu bar item, Start at Login, the global capture shortcut
 └── window.rs            # splash → main handoff, About window, quit
 ```
 

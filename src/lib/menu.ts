@@ -1,6 +1,6 @@
 import { Menu, MenuItem, PredefinedMenuItem, Submenu } from '@tauri-apps/api/menu'
 
-import { APP_NAME } from '@/lib/constants'
+import { APP_NAME, CAPTURE_ACCELERATOR } from '@/lib/constants'
 import { labelForRecent } from '@/lib/recent'
 
 export interface MenuHandlers {
@@ -50,9 +50,12 @@ export const installAppMenu = async (handlers: MenuHandlers): Promise<AppMenu> =
 
   const recentMenu = await Submenu.new({ id: 'pixen-recent', text: 'Open Recent', items: [] })
 
+  // The accelerator is shown, not bound: Rust registers it system-wide for the
+  // tray, and a Carbon hot key is served before the menu bar sees the key.
   const captureItem = await MenuItem.new({
     id: 'pixen-capture',
     text: 'Take Screenshot…',
+    accelerator: CAPTURE_ACCELERATOR,
     action: handlers.onCaptureScreen,
   })
 
