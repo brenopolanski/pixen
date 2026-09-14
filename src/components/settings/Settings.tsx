@@ -1,3 +1,4 @@
+import { ShortcutRecorder } from '@/components/settings/ShortcutRecorder'
 import { ThemeSwitch } from '@/components/settings/ThemeSwitch'
 import {
   Sheet,
@@ -11,11 +12,20 @@ import type { EditorTheme } from '@/lib/settings'
 interface SettingsProps {
   open: boolean
   theme: EditorTheme
+  captureAccelerator: string
   onClose: () => void
   onThemeChange: (theme: EditorTheme) => void
+  onRebindCapture: (accelerator: string) => Promise<string | null>
 }
 
-export const Settings = ({ open, theme, onClose, onThemeChange }: SettingsProps) => {
+export const Settings = ({
+  open,
+  theme,
+  captureAccelerator,
+  onClose,
+  onThemeChange,
+  onRebindCapture,
+}: SettingsProps) => {
   return (
     <Sheet
       open={open}
@@ -31,7 +41,7 @@ export const Settings = ({ open, theme, onClose, onThemeChange }: SettingsProps)
             <SheetHeader className="p-0">
               <SheetTitle className="text-left">Settings</SheetTitle>
               <SheetDescription className="text-left">
-                Configure your app preferences.
+                Configure your app preferences
               </SheetDescription>
             </SheetHeader>
           </div>
@@ -48,6 +58,17 @@ export const Settings = ({ open, theme, onClose, onThemeChange }: SettingsProps)
 
                 <ThemeSwitch theme={theme} onThemeChange={onThemeChange} />
               </div>
+            </section>
+
+            <section className="space-y-3">
+              <div className="space-y-0.5">
+                <span className="text-sm font-medium">Capture Screenshot</span>
+                <p className="text-xs text-muted-foreground">
+                  Works from any app while Pixen is running
+                </p>
+              </div>
+
+              <ShortcutRecorder accelerator={captureAccelerator} onRebind={onRebindCapture} />
             </section>
           </div>
         </div>

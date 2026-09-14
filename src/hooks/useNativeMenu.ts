@@ -15,17 +15,20 @@ export const useNativeMenu = (
   handlers: MenuHandlers,
   hasImage: boolean,
   recent: readonly string[],
+  captureAccelerator: string,
 ) => {
   const handlersRef = useRef(handlers)
   const menuRef = useRef<AppMenu | null>(null)
   const hasImageRef = useRef(hasImage)
   const recentRef = useRef(recent)
+  const captureRef = useRef(captureAccelerator)
 
   useEffect(() => {
     handlersRef.current = handlers
     hasImageRef.current = hasImage
     recentRef.current = recent
-  }, [handlers, hasImage, recent])
+    captureRef.current = captureAccelerator
+  }, [handlers, hasImage, recent, captureAccelerator])
 
   useEffect(() => {
     let disposed = false
@@ -56,6 +59,7 @@ export const useNativeMenu = (
         // so the current state is applied rather than assumed empty.
         await menu.setHasImage(hasImageRef.current)
         await menu.setRecent(recentRef.current)
+        await menu.setCaptureAccelerator(captureRef.current)
       })
       .catch((failure: unknown) => {
         console.error('[pixen] could not install the native menu', failure)
@@ -73,4 +77,8 @@ export const useNativeMenu = (
   useEffect(() => {
     void menuRef.current?.setRecent(recent)
   }, [recent])
+
+  useEffect(() => {
+    void menuRef.current?.setCaptureAccelerator(captureAccelerator)
+  }, [captureAccelerator])
 }

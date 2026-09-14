@@ -105,6 +105,33 @@ export const askAboutUnsavedChanges = (): Promise<CloseDecision> => {
   return invoke('confirm_unsaved_changes')
 }
 
+/**
+ * The capture combo currently registered system-wide. Rust owns it, since it
+ * has to be bound before there is a webview to ask.
+ */
+export const getCaptureShortcut = (): Promise<string> => {
+  return invoke('get_capture_shortcut')
+}
+
+/**
+ * Rebinds capture and resolves with the accelerator now in force. Rejects
+ * when Pixen already uses the combo, or the system refuses it; the previous
+ * binding is left alone in both cases.
+ */
+export const setCaptureShortcut = (accelerator: string): Promise<string> => {
+  return invoke('set_capture_shortcut', { accelerator })
+}
+
+/** Drops the global binding so the recorder can hear the current combo. */
+export const suspendCaptureShortcut = (): Promise<void> => {
+  return invoke('suspend_capture_shortcut')
+}
+
+/** Puts the stored combo back after the recorder closes without a rebind. */
+export const restoreCaptureShortcut = (): Promise<void> => {
+  return invoke('restore_capture_shortcut')
+}
+
 /** Native three-button prompt; see confirm_apply_overlay in Rust. */
 export const askToApplyOverlay = (): Promise<OverlayDecision> => {
   return invoke('confirm_apply_overlay')

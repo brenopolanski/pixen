@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { formatShortcut } from '@/lib/shortcuts'
+import { formatAccelerator, formatShortcut } from '@/lib/shortcuts'
 import { generateReactKey } from '@/lib/utils'
 
 interface ToolItem {
@@ -30,6 +30,7 @@ interface ToolItem {
 interface ToolsMenuProps {
   busy: boolean
   hasImage: boolean
+  captureAccelerator: string
   onArrow: () => void
   onCaptureScreen: () => void
   onCopyImage: () => void
@@ -45,6 +46,7 @@ interface ToolsMenuProps {
 export const ToolsMenu = ({
   busy,
   hasImage,
+  captureAccelerator,
   onArrow,
   onCaptureScreen,
   onCopyImage,
@@ -97,7 +99,7 @@ export const ToolsMenu = ({
       label: 'Screenshot',
       disabled: busy,
       icon: <CameraIcon className="size-5" />,
-      shortcut: formatShortcut('9', true),
+      shortcut: formatAccelerator(captureAccelerator),
       onSelect: onCaptureScreen,
     },
     {

@@ -39,7 +39,6 @@
   },
   "dependencies": {
     "@imgly/background-removal": "^1.7.0",
-    "@omit/react-fancy-switch": "^1.0.6",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2",
     "@unlayer/react-image-editor": "^1.0.1",

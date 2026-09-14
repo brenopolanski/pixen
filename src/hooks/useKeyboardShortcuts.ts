@@ -6,6 +6,7 @@ import {
   isCutoutShortcut,
   isOpenImageShortcut,
   isPixelizeShortcut,
+  isRecordingCaptureShortcut,
   isSaveAsShortcut,
   isSaveShortcut,
   isStepsShortcut,
@@ -36,6 +37,10 @@ export const useKeyboardShortcuts = ({
 }: ShortcutHandlers) => {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      if (isRecordingCaptureShortcut()) {
+        return
+      }
+
       if (isSaveShortcut(event)) {
         event.preventDefault()
         onSave()

@@ -1,5 +1,3 @@
-import { FancySwitch } from '@omit/react-fancy-switch'
-
 import { MoonIcon, SunIcon } from '@/components/shared/Icons'
 import type { EditorTheme } from '@/lib/settings'
 import { cn } from '@/lib/utils'
@@ -9,40 +7,39 @@ interface ThemeSwitchProps {
   onThemeChange: (theme: EditorTheme) => void
 }
 
-const OPTIONS: { label: string; value: EditorTheme }[] = [
-  { label: 'Light', value: 'light' },
-  { label: 'Dark', value: 'dark' },
+const THEMES: { id: EditorTheme; label: string; icon: typeof SunIcon }[] = [
+  { id: 'light', label: 'Light', icon: SunIcon },
+  { id: 'dark', label: 'Dark', icon: MoonIcon },
 ]
 
 export const ThemeSwitch = ({ theme, onThemeChange }: ThemeSwitchProps) => {
   return (
-    <FancySwitch
+    <div
       aria-label="Theme"
-      className="relative isolate flex rounded-lg bg-muted p-1"
-      highlighterClassName="rounded-md bg-brand"
-      highlighterIncludeMargin={true}
-      options={OPTIONS}
-      radioClassName="relative z-10 flex size-8 cursor-pointer items-center justify-center rounded-md"
-      renderOption={({ option, isSelected, getOptionProps }) => {
-        const Icon = option.value === 'light' ? SunIcon : MoonIcon
-        const { className, ...optionProps } = getOptionProps()
-
-        return (
-          <div
-            className={cn(
-              typeof className === 'string' ? className : undefined,
-              isSelected ? 'text-brand-foreground' : 'text-muted-foreground',
-            )}
-            {...optionProps}
-          >
-            <Icon className="size-4" aria-hidden />
-          </div>
-        )
-      }}
-      value={theme}
-      onChange={(value) => {
-        onThemeChange(value as EditorTheme)
-      }}
-    />
+      className="flex shrink-0 gap-0.5 rounded-lg bg-muted p-0.5"
+      role="radiogroup"
+    >
+      {THEMES.map(({ id, icon: Icon, label }) => (
+        <button
+          key={id}
+          aria-checked={theme === id}
+          aria-label={label}
+          className={cn(
+            'grid size-7 place-items-center rounded-md transition-colors',
+            theme === id
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground',
+          )}
+          role="radio"
+          title={label}
+          type="button"
+          onClick={() => {
+            onThemeChange(id)
+          }}
+        >
+          <Icon className="size-4" aria-hidden />
+        </button>
+      ))}
+    </div>
   )
 }

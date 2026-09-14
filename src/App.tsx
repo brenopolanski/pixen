@@ -13,6 +13,7 @@ import { Settings } from '@/components/settings/Settings'
 import { ShortcutsDialog } from '@/components/shortcuts/ShortcutsDialog'
 import { Toolbar } from '@/components/toolbar/Toolbar'
 import { Toaster } from '@/components/ui/sonner'
+import { useCaptureShortcut } from '@/hooks/useCaptureShortcut'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useCloseGuard } from '@/hooks/useCloseGuard'
 import { useEditorSettings } from '@/hooks/useEditorSettings'
@@ -79,6 +80,7 @@ const EditorPane = ({
 const App = () => {
   const session = useImageSession()
   const { theme, setTheme } = useEditorSettings()
+  const { captureAccelerator, rebindCapture } = useCaptureShortcut()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const hasImage = session.tabs.length > 0
@@ -115,6 +117,7 @@ const App = () => {
     },
     hasImage,
     session.recent,
+    captureAccelerator,
   )
   useWindowTitle({ path: session.path, hasImage, dirty: session.dirty })
   useTrayRequests({
@@ -137,6 +140,7 @@ const App = () => {
       <Toolbar
         activeId={session.activeId}
         busy={session.busy}
+        captureAccelerator={captureAccelerator}
         format={session.format}
         hasImage={hasImage}
         overlayOpen={session.overlayOpen}
@@ -222,15 +226,18 @@ const App = () => {
       {dragging && <DropOverlay />}
 
       <Settings
+        captureAccelerator={captureAccelerator}
         open={settingsOpen}
         theme={theme}
         onClose={() => {
           setSettingsOpen(false)
         }}
+        onRebindCapture={rebindCapture}
         onThemeChange={setTheme}
       />
 
       <ShortcutsDialog
+        captureAccelerator={captureAccelerator}
         open={shortcutsOpen}
         onClose={() => {
           setShortcutsOpen(false)

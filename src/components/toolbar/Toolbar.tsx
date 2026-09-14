@@ -16,6 +16,7 @@ interface ToolbarProps {
   tabs: ImageTab[]
   activeId: string | null
   overlayOpen: boolean
+  captureAccelerator: string
   onArrow: () => void
   onCaptureScreen: () => void
   onCopyImage: () => void
@@ -40,6 +41,7 @@ export const Toolbar = ({
   tabs,
   activeId,
   overlayOpen,
+  captureAccelerator,
   onArrow,
   onCaptureScreen,
   onCopyImage,
@@ -93,6 +95,7 @@ export const Toolbar = ({
         <div className="flex shrink-0 items-center gap-1.5">
           <ToolsMenu
             busy={busy}
+            captureAccelerator={captureAccelerator}
             hasImage={hasImage}
             onArrow={onArrow}
             onCaptureScreen={onCaptureScreen}

@@ -91,6 +91,29 @@ Four things can now ask for a capture at once, and `screencapture` owns the scre
 so `capture.rs` holds an in-flight flag and reports a second request as a cancellation instead of
 starting a second crosshair.
 
+### Rebinding capture
+
+Capture is the one shortcut Settings can change, the way [Lightshot](https://app.prntscr.com/en/)
+offers it. The field is a key recorder, not a text input: it reads `event.code` rather than
+`event.key`, because with Shift held the 9 reports as `(` on a US layout and as something else
+again elsewhere — the physical key is the only stable answer.
+
+- **`src-tauri/src/shortcut.rs` owns it, not `localStorage`.** The combo has to be registered
+  during `setup`, before there is a webview to ask, so it lives in `capture-shortcut.json` beside
+  the autostart marker. The plugin is built with no shortcut of its own and one handler that covers
+  every later registration.
+- **A refused rebind leaves capture working.** `set_capture_shortcut` only releases the old combo
+  once the new one parses, and puts it back if the system will not take it — usually another app
+  holds it. The webview's copy only moves to what the command reports back.
+- **Command is required, and Pixen's own keys are refused.** A combo without `⌘` would swallow
+  ordinary typing everywhere else. The reserved list covers Save, Open, Copy Image, the four
+  overlay tools, Quit, and the system Edit entries the menu rebuilds; it is duplicated in
+  `src/lib/shortcuts.ts` for the recorder and checked again in Rust, so a crafted `invoke` cannot
+  take Save away.
+- **Every label follows.** `get_capture_shortcut` feeds the File menu item, the Tools tooltip and
+  the shortcuts dialog, and `remember` points the tray item at the new combo, so nothing is left
+  advertising a binding that no longer fires.
+
 ### Start at Login
 
 `tauri-plugin-autostart`, toggled from the check item. A packaged build turns it on once on first
@@ -333,7 +356,8 @@ src-tauri/src/
 ├── capture.rs           # macOS interactive screen capture
 ├── clipboard.rs         # copying the edited image out as pixels
 ├── dialog.rs            # the three-button unsaved-changes prompt
-├── tray.rs              # menu bar item, Start at Login, the global capture shortcut
+├── shortcut.rs          # the stored capture combo, registered system-wide
+├── tray.rs              # menu bar item, Start at Login, the capture and quit events
 └── window.rs            # splash → main handoff, About window, quit
 ```
 

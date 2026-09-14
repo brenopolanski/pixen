@@ -1,7 +1,8 @@
 import { Menu, MenuItem, PredefinedMenuItem, Submenu } from '@tauri-apps/api/menu'
 
-import { APP_NAME, CAPTURE_ACCELERATOR } from '@/lib/constants'
+import { APP_NAME } from '@/lib/constants'
 import { labelForRecent } from '@/lib/recent'
+import { DEFAULT_CAPTURE_ACCELERATOR } from '@/lib/shortcuts'
 
 export interface MenuHandlers {
   onOpenImage: () => void
@@ -27,6 +28,8 @@ export interface AppMenu {
   setHasImage: (hasImage: boolean) => Promise<void>
   /** Refills Open Recent; the rest of the bar is left in place. */
   setRecent: (paths: readonly string[]) => Promise<void>
+  /** Follows a rebind so the menu never advertises a dead combo. */
+  setCaptureAccelerator: (accelerator: string) => Promise<void>
 }
 
 /**
@@ -52,10 +55,11 @@ export const installAppMenu = async (handlers: MenuHandlers): Promise<AppMenu> =
 
   // The accelerator is shown, not bound: Rust registers it system-wide for the
   // tray, and a Carbon hot key is served before the menu bar sees the key.
+  // It starts at the default and is corrected once Rust reports the stored one.
   const captureItem = await MenuItem.new({
     id: 'pixen-capture',
     text: 'Take Screenshot…',
-    accelerator: CAPTURE_ACCELERATOR,
+    accelerator: DEFAULT_CAPTURE_ACCELERATOR,
     action: handlers.onCaptureScreen,
   })
 
@@ -237,6 +241,9 @@ export const installAppMenu = async (handlers: MenuHandlers): Promise<AppMenu> =
       pending = pending.then(() => fillRecent(paths))
 
       return pending
+    },
+    setCaptureAccelerator: async (accelerator: string) => {
+      await captureItem.setAccelerator(accelerator)
     },
   }
 }

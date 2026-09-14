@@ -16,7 +16,7 @@ The editor does the editing. Pixen owns the window, the native file dialogs, the
 
 - Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or through a native file dialog. A clean tab is replaced; a dirty one stays and a new tab opens. The tab strip’s **+** always opens another tab.
 - Captures a region of the screen straight into the editor, from the toolbar or from the menu bar
-- Lives in the menu bar as well as the Dock: click the icon or press `⌘⇧9` from any app to capture, right-click it for **Take Screenshot**, **Start at Login**, **About** and **Quit**
+- Lives in the menu bar as well as the Dock: click the icon or press `⌘⇧9` from any app to capture, right-click it for **Take Screenshot**, **Start at Login**, **About** and **Quit**. The capture shortcut can be rebound in Settings
 - Reopens the last ten images from **File → Open Recent**
 - Edits them with [`@unlayer/react-image-editor`](https://github.com/unlayer/react-image-editor) — crop, resize, filters, draw, text, shapes, stickers and frames. Double-click inside a crop to apply it.
 - Chooses a light or dark theme in Settings — Pixen’s chrome and the image editor; the choice is remembered in `localStorage`
@@ -128,9 +128,13 @@ The same list is in the app: the **?** button next to Settings.
 | `⌘W`     | Close the About window          |
 | `Escape` | Close the About window          |
 
-`⌘⇧9` is registered system-wide in `src-tauri/src/tray.rs` (`CAPTURE_SHORTCUT`), which is what lets
-it fire while another app is in front. During `tauri dev`, macOS may ask for Accessibility
-permission so the terminal can register it.
+`⌘⇧9` is registered system-wide in `src-tauri/src/shortcut.rs`, which is what lets it fire while
+another app is in front. During `tauri dev`, macOS may ask for Accessibility permission so the
+terminal can register it.
+
+It is also the only shortcut you can change: **Settings → Capture screenshot** records a new combo,
+and the **×** puts `⌘⇧9` back. Combos Pixen already answers — Save, Copy Image, the tool shortcuts,
+Quit — are refused, as is anything without `⌘`. Everything else in the table is fixed.
 
 ## Menu bar
 

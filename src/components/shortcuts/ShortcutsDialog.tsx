@@ -7,15 +7,16 @@ import {
 } from '@/components/ui/dialog'
 import { Kbd } from '@/components/ui/kbd'
 import { Separator } from '@/components/ui/separator'
-import { formatShortcut, SHORTCUT_CATALOG } from '@/lib/shortcuts'
+import { formatAccelerator, shortcutCatalog } from '@/lib/shortcuts'
 import { generateReactKey } from '@/lib/utils'
 
 interface ShortcutsDialogProps {
   open: boolean
+  captureAccelerator: string
   onClose: () => void
 }
 
-export const ShortcutsDialog = ({ open, onClose }: ShortcutsDialogProps) => {
+export const ShortcutsDialog = ({ open, captureAccelerator, onClose }: ShortcutsDialogProps) => {
   return (
     <Dialog
       open={open}
@@ -29,13 +30,13 @@ export const ShortcutsDialog = ({ open, onClose }: ShortcutsDialogProps) => {
         <DialogHeader>
           <DialogTitle>Keyboard Shortcuts</DialogTitle>
           <DialogDescription>
-            These work while Pixen is focused. <Kbd>{formatShortcut('9', true)}</Kbd> also works
-            from any app.
+            These work while Pixen is focused. <Kbd>{formatAccelerator(captureAccelerator)}</Kbd>{' '}
+            also works from any app.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {SHORTCUT_CATALOG.map((entry, index) => (
+          {shortcutCatalog(captureAccelerator).map((entry, index) => (
             <section key={generateReactKey('shortcut-group', entry.group)} className="space-y-2">
               {index > 0 && <Separator />}
               <h3 className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
