@@ -152,12 +152,3 @@ capture, right-click it for the menu.
 
 A capture from the tray goes through the same session as one from the toolbar, so it replaces a
 clean tab, opens a new one next to a dirty one, and asks before dropping unapplied marks.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
-
-Background removal uses [`@imgly/background-removal`](https://github.com/imgly/background-removal-js),
-which is **AGPL-3.0**. Pixen's own source stays MIT, but that dependency's terms apply to anyone
-distributing a build of Pixen that includes it — IMG.LY sells a commercial licence for use that AGPL
-does not cover. Nothing else in the dependency tree is copyleft.

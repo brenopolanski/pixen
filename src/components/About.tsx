@@ -50,7 +50,7 @@ export const About = () => {
       </div>
 
       <p className="text-[12px] leading-relaxed text-muted-foreground">
-        © {new Date().getFullYear()} Breno Polanski. MIT License.
+        © {new Date().getFullYear()} Breno Polanski.
       </p>
     </div>
   )
