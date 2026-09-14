@@ -12,6 +12,7 @@ import {
   WrenchIcon,
 } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
+import { Kbd } from '@/components/ui/kbd'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { formatShortcut } from '@/lib/shortcuts'
@@ -185,8 +186,9 @@ export const ToolsMenu = ({
                   </button>
                 </TooltipTrigger>
 
-                <TooltipContent side="top">
-                  {item.shortcut ? `${item.label} (${item.shortcut})` : item.label}
+                <TooltipContent className="flex items-center gap-1.5" side="top">
+                  {item.label}
+                  {item.shortcut && <Kbd>{item.shortcut}</Kbd>}
                 </TooltipContent>
               </Tooltip>
             ))}
