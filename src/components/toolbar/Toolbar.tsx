@@ -1,4 +1,4 @@
-import { ImagePlusIcon, SettingsIcon } from '@/components/shared/Icons'
+import { CircleHelpIcon, ImagePlusIcon, SettingsIcon } from '@/components/shared/Icons'
 import { Logo } from '@/components/shared/Logo'
 import { Button } from '@/components/ui/button'
 import { APP_NAME } from '@/lib/constants'
@@ -16,6 +16,7 @@ interface ToolbarProps {
   tabs: ImageTab[]
   activeId: string | null
   overlayOpen: boolean
+  captureAccelerator: string
   onArrow: () => void
   onCaptureScreen: () => void
   onCopyImage: () => void
@@ -26,6 +27,7 @@ interface ToolbarProps {
   onOpenImage: () => void
   onOpenNewTab: () => void
   onOpenSettings: () => void
+  onOpenShortcuts: () => void
   onActivateTab: (tabId: string) => void
   onCloseTab: (tabId: string) => void
   onSave: () => void
@@ -39,6 +41,7 @@ export const Toolbar = ({
   tabs,
   activeId,
   overlayOpen,
+  captureAccelerator,
   onArrow,
   onCaptureScreen,
   onCopyImage,
@@ -49,6 +52,7 @@ export const Toolbar = ({
   onOpenImage,
   onOpenNewTab,
   onOpenSettings,
+  onOpenShortcuts,
   onActivateTab,
   onCloseTab,
   onSave,
@@ -91,6 +95,7 @@ export const Toolbar = ({
         <div className="flex shrink-0 items-center gap-1.5">
           <ToolsMenu
             busy={busy}
+            captureAccelerator={captureAccelerator}
             hasImage={hasImage}
             onArrow={onArrow}
             onCaptureScreen={onCaptureScreen}
@@ -102,6 +107,15 @@ export const Toolbar = ({
 
           {/* Icon-only, so the height is pinned rather than left to the icon:
               the labelled buttons are 32px from their 12px text line box. */}
+          <Button
+            aria-label="Keyboard shortcuts"
+            className="size-8 p-0"
+            variant="outline"
+            onClick={onOpenShortcuts}
+          >
+            <CircleHelpIcon className="size-3.5" />
+          </Button>
+
           <Button
             aria-label="Settings"
             className="size-8 p-0"

@@ -91,6 +91,29 @@ Four things can now ask for a capture at once, and `screencapture` owns the scre
 so `capture.rs` holds an in-flight flag and reports a second request as a cancellation instead of
 starting a second crosshair.
 
+### Rebinding capture
+
+Capture is the one shortcut Settings can change, the way [Lightshot](https://app.prntscr.com/en/)
+offers it. The field is a key recorder, not a text input: it reads `event.code` rather than
+`event.key`, because with Shift held the 9 reports as `(` on a US layout and as something else
+again elsewhere — the physical key is the only stable answer.
+
+- **`src-tauri/src/shortcut.rs` owns it, not `localStorage`.** The combo has to be registered
+  during `setup`, before there is a webview to ask, so it lives in `capture-shortcut.json` beside
+  the autostart marker. The plugin is built with no shortcut of its own and one handler that covers
+  every later registration.
+- **A refused rebind leaves capture working.** `set_capture_shortcut` only releases the old combo
+  once the new one parses, and puts it back if the system will not take it — usually another app
+  holds it. The webview's copy only moves to what the command reports back.
+- **Command is required, and Pixen's own keys are refused.** A combo without `⌘` would swallow
+  ordinary typing everywhere else. The reserved list covers Save, Open, Copy Image, the four
+  overlay tools, Quit, and the system Edit entries the menu rebuilds; it is duplicated in
+  `src/lib/shortcuts.ts` for the recorder and checked again in Rust, so a crafted `invoke` cannot
+  take Save away.
+- **Every label follows.** `get_capture_shortcut` feeds the File menu item, the Tools tooltip and
+  the shortcuts dialog, and `remember` points the tray item at the new combo, so nothing is left
+  advertising a binding that no longer fires.
+
 ### Start at Login
 
 `tauri-plugin-autostart`, toggled from the check item. A packaged build turns it on once on first
@@ -138,8 +161,9 @@ or **Cancel** closes without touching the image, and a stray click does the same
   channel including alpha, so a mosaic over a transparent PNG stays transparent rather than growing
   a grey square. This is an edit passing through, not a save, so the toolbar's format has no say in
   it. The region is clamped to the image on both sides of the boundary.
-- **No keyboard shortcut.** It opens a drag-to-select overlay rather than finishing on its own, so a
-  keystroke would only ever get you halfway. It sits in the Edit menu beside Copy Image.
+- **`⌘⇧P` opens it**, same as the Edit menu and the Tools grid. It still only starts the overlay —
+  the box is drawn with the mouse — and it does nothing when no image is open. It sits in the Edit
+  menu beside Copy Image.
 
 ## Numbering steps
 
@@ -166,6 +190,8 @@ last one back, Escape or **Cancel** throws the lot away, and **Done** writes the
   inwards so it is not sliced in half, and the preview is nudged with it.
 - **One size, one colour, starting at 1.** Shutter's tool has no settings either, and a screenshot
   wants the numbers to look the same as each other more than it wants them configurable.
+- **`⌘⇧N` opens it** (Numbered Steps). Same rules as the other overlay shortcuts: nothing happens
+  without an image, and repeating it while Steps is already open does not prompt.
 
 ## Pointing at things
 
@@ -191,8 +217,8 @@ onto the image.
   unsaved marker survive, the editor's undo history does not. See
   [flattening costs](#what-a-flattened-save-costs). Opening another tool or image while arrows
   are waiting asks Apply / Don't Apply / Cancel. Apply is the same flatten; it does not save.
-- **No keyboard shortcut**, for the same reason as Pixelize: it opens a mode rather than finishing on
-  its own.
+- **`⌘⇧A` opens it**, same as Pixelize's `⌘⇧P`. Repeating the shortcut while the overlay is already
+  open does nothing, so it does not ask to apply marks you have not finished.
 
 ## Removing a background
 
@@ -231,8 +257,8 @@ while it works, then the cutout on a checkerboard. **Apply** writes it to the do
 - **The result is transparent, so save it as PNG.** The cutout is nothing but an alpha channel, and
   JPEG has none — saving to JPEG composites the transparency onto white, exactly as it does for any
   other transparent image. WebP keeps it. Pixen does not switch the format selector for you.
-- **No keyboard shortcut**, for the same reason as Pixelize: it opens a mode rather than finishing
-  on its own.
+- **`⌘⇧B` opens it**, matching the Tools grid's Background label. The native menu still reads
+  **Remove Background…**.
 
 ## Saving
 
@@ -330,7 +356,8 @@ src-tauri/src/
 ├── capture.rs           # macOS interactive screen capture
 ├── clipboard.rs         # copying the edited image out as pixels
 ├── dialog.rs            # the three-button unsaved-changes prompt
-├── tray.rs              # menu bar item, Start at Login, the global capture shortcut
+├── shortcut.rs          # the stored capture combo, registered system-wide
+├── tray.rs              # menu bar item, Start at Login, the capture and quit events
 └── window.rs            # splash → main handoff, About window, quit
 ```
 

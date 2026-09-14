@@ -6,14 +6,10 @@ use tauri::{
 };
 use tauri_plugin_autostart::ManagerExt;
 
+use crate::shortcut::CaptureShortcut;
 use crate::window::{show_about_window, MAIN_WINDOW_LABEL};
 
 const APP_NAME: &str = "Pixen";
-
-/// What macOS takes a screenshot with everywhere else, and what Lightshot
-/// binds too. Registered system-wide so it fires while another app is in
-/// front, which is the whole point of the tray.
-pub const CAPTURE_SHORTCUT: &str = "CommandOrControl+Shift+9";
 
 /// Keep in sync with CAPTURE_REQUESTED_EVENT in src/lib/constants.ts
 const CAPTURE_REQUESTED_EVENT: &str = "pixen-capture-requested";
@@ -32,12 +28,14 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(not(debug_assertions))]
     enable_autostart_on_first_launch(app);
 
+    // Whatever the recorder last stored, so the menu is not left advertising
+    // a combo that no longer fires.
     let capture_item = MenuItem::with_id(
         app,
         "capture",
         "Take Screenshot",
         true,
-        Some(CAPTURE_SHORTCUT),
+        Some(app.state::<CaptureShortcut>().accelerator()),
     )?;
     let launch_at_login_item = CheckMenuItem::with_id(
         app,
@@ -96,6 +94,8 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
             }
         })
         .build(app)?;
+
+    crate::shortcut::attach_menu_item(app, capture_item);
 
     Ok(())
 }

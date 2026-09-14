@@ -12,9 +12,10 @@ import {
   WrenchIcon,
 } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
+import { Kbd } from '@/components/ui/kbd'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { formatShortcut } from '@/lib/shortcuts'
+import { formatAccelerator, formatShortcut } from '@/lib/shortcuts'
 import { generateReactKey } from '@/lib/utils'
 
 interface ToolItem {
@@ -29,6 +30,7 @@ interface ToolItem {
 interface ToolsMenuProps {
   busy: boolean
   hasImage: boolean
+  captureAccelerator: string
   onArrow: () => void
   onCaptureScreen: () => void
   onCopyImage: () => void
@@ -44,6 +46,7 @@ interface ToolsMenuProps {
 export const ToolsMenu = ({
   busy,
   hasImage,
+  captureAccelerator,
   onArrow,
   onCaptureScreen,
   onCopyImage,
@@ -66,12 +69,14 @@ export const ToolsMenu = ({
       label: 'Arrow',
       disabled: busy || !hasImage,
       icon: <MoveUpRightIcon className="size-3.5" />,
+      shortcut: formatShortcut('a', true),
       onSelect: onArrow,
     },
     {
       label: 'Background',
       disabled: busy || !hasImage,
       icon: <WandSparklesIcon className="size-5" />,
+      shortcut: formatShortcut('b', true),
       onSelect: onCutout,
     },
     {
@@ -87,18 +92,21 @@ export const ToolsMenu = ({
       label: 'Pixelize',
       disabled: busy || !hasImage,
       icon: <Grid2x2Icon className="size-5" />,
+      shortcut: formatShortcut('p', true),
       onSelect: onPixelize,
     },
     {
       label: 'Screenshot',
       disabled: busy,
       icon: <CameraIcon className="size-5" />,
+      shortcut: formatAccelerator(captureAccelerator),
       onSelect: onCaptureScreen,
     },
     {
       label: 'Steps',
       disabled: busy || !hasImage,
       icon: <ListOrderedIcon className="size-5" />,
+      shortcut: formatShortcut('n', true),
       onSelect: onIncrement,
     },
   ]
@@ -180,8 +188,9 @@ export const ToolsMenu = ({
                   </button>
                 </TooltipTrigger>
 
-                <TooltipContent side="top">
-                  {item.shortcut ? `${item.label} (${item.shortcut})` : item.label}
+                <TooltipContent className="flex items-center gap-1.5" side="top">
+                  {item.label}
+                  {item.shortcut && <Kbd>{item.shortcut}</Kbd>}
                 </TooltipContent>
               </Tooltip>
             ))}

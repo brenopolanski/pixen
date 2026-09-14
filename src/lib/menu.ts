@@ -1,7 +1,8 @@
 import { Menu, MenuItem, PredefinedMenuItem, Submenu } from '@tauri-apps/api/menu'
 
-import { APP_NAME, CAPTURE_ACCELERATOR } from '@/lib/constants'
+import { APP_NAME } from '@/lib/constants'
 import { labelForRecent } from '@/lib/recent'
+import { DEFAULT_CAPTURE_ACCELERATOR } from '@/lib/shortcuts'
 
 export interface MenuHandlers {
   onOpenImage: () => void
@@ -27,6 +28,8 @@ export interface AppMenu {
   setHasImage: (hasImage: boolean) => Promise<void>
   /** Refills Open Recent; the rest of the bar is left in place. */
   setRecent: (paths: readonly string[]) => Promise<void>
+  /** Follows a rebind so the menu never advertises a dead combo. */
+  setCaptureAccelerator: (accelerator: string) => Promise<void>
 }
 
 /**
@@ -52,10 +55,11 @@ export const installAppMenu = async (handlers: MenuHandlers): Promise<AppMenu> =
 
   // The accelerator is shown, not bound: Rust registers it system-wide for the
   // tray, and a Carbon hot key is served before the menu bar sees the key.
+  // It starts at the default and is corrected once Rust reports the stored one.
   const captureItem = await MenuItem.new({
     id: 'pixen-capture',
     text: 'Take Screenshot…',
-    accelerator: CAPTURE_ACCELERATOR,
+    accelerator: DEFAULT_CAPTURE_ACCELERATOR,
     action: handlers.onCaptureScreen,
   })
 
@@ -72,15 +76,15 @@ export const installAppMenu = async (handlers: MenuHandlers): Promise<AppMenu> =
   const arrowItem = await MenuItem.new({
     id: 'pixen-arrow',
     text: 'Arrow…',
+    accelerator: 'Cmd+Shift+A',
     enabled: false,
     action: handlers.onArrow,
   })
 
-  // No accelerator, like the toolbar button: it opens a selection overlay
-  // rather than performing an edit outright.
   const pixelizeItem = await MenuItem.new({
     id: 'pixen-pixelize',
     text: 'Pixelize…',
+    accelerator: 'Cmd+Shift+P',
     enabled: false,
     action: handlers.onPixelize,
   })
@@ -88,6 +92,7 @@ export const installAppMenu = async (handlers: MenuHandlers): Promise<AppMenu> =
   const incrementItem = await MenuItem.new({
     id: 'pixen-increment',
     text: 'Numbered Steps…',
+    accelerator: 'Cmd+Shift+N',
     enabled: false,
     action: handlers.onIncrement,
   })
@@ -95,6 +100,7 @@ export const installAppMenu = async (handlers: MenuHandlers): Promise<AppMenu> =
   const cutoutItem = await MenuItem.new({
     id: 'pixen-cutout',
     text: 'Remove Background…',
+    accelerator: 'Cmd+Shift+B',
     enabled: false,
     action: handlers.onCutout,
   })
@@ -235,6 +241,9 @@ export const installAppMenu = async (handlers: MenuHandlers): Promise<AppMenu> =
       pending = pending.then(() => fillRecent(paths))
 
       return pending
+    },
+    setCaptureAccelerator: async (accelerator: string) => {
+      await captureItem.setAccelerator(accelerator)
     },
   }
 }
