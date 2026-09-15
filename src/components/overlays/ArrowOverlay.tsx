@@ -244,11 +244,14 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2.5">
         <ArrowStyleControls
           color={color}
-          stroke={stroke}
+          size={stroke}
+          sizeLabel="Stroke"
+          sizeMax={16}
+          sizeMin={4}
           onColorChange={(next) => {
             restyle(next, stroke)
           }}
-          onStrokeChange={(next) => {
+          onSizeChange={(next) => {
             restyle(color, next)
           }}
         />
