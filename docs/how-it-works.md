@@ -260,8 +260,10 @@ while it works, then the cutout on a checkerboard. **Apply** writes it to the do
   on a screenshot, and longer the first time while the model is read in.
 - **There is a preview because the model guesses.** Hair, glass and thin lines are where it goes
   wrong, and applying reloads the editor, so a bad result has to be refusable while the original is
-  still there. Cancelling mid-run closes the overlay, though the inference already in flight cannot
-  be called back — the library offers no cancellation.
+  still there. **Cancel** discards the preview; the next open starts from the original with the
+  in-progress UI. The model may still be in memory so the second run can finish quickly, but it
+  must not flash the previous cutout first. Cancelling mid-run closes the overlay, though the
+  inference already in flight cannot be called back — the library offers no cancellation.
 - **Apply flattens**, on the same terms as Pixelize and Steps: the save path, file name and unsaved
   marker survive, the editor's undo history does not. See
   [flattening costs](#what-a-flattened-save-costs). Opening another tool or image once the preview

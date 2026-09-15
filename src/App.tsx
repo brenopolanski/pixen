@@ -203,6 +203,7 @@ const App = () => {
 
         {session.cutoutPreview && (
           <CutoutOverlay
+            key={session.cutoutSession}
             image={session.cutoutPreview}
             onApply={session.applyCutout}
             onCancel={session.cancelCutout}

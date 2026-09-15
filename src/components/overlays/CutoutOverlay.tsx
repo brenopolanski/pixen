@@ -34,6 +34,9 @@ export const CutoutOverlay = ({
   useEffect(() => {
     let active = true
 
+    setCutout(null)
+    setRatio(0)
+
     const run = async () => {
       try {
         const result = await removeImageBackground(image, (next) => {
@@ -68,6 +71,10 @@ export const CutoutOverlay = ({
 
   useEffect(() => {
     onDraftChange(cutout)
+
+    return () => {
+      onDraftChange(null)
+    }
   }, [cutout, onDraftChange])
 
   const apply = useCallback(() => {

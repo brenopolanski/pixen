@@ -88,6 +88,8 @@ export interface ImageSession {
   reportCutoutDraft: (image: string | null) => void
   /** The flattened image the cutout overlay runs the model on; null when closed. */
   cutoutPreview: string | null
+  /** Bumped each time Background opens, so the overlay remounts after Cancel. */
+  cutoutSession: number
   startCutout: () => void
   applyCutout: (dataUrl: string) => void
   cancelCutout: () => void
@@ -124,6 +126,7 @@ export const useImageSession = (): ImageSession => {
   const [incrementPreview, setIncrementPreview] = useState<string | null>(null)
   const [arrowPreview, setArrowPreview] = useState<string | null>(null)
   const [cutoutPreview, setCutoutPreview] = useState<string | null>(null)
+  const [cutoutSession, setCutoutSession] = useState(0)
   const [format, setFormatState] = useState<SaveFormat>(DEFAULT_SAVE_FORMAT)
   // Read once: nothing outside Pixen writes this key, so the stored list and
   // this one cannot drift apart while the window is open.
@@ -737,6 +740,7 @@ export const useImageSession = (): ImageSession => {
 
       cutoutPreviewRef.current = image
       overlayOpenRef.current = true
+      setCutoutSession((current) => current + 1)
       setCutoutPreview(image)
     })
   }, [run, settleOverlay])
@@ -1019,6 +1023,7 @@ export const useImageSession = (): ImageSession => {
     reportIncrementDraft,
     reportCutoutDraft,
     cutoutPreview,
+    cutoutSession,
     startCutout,
     applyCutout,
     cancelCutout,
