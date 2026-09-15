@@ -46,6 +46,13 @@ describe('isUsableArrow', () => {
   it('refuses a press with no drag at all', () => {
     expect(isUsableArrow({ from: { x: 40, y: 40 }, to: { x: 40, y: 40 } })).toBe(false)
   })
+
+  it('asks for a longer drag when the stroke is thicker', () => {
+    expect(
+      isUsableArrow({ from: { x: 0, y: 0 }, stroke: 16, to: { x: 0, y: MIN_ARROW_LENGTH } }),
+    ).toBe(false)
+    expect(isUsableArrow({ from: { x: 0, y: 0 }, stroke: 16, to: { x: 0, y: 44 } })).toBe(true)
+  })
 })
 
 describe('arrowOutline', () => {
@@ -65,5 +72,13 @@ describe('arrowOutline', () => {
 
   it('has nothing to draw for an arrow with no length', () => {
     expect(arrowOutline({ from: { x: 5, y: 5 }, to: { x: 5, y: 5 } })).toBeNull()
+  })
+
+  it('grows the head when the stroke is thicker', () => {
+    expect(arrowOutline({ from: { x: 0, y: 0 }, stroke: 16, to: { x: 100, y: 0 } })).toEqual({
+      shaftEnd: { x: 56, y: 0 },
+      left: { x: 56, y: 20 },
+      right: { x: 56, y: -20 },
+    })
   })
 })

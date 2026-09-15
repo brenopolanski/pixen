@@ -1,13 +1,16 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 
+import { ArrowStyleControls } from '@/components/overlays/ArrowStyleControls'
 import { CheckIcon, Undo2Icon, XIcon } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
 import type { Arrow } from '@/lib/image/arrow'
 import {
   ARROW_COLOR,
   ARROW_STROKE,
+  arrowColor,
   arrowOutline,
+  arrowStroke,
   clampPixel,
   isUsableArrow,
 } from '@/lib/image/arrow'
@@ -35,6 +38,17 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
   const [size, setSize] = useState<{ width: number; height: number } | null>(null)
   const [arrows, setArrows] = useState<Arrow[]>([])
   const [drawing, setDrawing] = useState<Arrow | null>(null)
+  const [color, setColor] = useState(ARROW_COLOR)
+  const [stroke, setStroke] = useState(ARROW_STROKE)
+
+  const restyle = (nextColor: string, nextStroke: number) => {
+    setColor(nextColor)
+    setStroke(nextStroke)
+    setArrows((current) =>
+      current.map((arrow) => ({ ...arrow, color: nextColor, stroke: nextStroke })),
+    )
+    setDrawing((current) => (current ? { ...current, color: nextColor, stroke: nextStroke } : null))
+  }
 
   useEffect(() => {
     onDraftChange(arrows)
@@ -105,7 +119,7 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
     // Captured so the drag keeps reporting after the pointer leaves the frame,
     // which is what lets an arrow be aimed at the very edge.
     event.currentTarget.setPointerCapture(event.pointerId)
-    setDrawing({ from: tail, to: tail })
+    setDrawing({ from: tail, to: tail, color, stroke })
   }
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -158,10 +172,16 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
   return (
     <div className="absolute inset-0 z-40 flex flex-col bg-background fade-in">
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2.5">
-        <p className="text-[12px] text-muted-foreground">
-          Drag from open space towards whatever the reader should look at.
-          <span className="ml-2 text-muted-foreground/70">Backspace undoes · Esc to cancel</span>
-        </p>
+        <ArrowStyleControls
+          color={color}
+          stroke={stroke}
+          onColorChange={(next) => {
+            restyle(next, stroke)
+          }}
+          onStrokeChange={(next) => {
+            restyle(color, next)
+          }}
+        />
 
         <div className="flex shrink-0 items-center gap-1.5">
           <Button
@@ -229,12 +249,12 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
             return (
               <g
                 key={generateReactKey('arrow', `${arrow.from.x}_${arrow.from.y}`, index)}
-                fill={ARROW_COLOR}
-                stroke={ARROW_COLOR}
+                fill={arrowColor(arrow)}
+                stroke={arrowColor(arrow)}
               >
                 <line
                   strokeLinecap="round"
-                  strokeWidth={ARROW_STROKE * scale}
+                  strokeWidth={arrowStroke(arrow) * scale}
                   x1={shape.tail.x}
                   x2={shape.shaftEnd.x}
                   y1={shape.tail.y}

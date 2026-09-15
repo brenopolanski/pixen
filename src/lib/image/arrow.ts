@@ -3,22 +3,34 @@ import type { Box, Point, Size } from '@/lib/image/pixelize'
 import { displayedImageRect } from '@/lib/image/pixelize'
 
 /**
- * Arrow metrics in image pixels. Fixed rather than settings, for the same
- * reason the step badges are: a guide wants its arrows to match each other more
- * than it wants them adjustable.
+ * Default shaft thickness in image pixels. The head scales from this so a
+ * thicker stroke does not leave a tiny tip on a fat line.
  */
 export const ARROW_STROKE = 8
-const ARROW_HEAD_LENGTH = 22
-const ARROW_HEAD_WIDTH = 20
+
+/** How long the head is, relative to the shaft. 8 → 22, matching the old fixed tip. */
+const HEAD_LENGTH_RATIO = 2.75
+
+/** How wide the head is, relative to the shaft. 8 → 20. */
+const HEAD_WIDTH_RATIO = 2.5
+
+export const arrowHeadLength = (stroke = ARROW_STROKE): number => stroke * HEAD_LENGTH_RATIO
+
+export const arrowHeadWidth = (stroke = ARROW_STROKE): number => stroke * HEAD_WIDTH_RATIO
 
 /**
- * Below this an arrow is all head and reads as a smudge rather than as a
- * direction, so a drag that short is treated as a slip of the mouse.
+ * Below this (at the default stroke) an arrow is all head and reads as a
+ * smudge rather than as a direction, so a drag that short is treated as a
+ * slip of the mouse.
  */
-export const MIN_ARROW_LENGTH = ARROW_HEAD_LENGTH
+export const MIN_ARROW_LENGTH = arrowHeadLength()
 
 /** The step badges' red, so the two annotation tools look like one kit. */
 export const ARROW_COLOR = '#e5484d'
+
+export const arrowColor = (arrow: Arrow): string => arrow.color ?? ARROW_COLOR
+
+export const arrowStroke = (arrow: Arrow): number => arrow.stroke ?? ARROW_STROKE
 
 /** An arrow the user has drawn, tail to tip, in image pixels. */
 export interface Arrow {
@@ -26,6 +38,10 @@ export interface Arrow {
   from: Point
   /** Where the drag ended; the end that carries the head. */
   to: Point
+  /** Overrides `ARROW_COLOR` for this arrow. */
+  color?: string
+  /** Overrides `ARROW_STROKE` for this arrow. */
+  stroke?: number
 }
 
 const clamp = (value: number, min: number, max: number): number => {
@@ -62,7 +78,7 @@ export const arrowLength = (arrow: Arrow): number => {
 
 /** Whether the drag is long enough to be worth keeping. */
 export const isUsableArrow = (arrow: Arrow): boolean => {
-  return arrowLength(arrow) >= MIN_ARROW_LENGTH
+  return arrowLength(arrow) >= arrowHeadLength(arrowStroke(arrow))
 }
 
 /**
@@ -83,8 +99,9 @@ export const arrowOutline = (
 
   const unitX = (arrow.to.x - arrow.from.x) / length
   const unitY = (arrow.to.y - arrow.from.y) / length
-  const head = Math.min(ARROW_HEAD_LENGTH, length)
-  const halfWidth = ARROW_HEAD_WIDTH / 2
+  const stroke = arrowStroke(arrow)
+  const head = Math.min(arrowHeadLength(stroke), length)
+  const halfWidth = arrowHeadWidth(stroke) / 2
 
   const shaftEnd = {
     x: arrow.to.x - unitX * head,
@@ -130,10 +147,6 @@ export const composeArrows = async (dataUrl: string, arrows: Arrow[]): Promise<s
   }
 
   context.drawImage(source, 0, 0)
-
-  context.fillStyle = ARROW_COLOR
-  context.strokeStyle = ARROW_COLOR
-  context.lineWidth = ARROW_STROKE
   context.lineCap = 'round'
 
   for (const arrow of arrows) {
@@ -142,6 +155,12 @@ export const composeArrows = async (dataUrl: string, arrows: Arrow[]): Promise<s
     if (!outline) {
       continue
     }
+
+    const color = arrowColor(arrow)
+
+    context.fillStyle = color
+    context.strokeStyle = color
+    context.lineWidth = arrowStroke(arrow)
 
     context.beginPath()
     context.moveTo(arrow.from.x, arrow.from.y)

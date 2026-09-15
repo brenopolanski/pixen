@@ -211,8 +211,10 @@ onto the image.
   the overlay scales them by `displayedScale`, the same arrangement the step badges use.
 - **The compositing is canvas, not Rust**, for the same reason as the badges: the shapes are cheap to
   draw in the webview, and PNG keeps alpha on the way back to the editor.
-- **One colour, one thickness**, matching the step badges so a guide annotated with both looks like
-  one kit rather than two tools.
+- **Colour and stroke are chosen in the overlay bar.** Defaults match the step badges (`#e5484d`,
+  thickness 8) so a guide annotated with both still looks like one kit. Changing either restyles
+  every arrow in the current pass — preview and bake stay in sync — and the head scales with the
+  shaft. The next time Arrow opens, the defaults come back.
 - **Done flattens once**, on the same terms as Pixelize and Steps: the save path, file name and
   unsaved marker survive, the editor's undo history does not. See
   [flattening costs](#what-a-flattened-save-costs). Opening another tool or image while arrows
