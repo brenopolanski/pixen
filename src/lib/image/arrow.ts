@@ -115,6 +115,79 @@ export const arrowOutline = (
   }
 }
 
+/** Extra pixels around the shaft so a thin arrow is still easy to click. */
+const HIT_SLOP = 12
+
+const distanceToSegment = (point: Point, start: Point, end: Point): number => {
+  const dx = end.x - start.x
+  const dy = end.y - start.y
+  const lengthSq = dx * dx + dy * dy
+
+  if (lengthSq === 0) {
+    return Math.hypot(point.x - start.x, point.y - start.y)
+  }
+
+  const t = clamp(((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSq, 0, 1)
+
+  return Math.hypot(point.x - (start.x + t * dx), point.y - (start.y + t * dy))
+}
+
+const pointInTriangle = (point: Point, a: Point, b: Point, c: Point): boolean => {
+  const v0x = c.x - a.x
+  const v0y = c.y - a.y
+  const v1x = b.x - a.x
+  const v1y = b.y - a.y
+  const v2x = point.x - a.x
+  const v2y = point.y - a.y
+  const dot00 = v0x * v0x + v0y * v0y
+  const dot01 = v0x * v1x + v0y * v1y
+  const dot02 = v0x * v2x + v0y * v2y
+  const dot11 = v1x * v1x + v1y * v1y
+  const dot12 = v1x * v2x + v1y * v2y
+  const denom = dot00 * dot11 - dot01 * dot01
+
+  if (denom === 0) {
+    return false
+  }
+
+  const u = (dot11 * dot02 - dot01 * dot12) / denom
+  const v = (dot00 * dot12 - dot01 * dot02) / denom
+
+  return u >= 0 && v >= 0 && u + v <= 1
+}
+
+const hitsArrow = (arrow: Arrow, point: Point): boolean => {
+  const outline = arrowOutline(arrow)
+
+  if (!outline) {
+    return false
+  }
+
+  const slop = Math.max(arrowStroke(arrow), HIT_SLOP)
+
+  if (distanceToSegment(point, arrow.from, outline.shaftEnd) <= slop) {
+    return true
+  }
+
+  return pointInTriangle(point, arrow.to, outline.left, outline.right)
+}
+
+/**
+ * Which arrow the pointer is on, or null. Later arrows sit on top, so the walk
+ * is backwards: the last drawn one that covers the point wins.
+ */
+export const hitTestArrow = (arrows: readonly Arrow[], point: Point): number | null => {
+  for (let index = arrows.length - 1; index >= 0; index -= 1) {
+    const arrow = arrows[index]
+
+    if (arrow && hitsArrow(arrow, point)) {
+      return index
+    }
+  }
+
+  return null
+}
+
 const loadImage = (dataUrl: string): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
     const image = new Image()

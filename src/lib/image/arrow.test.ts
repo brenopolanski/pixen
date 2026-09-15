@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { arrowOutline, clampPixel, isUsableArrow, MIN_ARROW_LENGTH } from './arrow'
+import { arrowOutline, clampPixel, hitTestArrow, isUsableArrow, MIN_ARROW_LENGTH } from './arrow'
 
 describe('clampPixel', () => {
   const box = { width: 400, height: 400 }
@@ -80,5 +80,28 @@ describe('arrowOutline', () => {
       left: { x: 56, y: 20 },
       right: { x: 56, y: -20 },
     })
+  })
+})
+
+describe('hitTestArrow', () => {
+  const across = { from: { x: 0, y: 0 }, to: { x: 100, y: 0 } }
+
+  it('hits the shaft', () => {
+    expect(hitTestArrow([across], { x: 40, y: 0 })).toBe(0)
+  })
+
+  it('hits the head', () => {
+    expect(hitTestArrow([across], { x: 90, y: 0 })).toBe(0)
+  })
+
+  it('misses a point well off the arrow', () => {
+    expect(hitTestArrow([across], { x: 40, y: 80 })).toBeNull()
+  })
+
+  it('prefers the later arrow when they overlap', () => {
+    const behind = { from: { x: 0, y: 0 }, to: { x: 100, y: 0 } }
+    const onTop = { from: { x: 0, y: 0 }, to: { x: 100, y: 0 } }
+
+    expect(hitTestArrow([behind, onTop], { x: 40, y: 0 })).toBe(1)
   })
 })

@@ -12,6 +12,7 @@ import {
   arrowOutline,
   arrowStroke,
   clampPixel,
+  hitTestArrow,
   isUsableArrow,
 } from '@/lib/image/arrow'
 import { clickToPixel, displayedScale, pixelToDisplayed } from '@/lib/image/pixelize'
@@ -38,12 +39,23 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
   const [size, setSize] = useState<{ width: number; height: number } | null>(null)
   const [arrows, setArrows] = useState<Arrow[]>([])
   const [drawing, setDrawing] = useState<Arrow | null>(null)
+  const [selected, setSelected] = useState<number | null>(null)
   const [color, setColor] = useState(ARROW_COLOR)
   const [stroke, setStroke] = useState(ARROW_STROKE)
 
   const restyle = (nextColor: string, nextStroke: number) => {
     setColor(nextColor)
     setStroke(nextStroke)
+
+    if (selected !== null) {
+      setArrows((current) =>
+        current.map((arrow, index) =>
+          index === selected ? { ...arrow, color: nextColor, stroke: nextStroke } : arrow,
+        ),
+      )
+      return
+    }
+
     setDrawing((current) => (current ? { ...current, color: nextColor, stroke: nextStroke } : null))
   }
 
@@ -52,8 +64,19 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
   }, [arrows, onDraftChange])
 
   const undoLast = useCallback(() => {
+    setSelected((index) => (index === arrows.length - 1 ? null : index))
     setArrows((current) => current.slice(0, -1))
-  }, [])
+  }, [arrows.length])
+
+  const deleteSelected = useCallback(() => {
+    if (selected === null) {
+      undoLast()
+      return
+    }
+
+    setArrows((current) => current.filter((_, index) => index !== selected))
+    setSelected(null)
+  }, [selected, undoLast])
 
   const apply = useCallback(() => {
     if (arrows.length > 0) {
@@ -71,7 +94,7 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
 
       if (event.key === 'Backspace') {
         event.preventDefault()
-        undoLast()
+        deleteSelected()
         return
       }
 
@@ -86,7 +109,7 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
     return () => {
       window.removeEventListener('keydown', onKeyDown, { capture: true })
     }
-  }, [apply, onCancel, undoLast])
+  }, [apply, deleteSelected, onCancel])
 
   const box = frame ? { width: frame.clientWidth, height: frame.clientHeight } : null
   // Arrows are measured in image pixels, so on screen they thin out with the
@@ -113,6 +136,22 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
       return
     }
 
+    const hit = hitTestArrow(arrows, tail)
+
+    if (hit !== null) {
+      const arrow = arrows[hit]
+
+      if (!arrow) {
+        return
+      }
+
+      setSelected(hit)
+      setColor(arrowColor(arrow))
+      setStroke(arrowStroke(arrow))
+      return
+    }
+
+    setSelected(null)
     // Captured so the drag keeps reporting after the pointer leaves the frame,
     // which is what lets an arrow be aimed at the very edge.
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -244,23 +283,37 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
             }
 
             return (
-              <g
-                key={generateReactKey('arrow', `${arrow.from.x}_${arrow.from.y}`, index)}
-                fill={arrowColor(arrow)}
-                stroke={arrowColor(arrow)}
-              >
-                <line
-                  strokeLinecap="round"
-                  strokeWidth={arrowStroke(arrow) * scale}
-                  x1={shape.tail.x}
-                  x2={shape.shaftEnd.x}
-                  y1={shape.tail.y}
-                  y2={shape.shaftEnd.y}
-                />
-                <polygon
-                  points={`${shape.tip.x},${shape.tip.y} ${shape.left.x},${shape.left.y} ${shape.right.x},${shape.right.y}`}
-                  stroke="none"
-                />
+              <g key={generateReactKey('arrow', `${arrow.from.x}_${arrow.from.y}`, index)}>
+                {index === selected && (
+                  <g fill="none" opacity={0.9} stroke="white">
+                    <line
+                      strokeLinecap="round"
+                      strokeWidth={(arrowStroke(arrow) + 8) * scale}
+                      x1={shape.tail.x}
+                      x2={shape.shaftEnd.x}
+                      y1={shape.tail.y}
+                      y2={shape.shaftEnd.y}
+                    />
+                    <polygon
+                      points={`${shape.tip.x},${shape.tip.y} ${shape.left.x},${shape.left.y} ${shape.right.x},${shape.right.y}`}
+                      strokeWidth={4 * scale}
+                    />
+                  </g>
+                )}
+                <g fill={arrowColor(arrow)} stroke={arrowColor(arrow)}>
+                  <line
+                    strokeLinecap="round"
+                    strokeWidth={arrowStroke(arrow) * scale}
+                    x1={shape.tail.x}
+                    x2={shape.shaftEnd.x}
+                    y1={shape.tail.y}
+                    y2={shape.shaftEnd.y}
+                  />
+                  <polygon
+                    points={`${shape.tip.x},${shape.tip.y} ${shape.left.x},${shape.left.y} ${shape.right.x},${shape.right.y}`}
+                    stroke="none"
+                  />
+                </g>
               </g>
             )
           })}
