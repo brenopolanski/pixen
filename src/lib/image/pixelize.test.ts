@@ -4,9 +4,11 @@ import {
   clickToPixel,
   displayedImageRect,
   displayedScale,
+  hitTestRect,
   pixelToDisplayed,
   rectBetween,
   selectionToPixels,
+  translateRect,
 } from './pixelize'
 
 describe('displayedImageRect', () => {
@@ -140,6 +142,48 @@ describe('rectBetween', () => {
       y: 30,
       width: 50,
       height: 50,
+    })
+  })
+})
+
+describe('hitTestRect', () => {
+  const box = { x: 100, y: 80, width: 40, height: 30 }
+
+  it('hits the centre', () => {
+    expect(hitTestRect([box], { x: 120, y: 95 })).toBe(0)
+  })
+
+  it('misses a point well off the box', () => {
+    expect(hitTestRect([box], { x: 200, y: 200 })).toBeNull()
+  })
+
+  it('prefers the later box when they overlap', () => {
+    const behind = { x: 100, y: 80, width: 40, height: 30 }
+    const onTop = { x: 120, y: 90, width: 40, height: 30 }
+
+    expect(hitTestRect([behind, onTop], { x: 130, y: 100 })).toBe(1)
+  })
+})
+
+describe('translateRect', () => {
+  const image = { width: 400, height: 300 }
+  const box = { x: 10, y: 20, width: 40, height: 30 }
+
+  it('moves the origin by the given amount', () => {
+    expect(translateRect(box, { x: 5, y: 3 }, image)).toEqual({
+      x: 15,
+      y: 23,
+      width: 40,
+      height: 30,
+    })
+  })
+
+  it('stops at the edge so the box stays on the image', () => {
+    expect(translateRect(box, { x: 1000, y: 0 }, image)).toEqual({
+      x: image.width - box.width,
+      y: 20,
+      width: 40,
+      height: 30,
     })
   })
 })

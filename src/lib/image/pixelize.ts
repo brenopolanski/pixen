@@ -71,7 +71,7 @@ const clamp = (value: number, min: number, max: number): number => {
  *
  * Null when the drag has no useful overlap: entirely in the letterbox margin,
  * or too small to be anything but a slip of the mouse. The caller treats that
- * as a cancel rather than an error.
+ * as nothing to commit, rather than an error.
  */
 export const selectionToPixels = (box: Box, image: Size, selection: Rect): Rect | null => {
   const displayed = displayedImageRect(box, image)
@@ -169,12 +169,53 @@ export const rectBetween = (from: { x: number; y: number }, to: { x: number; y: 
   }
 }
 
+const pointInRect = (point: Point, rect: Rect): boolean => {
+  return (
+    point.x >= rect.x &&
+    point.x < rect.x + rect.width &&
+    point.y >= rect.y &&
+    point.y < rect.y + rect.height
+  )
+}
+
 /**
- * Replaces a region with a mosaic and returns the whole image again.
+ * Which box the pointer is on, or null. Later boxes sit on top, so the walk is
+ * backwards: the last drawn one that covers the point wins.
+ */
+export const hitTestRect = (rects: readonly Rect[], point: Point): number | null => {
+  for (let index = rects.length - 1; index >= 0; index -= 1) {
+    const rect = rects[index]
+
+    if (rect && pointInRect(point, rect)) {
+      return index
+    }
+  }
+
+  return null
+}
+
+/**
+ * Slides a box without changing its size. The delta is shrunk so the rectangle
+ * stays fully on the image instead of hanging off the rim.
+ */
+export const translateRect = (rect: Rect, delta: Point, image: Size): Rect => {
+  const maxX = Math.max(image.width - rect.width, 0)
+  const maxY = Math.max(image.height - rect.height, 0)
+
+  return {
+    ...rect,
+    x: Math.round(clamp(rect.x + delta.x, 0, maxX)),
+    y: Math.round(clamp(rect.y + delta.y, 0, maxY)),
+  }
+}
+
+/**
+ * Replaces each region with a mosaic and returns the whole image again.
  *
  * PNG in, PNG out: this is an edit passing through memory on its way back to
- * the editor, so the toolbar's save format has no say in it.
+ * the editor, so the toolbar's save format has no say in it. Regions are
+ * mosaiced in order, so a later box wins where they overlap.
  */
-export const pixelizeImage = (dataUrl: string, region: Rect): Promise<string> => {
-  return invoke('pixelize_image', { dataUrl, ...region })
+export const pixelizeImage = (dataUrl: string, regions: Rect[]): Promise<string> => {
+  return invoke('pixelize_image', { dataUrl, regions })
 }

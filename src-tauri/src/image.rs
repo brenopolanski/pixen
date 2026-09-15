@@ -7,6 +7,7 @@ use base64::Engine;
 use image::codecs::jpeg::JpegEncoder;
 use image::codecs::webp::WebPEncoder;
 use image::{DynamicImage, ExtendedColorType, ImageEncoder, Rgb, RgbImage};
+use serde::Deserialize;
 
 /// Reading a file this large would allocate several times its size once it is
 /// base64-encoded and copied into the webview, so it is refused up front.
@@ -222,28 +223,41 @@ fn mosaic(image: &DynamicImage, region: (u32, u32, u32, u32)) -> DynamicImage {
     DynamicImage::ImageRgba8(canvas)
 }
 
-/// Hides a region behind a mosaic and hands the whole image back.
-///
-/// PNG both ways: this is an edit on its way back to the editor rather than
-/// something being saved, so the toolbar's chosen format has no say in it, and
-/// PNG is the one format here that always keeps alpha.
-#[tauri::command]
-pub fn pixelize_image(
-    data_url: String,
+/// A box to mosaic, in image pixels. Matches the overlay's `Rect`.
+#[derive(Deserialize)]
+pub struct PixelizeRegion {
     x: u32,
     y: u32,
     width: u32,
     height: u32,
-) -> Result<String, String> {
-    let source = decode(&decode_data_url(&data_url)?)?;
+}
 
-    let Some(region) = clamp_region(&source, x, y, width, height) else {
-        return Err(format!("That selection is outside {IMAGE_SUBJECT}."));
-    };
+/// Hides each region behind a mosaic and hands the whole image back.
+///
+/// PNG both ways: this is an edit on its way back to the editor rather than
+/// something being saved, so the toolbar's chosen format has no say in it, and
+/// PNG is the one format here that always keeps alpha. Regions are applied in
+/// order, so a later box wins where they overlap.
+#[tauri::command]
+pub fn pixelize_image(data_url: String, regions: Vec<PixelizeRegion>) -> Result<String, String> {
+    if regions.is_empty() {
+        return Err(format!("There is nothing to hide on {IMAGE_SUBJECT}."));
+    }
+
+    let mut current = decode(&decode_data_url(&data_url)?)?;
+
+    for region in regions {
+        let Some(clamped) = clamp_region(&current, region.x, region.y, region.width, region.height)
+        else {
+            return Err(format!("That selection is outside {IMAGE_SUBJECT}."));
+        };
+
+        current = mosaic(&current, clamped);
+    }
 
     let mut encoded = Vec::new();
 
-    mosaic(&source, region)
+    current
         .write_to(&mut Cursor::new(&mut encoded), image::ImageFormat::Png)
         .map_err(|_| format!("Could not hide that part of {IMAGE_SUBJECT}."))?;
 
@@ -453,9 +467,8 @@ mod tests {
         format!("data:image/png;base64,{}", STANDARD.encode(bytes))
     }
 
-    fn pixelized(data_url: &str, x: u32, y: u32, width: u32, height: u32) -> RgbaImage {
-        let result = pixelize_image(data_url.to_string(), x, y, width, height)
-            .expect("the region pixelizes");
+    fn pixelized(data_url: &str, regions: Vec<PixelizeRegion>) -> RgbaImage {
+        let result = pixelize_image(data_url.to_string(), regions).expect("the region pixelizes");
         let bytes = decode_data_url(&result).expect("the result is a data url");
 
         image::load_from_memory(&bytes)
@@ -463,11 +476,20 @@ mod tests {
             .to_rgba8()
     }
 
+    fn region(x: u32, y: u32, width: u32, height: u32) -> PixelizeRegion {
+        PixelizeRegion {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+
     #[test]
     fn averages_the_region_and_leaves_the_rest_alone() {
         // 8x8 is smaller than one 12px block, so the 4x4 region collapses to a
         // single colour: half black, half white averages to mid grey.
-        let image = pixelized(&as_data_url(split_png(8, 8)), 2, 2, 4, 4);
+        let image = pixelized(&as_data_url(split_png(8, 8)), vec![region(2, 2, 4, 4)]);
 
         for y in 2..6 {
             for x in 2..6 {
@@ -484,7 +506,7 @@ mod tests {
 
     #[test]
     fn keeps_alpha_while_hiding_a_region() {
-        let image = pixelized(&as_data_url(transparent_png()), 0, 0, 32, 32);
+        let image = pixelized(&as_data_url(transparent_png()), vec![region(0, 0, 32, 32)]);
 
         assert!(image.pixels().all(|pixel| pixel.0[3] == 0));
     }
@@ -493,7 +515,7 @@ mod tests {
     fn clamps_a_region_that_hangs_off_the_edge() {
         // Asking for 40px of an 8px image is not an error: the overlay may be
         // measuring a preview the canvas has since moved on from.
-        let image = pixelized(&as_data_url(split_png(8, 8)), 6, 6, 40, 40);
+        let image = pixelized(&as_data_url(split_png(8, 8)), vec![region(6, 6, 40, 40)]);
 
         assert_eq!(image.dimensions(), (8, 8));
         assert_eq!(image.get_pixel(7, 7).0, [255, 255, 255, 255]);
@@ -501,8 +523,26 @@ mod tests {
 
     #[test]
     fn refuses_a_region_that_starts_past_the_edge() {
-        assert!(pixelize_image(as_data_url(split_png(8, 8)), 8, 0, 4, 4).is_err());
-        assert!(pixelize_image(as_data_url(split_png(8, 8)), 0, 0, 0, 4).is_err());
+        assert!(pixelize_image(as_data_url(split_png(8, 8)), vec![region(8, 0, 4, 4)]).is_err());
+        assert!(pixelize_image(as_data_url(split_png(8, 8)), vec![region(0, 0, 0, 4)]).is_err());
+    }
+
+    #[test]
+    fn refuses_an_empty_list() {
+        assert!(pixelize_image(as_data_url(split_png(8, 8)), vec![]).is_err());
+    }
+
+    #[test]
+    fn mosaics_each_region_and_lets_the_later_one_win() {
+        // First box greys the centre; the second covers the whole image, so the
+        // original split at the corners does not survive.
+        let image = pixelized(
+            &as_data_url(split_png(8, 8)),
+            vec![region(2, 2, 4, 4), region(0, 0, 8, 8)],
+        );
+
+        assert_ne!(image.get_pixel(0, 0).0, [0, 0, 0, 255]);
+        assert_ne!(image.get_pixel(7, 7).0, [255, 255, 255, 255]);
     }
 
     #[test]
