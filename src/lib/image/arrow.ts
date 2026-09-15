@@ -3,22 +3,34 @@ import type { Box, Point, Size } from '@/lib/image/pixelize'
 import { displayedImageRect } from '@/lib/image/pixelize'
 
 /**
- * Arrow metrics in image pixels. Fixed rather than settings, for the same
- * reason the step badges are: a guide wants its arrows to match each other more
- * than it wants them adjustable.
+ * Default shaft thickness in image pixels. The head scales from this so a
+ * thicker stroke does not leave a tiny tip on a fat line.
  */
 export const ARROW_STROKE = 8
-const ARROW_HEAD_LENGTH = 22
-const ARROW_HEAD_WIDTH = 20
+
+/** How long the head is, relative to the shaft. 8 → 22, matching the old fixed tip. */
+const HEAD_LENGTH_RATIO = 2.75
+
+/** How wide the head is, relative to the shaft. 8 → 20. */
+const HEAD_WIDTH_RATIO = 2.5
+
+export const arrowHeadLength = (stroke = ARROW_STROKE): number => stroke * HEAD_LENGTH_RATIO
+
+export const arrowHeadWidth = (stroke = ARROW_STROKE): number => stroke * HEAD_WIDTH_RATIO
 
 /**
- * Below this an arrow is all head and reads as a smudge rather than as a
- * direction, so a drag that short is treated as a slip of the mouse.
+ * Below this (at the default stroke) an arrow is all head and reads as a
+ * smudge rather than as a direction, so a drag that short is treated as a
+ * slip of the mouse.
  */
-export const MIN_ARROW_LENGTH = ARROW_HEAD_LENGTH
+export const MIN_ARROW_LENGTH = arrowHeadLength()
 
 /** The step badges' red, so the two annotation tools look like one kit. */
 export const ARROW_COLOR = '#e5484d'
+
+export const arrowColor = (arrow: Arrow): string => arrow.color ?? ARROW_COLOR
+
+export const arrowStroke = (arrow: Arrow): number => arrow.stroke ?? ARROW_STROKE
 
 /** An arrow the user has drawn, tail to tip, in image pixels. */
 export interface Arrow {
@@ -26,6 +38,10 @@ export interface Arrow {
   from: Point
   /** Where the drag ended; the end that carries the head. */
   to: Point
+  /** Overrides `ARROW_COLOR` for this arrow. */
+  color?: string
+  /** Overrides `ARROW_STROKE` for this arrow. */
+  stroke?: number
 }
 
 const clamp = (value: number, min: number, max: number): number => {
@@ -62,7 +78,28 @@ export const arrowLength = (arrow: Arrow): number => {
 
 /** Whether the drag is long enough to be worth keeping. */
 export const isUsableArrow = (arrow: Arrow): boolean => {
-  return arrowLength(arrow) >= MIN_ARROW_LENGTH
+  return arrowLength(arrow) >= arrowHeadLength(arrowStroke(arrow))
+}
+
+/**
+ * Slides an arrow without changing its length or angle. The delta is shrunk so
+ * both ends stay on the image instead of flattening against the rim.
+ */
+export const translateArrow = (arrow: Arrow, delta: Point, image: Size): Arrow => {
+  const maxX = Math.max(image.width - 1, 0)
+  const maxY = Math.max(image.height - 1, 0)
+  const minX = Math.min(arrow.from.x, arrow.to.x)
+  const maxArrowX = Math.max(arrow.from.x, arrow.to.x)
+  const minY = Math.min(arrow.from.y, arrow.to.y)
+  const maxArrowY = Math.max(arrow.from.y, arrow.to.y)
+  const dx = clamp(delta.x, -minX, maxX - maxArrowX)
+  const dy = clamp(delta.y, -minY, maxY - maxArrowY)
+
+  return {
+    ...arrow,
+    from: { x: Math.round(arrow.from.x + dx), y: Math.round(arrow.from.y + dy) },
+    to: { x: Math.round(arrow.to.x + dx), y: Math.round(arrow.to.y + dy) },
+  }
 }
 
 /**
@@ -83,8 +120,9 @@ export const arrowOutline = (
 
   const unitX = (arrow.to.x - arrow.from.x) / length
   const unitY = (arrow.to.y - arrow.from.y) / length
-  const head = Math.min(ARROW_HEAD_LENGTH, length)
-  const halfWidth = ARROW_HEAD_WIDTH / 2
+  const stroke = arrowStroke(arrow)
+  const head = Math.min(arrowHeadLength(stroke), length)
+  const halfWidth = arrowHeadWidth(stroke) / 2
 
   const shaftEnd = {
     x: arrow.to.x - unitX * head,
@@ -96,6 +134,79 @@ export const arrowOutline = (
     left: { x: shaftEnd.x - unitY * halfWidth, y: shaftEnd.y + unitX * halfWidth },
     right: { x: shaftEnd.x + unitY * halfWidth, y: shaftEnd.y - unitX * halfWidth },
   }
+}
+
+/** Extra pixels around the shaft so a thin arrow is still easy to click. */
+const HIT_SLOP = 12
+
+const distanceToSegment = (point: Point, start: Point, end: Point): number => {
+  const dx = end.x - start.x
+  const dy = end.y - start.y
+  const lengthSq = dx * dx + dy * dy
+
+  if (lengthSq === 0) {
+    return Math.hypot(point.x - start.x, point.y - start.y)
+  }
+
+  const t = clamp(((point.x - start.x) * dx + (point.y - start.y) * dy) / lengthSq, 0, 1)
+
+  return Math.hypot(point.x - (start.x + t * dx), point.y - (start.y + t * dy))
+}
+
+const pointInTriangle = (point: Point, a: Point, b: Point, c: Point): boolean => {
+  const v0x = c.x - a.x
+  const v0y = c.y - a.y
+  const v1x = b.x - a.x
+  const v1y = b.y - a.y
+  const v2x = point.x - a.x
+  const v2y = point.y - a.y
+  const dot00 = v0x * v0x + v0y * v0y
+  const dot01 = v0x * v1x + v0y * v1y
+  const dot02 = v0x * v2x + v0y * v2y
+  const dot11 = v1x * v1x + v1y * v1y
+  const dot12 = v1x * v2x + v1y * v2y
+  const denom = dot00 * dot11 - dot01 * dot01
+
+  if (denom === 0) {
+    return false
+  }
+
+  const u = (dot11 * dot02 - dot01 * dot12) / denom
+  const v = (dot00 * dot12 - dot01 * dot02) / denom
+
+  return u >= 0 && v >= 0 && u + v <= 1
+}
+
+const hitsArrow = (arrow: Arrow, point: Point): boolean => {
+  const outline = arrowOutline(arrow)
+
+  if (!outline) {
+    return false
+  }
+
+  const slop = Math.max(arrowStroke(arrow), HIT_SLOP)
+
+  if (distanceToSegment(point, arrow.from, outline.shaftEnd) <= slop) {
+    return true
+  }
+
+  return pointInTriangle(point, arrow.to, outline.left, outline.right)
+}
+
+/**
+ * Which arrow the pointer is on, or null. Later arrows sit on top, so the walk
+ * is backwards: the last drawn one that covers the point wins.
+ */
+export const hitTestArrow = (arrows: readonly Arrow[], point: Point): number | null => {
+  for (let index = arrows.length - 1; index >= 0; index -= 1) {
+    const arrow = arrows[index]
+
+    if (arrow && hitsArrow(arrow, point)) {
+      return index
+    }
+  }
+
+  return null
 }
 
 const loadImage = (dataUrl: string): Promise<HTMLImageElement> => {
@@ -130,10 +241,6 @@ export const composeArrows = async (dataUrl: string, arrows: Arrow[]): Promise<s
   }
 
   context.drawImage(source, 0, 0)
-
-  context.fillStyle = ARROW_COLOR
-  context.strokeStyle = ARROW_COLOR
-  context.lineWidth = ARROW_STROKE
   context.lineCap = 'round'
 
   for (const arrow of arrows) {
@@ -142,6 +249,12 @@ export const composeArrows = async (dataUrl: string, arrows: Arrow[]): Promise<s
     if (!outline) {
       continue
     }
+
+    const color = arrowColor(arrow)
+
+    context.fillStyle = color
+    context.strokeStyle = color
+    context.lineWidth = arrowStroke(arrow)
 
     context.beginPath()
     context.moveTo(arrow.from.x, arrow.from.y)

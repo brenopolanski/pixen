@@ -211,8 +211,14 @@ onto the image.
   the overlay scales them by `displayedScale`, the same arrangement the step badges use.
 - **The compositing is canvas, not Rust**, for the same reason as the badges: the shapes are cheap to
   draw in the webview, and PNG keeps alpha on the way back to the editor.
-- **One colour, one thickness**, matching the step badges so a guide annotated with both looks like
-  one kit rather than two tools.
+- **Colour and stroke are chosen in the overlay bar.** Defaults match the step badges (`#e5484d`,
+  thickness 8) so a guide annotated with both still looks like one kit until you pick otherwise. The
+  bar sets the next arrow (and the one still being dragged). Click an already-drawn arrow to select
+  it — a halo marks it — and the bar then edits that arrow’s colour and thickness. Drag it to slide
+  the whole arrow (length and angle stay put); a click without a drag still only selects. A click on
+  empty space starts a new one. Bake uses each arrow’s stored style. The head scales with the shaft.
+  The next time Arrow opens, the defaults come back. Backspace deletes the selection, or the last
+  arrow when none is selected.
 - **Done flattens once**, on the same terms as Pixelize and Steps: the save path, file name and
   unsaved marker survive, the editor's undo history does not. See
   [flattening costs](#what-a-flattened-save-costs). Opening another tool or image while arrows

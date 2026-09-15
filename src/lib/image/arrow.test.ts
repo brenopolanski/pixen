@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { arrowOutline, clampPixel, isUsableArrow, MIN_ARROW_LENGTH } from './arrow'
+import {
+  arrowLength,
+  arrowOutline,
+  clampPixel,
+  hitTestArrow,
+  isUsableArrow,
+  MIN_ARROW_LENGTH,
+  translateArrow,
+} from './arrow'
 
 describe('clampPixel', () => {
   const box = { width: 400, height: 400 }
@@ -46,6 +54,13 @@ describe('isUsableArrow', () => {
   it('refuses a press with no drag at all', () => {
     expect(isUsableArrow({ from: { x: 40, y: 40 }, to: { x: 40, y: 40 } })).toBe(false)
   })
+
+  it('asks for a longer drag when the stroke is thicker', () => {
+    expect(
+      isUsableArrow({ from: { x: 0, y: 0 }, stroke: 16, to: { x: 0, y: MIN_ARROW_LENGTH } }),
+    ).toBe(false)
+    expect(isUsableArrow({ from: { x: 0, y: 0 }, stroke: 16, to: { x: 0, y: 44 } })).toBe(true)
+  })
 })
 
 describe('arrowOutline', () => {
@@ -65,5 +80,55 @@ describe('arrowOutline', () => {
 
   it('has nothing to draw for an arrow with no length', () => {
     expect(arrowOutline({ from: { x: 5, y: 5 }, to: { x: 5, y: 5 } })).toBeNull()
+  })
+
+  it('grows the head when the stroke is thicker', () => {
+    expect(arrowOutline({ from: { x: 0, y: 0 }, stroke: 16, to: { x: 100, y: 0 } })).toEqual({
+      shaftEnd: { x: 56, y: 0 },
+      left: { x: 56, y: 20 },
+      right: { x: 56, y: -20 },
+    })
+  })
+})
+
+describe('hitTestArrow', () => {
+  const across = { from: { x: 0, y: 0 }, to: { x: 100, y: 0 } }
+
+  it('hits the shaft', () => {
+    expect(hitTestArrow([across], { x: 40, y: 0 })).toBe(0)
+  })
+
+  it('hits the head', () => {
+    expect(hitTestArrow([across], { x: 90, y: 0 })).toBe(0)
+  })
+
+  it('misses a point well off the arrow', () => {
+    expect(hitTestArrow([across], { x: 40, y: 80 })).toBeNull()
+  })
+
+  it('prefers the later arrow when they overlap', () => {
+    const behind = { from: { x: 0, y: 0 }, to: { x: 100, y: 0 } }
+    const onTop = { from: { x: 0, y: 0 }, to: { x: 100, y: 0 } }
+
+    expect(hitTestArrow([behind, onTop], { x: 40, y: 0 })).toBe(1)
+  })
+})
+
+describe('translateArrow', () => {
+  const image = { width: 200, height: 100 }
+  const arrow = { from: { x: 10, y: 10 }, to: { x: 50, y: 10 } }
+
+  it('moves both ends by the same amount', () => {
+    expect(translateArrow(arrow, { x: 5, y: 3 }, image)).toEqual({
+      from: { x: 15, y: 13 },
+      to: { x: 55, y: 13 },
+    })
+  })
+
+  it('stops at the edge without changing length', () => {
+    const shifted = translateArrow(arrow, { x: 1000, y: 0 }, image)
+
+    expect(shifted).toEqual({ from: { x: 159, y: 10 }, to: { x: 199, y: 10 } })
+    expect(arrowLength(shifted)).toBe(arrowLength(arrow))
   })
 })
