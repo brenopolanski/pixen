@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { arrowOutline, clampPixel, hitTestArrow, isUsableArrow, MIN_ARROW_LENGTH } from './arrow'
+import {
+  arrowLength,
+  arrowOutline,
+  clampPixel,
+  hitTestArrow,
+  isUsableArrow,
+  MIN_ARROW_LENGTH,
+  translateArrow,
+} from './arrow'
 
 describe('clampPixel', () => {
   const box = { width: 400, height: 400 }
@@ -103,5 +111,24 @@ describe('hitTestArrow', () => {
     const onTop = { from: { x: 0, y: 0 }, to: { x: 100, y: 0 } }
 
     expect(hitTestArrow([behind, onTop], { x: 40, y: 0 })).toBe(1)
+  })
+})
+
+describe('translateArrow', () => {
+  const image = { width: 200, height: 100 }
+  const arrow = { from: { x: 10, y: 10 }, to: { x: 50, y: 10 } }
+
+  it('moves both ends by the same amount', () => {
+    expect(translateArrow(arrow, { x: 5, y: 3 }, image)).toEqual({
+      from: { x: 15, y: 13 },
+      to: { x: 55, y: 13 },
+    })
+  })
+
+  it('stops at the edge without changing length', () => {
+    const shifted = translateArrow(arrow, { x: 1000, y: 0 }, image)
+
+    expect(shifted).toEqual({ from: { x: 159, y: 10 }, to: { x: 199, y: 10 } })
+    expect(arrowLength(shifted)).toBe(arrowLength(arrow))
   })
 })

@@ -82,6 +82,27 @@ export const isUsableArrow = (arrow: Arrow): boolean => {
 }
 
 /**
+ * Slides an arrow without changing its length or angle. The delta is shrunk so
+ * both ends stay on the image instead of flattening against the rim.
+ */
+export const translateArrow = (arrow: Arrow, delta: Point, image: Size): Arrow => {
+  const maxX = Math.max(image.width - 1, 0)
+  const maxY = Math.max(image.height - 1, 0)
+  const minX = Math.min(arrow.from.x, arrow.to.x)
+  const maxArrowX = Math.max(arrow.from.x, arrow.to.x)
+  const minY = Math.min(arrow.from.y, arrow.to.y)
+  const maxArrowY = Math.max(arrow.from.y, arrow.to.y)
+  const dx = clamp(delta.x, -minX, maxX - maxArrowX)
+  const dy = clamp(delta.y, -minY, maxY - maxArrowY)
+
+  return {
+    ...arrow,
+    from: { x: Math.round(arrow.from.x + dx), y: Math.round(arrow.from.y + dy) },
+    to: { x: Math.round(arrow.to.x + dx), y: Math.round(arrow.to.y + dy) },
+  }
+}
+
+/**
  * The three points the head is drawn from, and where the shaft has to stop so
  * it does not poke out of the tip.
  *

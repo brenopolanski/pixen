@@ -14,6 +14,7 @@ import {
   clampPixel,
   hitTestArrow,
   isUsableArrow,
+  translateArrow,
 } from '@/lib/image/arrow'
 import { clickToPixel, displayedScale, pixelToDisplayed } from '@/lib/image/pixelize'
 import { generateReactKey } from '@/lib/utils'
@@ -40,6 +41,11 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
   const [arrows, setArrows] = useState<Arrow[]>([])
   const [drawing, setDrawing] = useState<Arrow | null>(null)
   const [selected, setSelected] = useState<number | null>(null)
+  const [moving, setMoving] = useState<{
+    index: number
+    origin: { x: number; y: number }
+    arrow: Arrow
+  } | null>(null)
   const [color, setColor] = useState(ARROW_COLOR)
   const [stroke, setStroke] = useState(ARROW_STROKE)
 
@@ -148,10 +154,13 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
       setSelected(hit)
       setColor(arrowColor(arrow))
       setStroke(arrowStroke(arrow))
+      event.currentTarget.setPointerCapture(event.pointerId)
+      setMoving({ index: hit, origin: tail, arrow })
       return
     }
 
     setSelected(null)
+    setMoving(null)
     // Captured so the drag keeps reporting after the pointer leaves the frame,
     // which is what lets an arrow be aimed at the very edge.
     event.currentTarget.setPointerCapture(event.pointerId)
@@ -159,7 +168,27 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
   }
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!drawing || !box || !size) {
+    if (!box || !size) {
+      return
+    }
+
+    if (moving) {
+      const pixel = clampPixel(box, size, pointIn(event))
+      const next = translateArrow(
+        moving.arrow,
+        { x: pixel.x - moving.origin.x, y: pixel.y - moving.origin.y },
+        size,
+      )
+
+      setArrows((current) =>
+        current.map((arrow, index) =>
+          index === moving.index ? { ...next, color: arrow.color, stroke: arrow.stroke } : arrow,
+        ),
+      )
+      return
+    }
+
+    if (!drawing) {
       return
     }
 
@@ -167,6 +196,11 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
   }
 
   const handlePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (moving) {
+      setMoving(null)
+      return
+    }
+
     if (!drawing || !box || !size) {
       return
     }
