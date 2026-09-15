@@ -107,6 +107,25 @@ const progressReporter = (onProgress: CutoutProgress) => {
 }
 
 /**
+ * The library memoizes a single ONNX session for the whole process, and the
+ * runtime will not take two `run` calls on it at once. Cancelling the overlay
+ * cannot abort the inference already in WASM, so the next open has to wait its
+ * turn instead of starting alongside it — an overlapped run comes back as an
+ * empty mask, which is a fully transparent PNG where the photo used to be.
+ */
+let queue: Promise<unknown> = Promise.resolve()
+
+const enqueue = <T>(work: () => Promise<T>): Promise<T> => {
+  // Queued behind the previous run either way: one failure must not wedge
+  // every cutout after it.
+  const result = queue.then(work, work)
+
+  queue = result.catch(() => undefined)
+
+  return result
+}
+
+/**
  * Runs the segmentation model over an image and returns it with the background
  * gone. Everything is local: the model is served from `public/`, inference is
  * WASM in this process, and the image is never uploaded.
@@ -117,16 +136,27 @@ const progressReporter = (onProgress: CutoutProgress) => {
 export const removeImageBackground = async (
   dataUrl: string,
   onProgress: CutoutProgress,
+  signal?: AbortSignal,
 ): Promise<string> => {
   const base = publicPath()
 
   await assertAssetsPresent(base)
 
-  const blob = await removeBackground(dataUrl, {
-    publicPath: base,
-    model: MODEL,
-    output: { format: 'image/png' },
-    progress: progressReporter(onProgress),
+  // The reporter is built inside the queued work, so a caller still waiting
+  // its turn reports nothing and its overlay stays on Starting.
+  const blob = await enqueue(() => {
+    // Read at the front of the queue rather than when queued: cancelling
+    // closes the overlay while its turn is still behind inference that
+    // nothing can abort, and running that job anyway would only make the
+    // next open wait for a cutout no one is going to see.
+    signal?.throwIfAborted()
+
+    return removeBackground(dataUrl, {
+      publicPath: base,
+      model: MODEL,
+      output: { format: 'image/png' },
+      progress: progressReporter(onProgress),
+    })
   })
 
   return blobToDataUrl(blob)

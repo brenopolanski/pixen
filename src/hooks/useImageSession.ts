@@ -261,13 +261,26 @@ export const useImageSession = (): ImageSession => {
 
   const readTabImage = useCallback(
     (tabId: string): string => {
-      const image = editorOf(tabId)?.getImage()
+      const editor = editorOf(tabId)
+      // Only the editor knows about edits made since the image was loaded, so
+      // it is asked only when it has any. Every tab keeps its own canvas, and
+      // an inactive one can lose its drawing context — one background removal
+      // on another tab is enough — after which `getImage()` still hands back a
+      // data URL, just one that no longer decodes. The stored image is the
+      // last thing loaded or baked into the tab, which is what is on screen.
+      const flattened = editor?.hasChanges() ? editor.getImage() : null
 
-      if (!image) {
+      if (flattened) {
+        return flattened
+      }
+
+      const stored = sessionRef.current.tabs.find((tab) => tab.id === tabId)?.image
+
+      if (!stored) {
         throw new PixenError('Pixen could not read the current image from the editor.')
       }
 
-      return image
+      return stored
     },
     [editorOf],
   )
