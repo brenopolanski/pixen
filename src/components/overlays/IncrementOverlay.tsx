@@ -1,10 +1,25 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 
+import { ArrowStyleControls } from '@/components/overlays/ArrowStyleControls'
 import { CheckIcon, Undo2Icon, XIcon } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
+import { clampPixel } from '@/lib/image/arrow'
 import type { Stamp } from '@/lib/image/increment'
-import { badgeRect, FIRST_STEP } from '@/lib/image/increment'
+import {
+  BADGE_COLOR,
+  BADGE_DIAMETER,
+  BADGE_DIAMETER_MAX,
+  BADGE_DIAMETER_MIN,
+  badgeColor,
+  badgeRect,
+  badgeTextColor,
+  FIRST_STEP,
+  hitTestStamp,
+  renumberStamps,
+  stampDiameter,
+  translateStamp,
+} from '@/lib/image/increment'
 import { clickToPixel, displayedScale, pixelToDisplayed } from '@/lib/image/pixelize'
 import { generateReactKey } from '@/lib/utils'
 
@@ -33,14 +48,46 @@ export const IncrementOverlay = ({
   const [frame, setFrame] = useState<HTMLDivElement | null>(null)
   const [size, setSize] = useState<{ width: number; height: number } | null>(null)
   const [stamps, setStamps] = useState<Stamp[]>([])
+  const [selected, setSelected] = useState<number | null>(null)
+  const [moving, setMoving] = useState<{
+    index: number
+    origin: { x: number; y: number }
+    stamp: Stamp
+  } | null>(null)
+  const [color, setColor] = useState(BADGE_COLOR)
+  const [diameter, setDiameter] = useState(BADGE_DIAMETER)
+
+  const restyle = (nextColor: string, nextDiameter: number) => {
+    setColor(nextColor)
+    setDiameter(nextDiameter)
+
+    if (selected !== null) {
+      setStamps((current) =>
+        current.map((stamp, index) =>
+          index === selected ? { ...stamp, color: nextColor, diameter: nextDiameter } : stamp,
+        ),
+      )
+    }
+  }
 
   useEffect(() => {
     onDraftChange(stamps)
   }, [onDraftChange, stamps])
 
   const undoLast = useCallback(() => {
-    setStamps((current) => current.slice(0, -1))
-  }, [])
+    setSelected((index) => (index === stamps.length - 1 ? null : index))
+    setStamps((current) => renumberStamps(current.slice(0, -1)))
+  }, [stamps.length])
+
+  const deleteSelected = useCallback(() => {
+    if (selected === null) {
+      undoLast()
+      return
+    }
+
+    setStamps((current) => renumberStamps(current.filter((_, index) => index !== selected)))
+    setSelected(null)
+  }, [selected, undoLast])
 
   const apply = useCallback(() => {
     if (stamps.length > 0) {
@@ -58,7 +105,7 @@ export const IncrementOverlay = ({
 
       if (event.key === 'Backspace') {
         event.preventDefault()
-        undoLast()
+        deleteSelected()
         return
       }
 
@@ -73,40 +120,100 @@ export const IncrementOverlay = ({
     return () => {
       window.removeEventListener('keydown', onKeyDown, { capture: true })
     }
-  }, [apply, onCancel, undoLast])
-
-  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (!size) {
-      return
-    }
-
-    const bounds = event.currentTarget.getBoundingClientRect()
-    const pixel = clickToPixel({ width: bounds.width, height: bounds.height }, size, {
-      x: event.clientX - bounds.left,
-      y: event.clientY - bounds.top,
-    })
-
-    // A click in the letterbox is ignored rather than closing the tool: the
-    // user is mid-sequence and a miss should not cost them the numbers so far.
-    if (!pixel) {
-      return
-    }
-
-    setStamps((current) => [...current, { step: FIRST_STEP + current.length, ...pixel }])
-  }
+  }, [apply, deleteSelected, onCancel])
 
   const box = frame ? { width: frame.clientWidth, height: frame.clientHeight } : null
   // Badges are measured in image pixels, so on screen they shrink with the
   // image the same way the baked ones will.
   const scale = box && size ? displayedScale(box, size) : 1
 
+  /** Where the pointer is inside the frame the image is fitted into. */
+  const pointIn = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect()
+
+    return { x: event.clientX - bounds.left, y: event.clientY - bounds.top }
+  }
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!box || !size) {
+      return
+    }
+
+    // A click in the letterbox is ignored rather than closing the tool: the
+    // user is mid-sequence and a miss should not cost them the numbers so far.
+    const pixel = clickToPixel(box, size, pointIn(event))
+
+    if (!pixel) {
+      return
+    }
+
+    const hit = hitTestStamp(stamps, pixel, size)
+
+    if (hit !== null) {
+      const stamp = stamps[hit]
+
+      if (!stamp) {
+        return
+      }
+
+      setSelected(hit)
+      setColor(badgeColor(stamp))
+      setDiameter(stampDiameter(stamp))
+      event.currentTarget.setPointerCapture(event.pointerId)
+      setMoving({ index: hit, origin: pixel, stamp })
+      return
+    }
+
+    setSelected(null)
+    setMoving(null)
+    setStamps((current) => [
+      ...current,
+      { step: FIRST_STEP + current.length, ...pixel, color, diameter },
+    ])
+  }
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!moving || !box || !size) {
+      return
+    }
+
+    const pixel = clampPixel(box, size, pointIn(event))
+    const next = translateStamp(
+      moving.stamp,
+      { x: pixel.x - moving.origin.x, y: pixel.y - moving.origin.y },
+      size,
+    )
+
+    setStamps((current) =>
+      current.map((stamp, index) =>
+        index === moving.index
+          ? { ...next, color: stamp.color, diameter: stamp.diameter, step: stamp.step }
+          : stamp,
+      ),
+    )
+  }
+
+  const handlePointerUp = () => {
+    setMoving(null)
+  }
+
   return (
     <div className="absolute inset-0 z-40 flex flex-col bg-background fade-in">
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2.5">
-        <p className="text-[12px] text-muted-foreground">
-          Click each spot in the order you want it numbered.
-          <span className="ml-2 text-muted-foreground/70">Backspace undoes · Esc to cancel</span>
-        </p>
+        <ArrowStyleControls
+          color={color}
+          size={diameter}
+          sizeLabel="Size"
+          sizeMax={BADGE_DIAMETER_MAX}
+          sizeMin={BADGE_DIAMETER_MIN}
+          sizeStep={4}
+          onColorChange={(next) => {
+            restyle(next, diameter)
+          }}
+          onSizeChange={(next) => {
+            restyle(color, next)
+          }}
+        />
 
         <div className="flex shrink-0 items-center gap-1.5">
           <Button
@@ -145,6 +252,8 @@ export const IncrementOverlay = ({
         ref={setFrame}
         className="relative min-h-0 flex-1 cursor-crosshair touch-none select-none"
         onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
       >
         {/* `contain` is what the geometry helpers assume; the two have to agree
             or every badge lands off by the letterbox. */}
@@ -163,23 +272,27 @@ export const IncrementOverlay = ({
 
         {box &&
           size &&
-          stamps.map((stamp) => {
+          stamps.map((stamp, index) => {
             // The same rect the composite will use, so a badge nudged away from
             // an edge previews exactly where it lands.
             const rect = badgeRect(size, stamp)
             const origin = pixelToDisplayed(box, size, rect)
-            const diameter = rect.width * scale
+            const displayedDiameter = rect.width * scale
+            const fill = badgeColor(stamp)
 
             return (
               <span
-                key={generateReactKey('stamp', stamp.step)}
-                className="pointer-events-none absolute flex items-center justify-center rounded-full bg-[#e5484d] font-semibold text-white"
+                key={generateReactKey('stamp', index)}
+                className="pointer-events-none absolute flex items-center justify-center rounded-full font-semibold"
                 style={{
                   left: origin.x,
                   top: origin.y,
-                  width: diameter,
-                  height: diameter,
-                  fontSize: diameter * 0.58,
+                  width: displayedDiameter,
+                  height: displayedDiameter,
+                  fontSize: displayedDiameter * 0.58,
+                  backgroundColor: fill,
+                  color: badgeTextColor(fill),
+                  boxShadow: index === selected ? `0 0 0 ${4 * scale}px white` : undefined,
                 }}
               >
                 {stamp.step}

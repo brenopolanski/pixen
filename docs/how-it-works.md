@@ -188,8 +188,15 @@ last one back, Escape or **Cancel** throws the lot away, and **Done** writes the
   `src/lib/image/pixelize.ts` convert between the two. A click in the letterbox margin is ignored
   rather than closing the tool, since you are mid-sequence. A badge dropped near an edge is nudged
   inwards so it is not sliced in half, and the preview is nudged with it.
-- **One size, one colour, starting at 1.** Shutter's tool has no settings either, and a screenshot
-  wants the numbers to look the same as each other more than it wants them configurable.
+- **Colour and size are chosen in the overlay bar.** Defaults stay red (`#e5484d`) and diameter 48
+  so a guide annotated with arrows still looks like one kit until you pick otherwise. The bar sets
+  the next number. Click an already-dropped badge to select it — a halo marks it — and the bar then
+  edits that badge’s colour and size. Drag it to slide the whole circle (it stays fully on the
+  image); a click without a drag still only selects. A click on empty space drops the next number
+  with the current bar. Bake uses each stamp’s stored style. Digits flip to dark on a light fill so
+  white and yellow stay readable. The next time Steps opens, the defaults come back. Backspace
+  deletes the selection, or the last number when none is selected, and the rest are renumbered
+  `1…n` so a hole is not left behind.
 - **`⌘⇧N` opens it** (Numbered Steps). Same rules as the other overlay shortcuts: nothing happens
   without an image, and repeating it while Steps is already open does not prompt.
 

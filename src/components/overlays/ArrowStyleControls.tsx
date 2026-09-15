@@ -6,9 +6,13 @@ import { cn, generateReactKey } from '@/lib/utils'
 
 interface ArrowStyleControlsProps {
   color: string
-  stroke: number
+  size: number
+  sizeMin?: number
+  sizeMax?: number
+  sizeStep?: number
+  sizeLabel?: string
   onColorChange: (color: string) => void
-  onStrokeChange: (stroke: number) => void
+  onSizeChange: (size: number) => void
 }
 
 const SWATCHES = [
@@ -24,15 +28,19 @@ const sameColor = (left: string, right: string): boolean =>
 
 export const ArrowStyleControls = ({
   color,
-  stroke,
+  size,
+  sizeMin = 4,
+  sizeMax = 16,
+  sizeStep = 1,
+  sizeLabel = 'Stroke',
   onColorChange,
-  onStrokeChange,
+  onSizeChange,
 }: ArrowStyleControlsProps) => {
   const isPreset = SWATCHES.some((swatch) => sameColor(swatch.color, color))
 
   return (
     <div className="flex min-w-0 items-center gap-3">
-      <div aria-label="Arrow color" className="flex items-center gap-1" role="radiogroup">
+      <div aria-label="Color" className="flex items-center gap-1" role="radiogroup">
         {SWATCHES.map((swatch) => {
           const selected = sameColor(swatch.color, color)
 
@@ -71,7 +79,7 @@ export const ArrowStyleControls = ({
           </PopoverTrigger>
           <PopoverContent align="start" className="w-auto p-2">
             <input
-              aria-label="Custom arrow color"
+              aria-label="Custom color"
               className="size-8 cursor-pointer border-0 bg-transparent p-0"
               type="color"
               value={color}
@@ -84,17 +92,17 @@ export const ArrowStyleControls = ({
       </div>
 
       <Slider
-        aria-label="Stroke"
+        aria-label={sizeLabel}
         className="w-24"
-        max={16}
-        min={4}
-        step={1}
-        value={[stroke]}
+        max={sizeMax}
+        min={sizeMin}
+        step={sizeStep}
+        value={[size]}
         onValueChange={(values) => {
           const next = values[0]
 
           if (next !== undefined) {
-            onStrokeChange(next)
+            onSizeChange(next)
           }
         }}
       />
