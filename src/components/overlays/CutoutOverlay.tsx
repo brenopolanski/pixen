@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 
+import { CheckIcon, XIcon } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
 import { toUserMessage } from '@/lib/errors'
 import { removeImageBackground } from '@/lib/image/cutout'
-
-import { CheckIcon, XIcon } from './shared/Icons'
 
 interface CutoutOverlayProps {
   /** The flattened canvas to run the model on. */

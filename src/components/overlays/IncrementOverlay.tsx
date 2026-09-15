@@ -1,13 +1,12 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 
+import { CheckIcon, Undo2Icon, XIcon } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
 import type { Stamp } from '@/lib/image/increment'
 import { badgeRect, FIRST_STEP } from '@/lib/image/increment'
 import { clickToPixel, displayedScale, pixelToDisplayed } from '@/lib/image/pixelize'
 import { generateReactKey } from '@/lib/utils'
-
-import { CheckIcon, Undo2Icon, XIcon } from './shared/Icons'
 
 interface IncrementOverlayProps {
   /** The flattened canvas to stamp on. */

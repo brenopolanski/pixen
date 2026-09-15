@@ -1,4 +1,4 @@
-import { ImageDownIcon } from './shared/Icons'
+import { ImageDownIcon } from '@/components/shared/Icons'
 
 /**
  * Covers the whole window while a drag is in progress. The editor fills the

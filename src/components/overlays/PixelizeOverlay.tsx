@@ -1,11 +1,10 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { XIcon } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
 import type { Rect } from '@/lib/image/pixelize'
 import { rectBetween, selectionToPixels } from '@/lib/image/pixelize'
-
-import { XIcon } from './shared/Icons'
 
 interface PixelizeOverlayProps {
   /** The flattened canvas to select on. */

@@ -1,6 +1,7 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 
+import { CheckIcon, Undo2Icon, XIcon } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
 import type { Arrow } from '@/lib/image/arrow'
 import {
@@ -12,8 +13,6 @@ import {
 } from '@/lib/image/arrow'
 import { clickToPixel, displayedScale, pixelToDisplayed } from '@/lib/image/pixelize'
 import { generateReactKey } from '@/lib/utils'
-
-import { CheckIcon, Undo2Icon, XIcon } from './shared/Icons'
 
 interface ArrowOverlayProps {
   /** The flattened canvas to draw on. */
