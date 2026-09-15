@@ -44,9 +44,6 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
   const restyle = (nextColor: string, nextStroke: number) => {
     setColor(nextColor)
     setStroke(nextStroke)
-    setArrows((current) =>
-      current.map((arrow) => ({ ...arrow, color: nextColor, stroke: nextStroke })),
-    )
     setDrawing((current) => (current ? { ...current, color: nextColor, stroke: nextStroke } : null))
   }
 
