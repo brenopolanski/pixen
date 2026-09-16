@@ -39,7 +39,7 @@ export const TabBar = ({ tabs, activeId, locked, onActivate, onClose, onNewTab }
                 active
                   ? 'border-border bg-accent text-foreground'
                   : 'border-transparent text-muted-foreground hover:bg-accent/60',
-                locked ? 'opacity-40' : 'cursor-pointer',
+                locked ? 'opacity-40' : 'cursor-default',
               )}
               role="tab"
               tabIndex={locked ? -1 : active ? 0 : -1}
