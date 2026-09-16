@@ -8,7 +8,7 @@ pub const ABOUT_WINDOW_LABEL: &str = "about";
 const APP_NAME: &str = "Pixen";
 const ABOUT_WINDOW_WIDTH: f64 = 360.0;
 const ABOUT_WINDOW_HEIGHT: f64 = 400.0;
-/// Matches `--background` in src/index.css so the window never flashes white.
+/// Matches `--background` in src/styles/globals.css so the window never flashes white.
 const ABOUT_WINDOW_BACKGROUND: Color = Color(16, 17, 20, 255);
 
 /// Reveals the main window and dismisses the splash screen. The order matters:
