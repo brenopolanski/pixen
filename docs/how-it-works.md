@@ -353,7 +353,7 @@ image looking permanently unsaved.
 
 The tool rail docks on the left (`features.imageEditor.dock`), matching the layout of most desktop
 editors. The editor's own toolbar also ends with Cancel and Save buttons, which duplicate Pixen's
-toolbar and native dialogs. Nothing in the editor's options turns them off, so `src/index.css`
+toolbar and native dialogs. Nothing in the editor's options turns them off, so `src/styles/globals.css`
 hides that group by position and lets the zoom controls take the space. That rule depends on the
 editor's DOM, so it needs a look after an editor release — the buttons stay wired to the session,
 and the worst case is that they reappear rather than stop working.
@@ -404,7 +404,7 @@ src-tauri/src/
 ```
 
 The primitives under `components/ui/` are the generated shadcn files, themed to Pixen's own tokens
-rather than the default zinc palette: `index.css` aliases shadcn's semantic names onto the existing
+rather than the default zinc palette: `globals.css` aliases shadcn's semantic names onto the existing
 `--brand`, `--surface` and `--danger`, so `Button` and `DropdownMenu` inherit the app's dark theme
 and nothing has to be restyled per component. Native dialogs, the editor and the overlays stay as
 they are; the primitives cover buttons, menus and toasts only.

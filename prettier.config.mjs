@@ -8,7 +8,7 @@ const prettierConfig = {
   singleQuote: true,
   tabWidth: 2,
   tailwindFunctions: ['cn', 'cva'],
-  tailwindStylesheet: 'src/index.css',
+  tailwindStylesheet: 'src/styles/globals.css',
   trailingComma: 'all',
 }
 

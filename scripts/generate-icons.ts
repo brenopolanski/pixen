@@ -22,7 +22,7 @@ const MARK_MARGIN = 0.16
  * own viewBox already insets the mark, which is the padding the bar wants.
  */
 const TRAY_SIZE = 44
-/** Matches --background in src/index.css so the icon plate and app agree. */
+/** Matches --background in src/styles/globals.css so the icon plate and app agree. */
 const APP_BACKGROUND = { r: 16, g: 17, b: 20, alpha: 1 }
 const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 }
 

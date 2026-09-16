@@ -1,0 +1,46 @@
+@layer utilities {
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes progress {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(300%);
+    }
+  }
+
+  @keyframes twinkle {
+    0%,
+    100% {
+      opacity: 0.15;
+      transform: scale(0.55);
+    }
+
+    50% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .fade-in {
+      animation: fade-in 120ms ease-out;
+    }
+
+    .progress-indicator {
+      animation: progress 1.2s ease-in-out infinite;
+    }
+
+    .twinkle {
+      animation: twinkle 1.8s ease-in-out infinite;
+    }
+  }
+}

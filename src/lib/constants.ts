@@ -18,7 +18,7 @@ export const CAPTURE_REQUESTED_EVENT = 'pixen-capture-requested'
 export const QUIT_REQUESTED_EVENT = 'pixen-quit-requested'
 
 /**
- * Class on every editor mount. The Save/Cancel hide rule in `index.css` keys
+ * Class on every editor mount. The Save/Cancel hide rule in `globals.css` keys
  * off this rather than a single id, because each tab has its own editor.
  */
 export const EDITOR_CONTAINER_CLASS = 'pixen-editor'

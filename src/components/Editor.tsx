@@ -22,7 +22,7 @@ interface EditorProps {
  * is read back through the ref rather than taken from the callback, so it
  * always comes from the same source as the unsaved-changes check.
  *
- * Those two buttons are hidden in src/index.css because Pixen's own toolbar
+ * Those two buttons are hidden in src/styles/globals.css because Pixen's own toolbar
  * covers them, but they stay wired: if a future editor build moves them out of
  * reach of that rule, they act on the project instead of going dead.
  */
@@ -38,7 +38,7 @@ export const Editor = ({
   useCropDoubleClick(editorId)
 
   return (
-    <div className={`${EDITOR_CONTAINER_CLASS} flex min-h-0 min-w-0 flex-1 flex-col`} id={editorId}>
+    <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${EDITOR_CONTAINER_CLASS}`} id={editorId}>
       <ImageEditor
         ref={onEditor}
         editorId={editorId}
