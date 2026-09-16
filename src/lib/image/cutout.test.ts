@@ -143,4 +143,96 @@ describe('removeImageBackground', () => {
       'WebAssembly.instantiate failed',
     )
   })
+
+  it('holds the next run until the one in flight is done', async () => {
+    stubFileReader({ result: 'data:image/png;base64,AAAA' })
+
+    const entered: string[] = []
+    let releaseFirst: (() => void) | undefined
+
+    // One ONNX session serves the whole process and will not take two runs at
+    // once. The first is left hanging on purpose: cancelling an overlay cannot
+    // abort inference, so this is what a reopen has to queue behind.
+    removeBackground.mockImplementation((image: string) => {
+      entered.push(image)
+
+      if (entered.length > 1) {
+        return Promise.resolve(new Blob())
+      }
+
+      return new Promise<Blob>((resolve) => {
+        releaseFirst = () => resolve(new Blob())
+      })
+    })
+
+    const first = removeImageBackground('data:image/png;base64,ONE', vi.fn())
+    const second = removeImageBackground('data:image/png;base64,TWO', vi.fn())
+
+    await vi.waitFor(() => {
+      expect(releaseFirst).toBeDefined()
+    })
+
+    expect(entered).toEqual(['data:image/png;base64,ONE'])
+
+    releaseFirst?.()
+
+    await expect(first).resolves.toBe('data:image/png;base64,AAAA')
+    await expect(second).resolves.toBe('data:image/png;base64,AAAA')
+    // Each run got its own image rather than the other's.
+    expect(entered).toEqual(['data:image/png;base64,ONE', 'data:image/png;base64,TWO'])
+  })
+
+  it('drops a run that was cancelled while it waited its turn', async () => {
+    stubFileReader({ result: 'data:image/png;base64,AAAA' })
+
+    const entered: string[] = []
+    let releaseFirst: (() => void) | undefined
+
+    removeBackground.mockImplementation((image: string) => {
+      entered.push(image)
+
+      if (entered.length > 1) {
+        return Promise.resolve(new Blob())
+      }
+
+      return new Promise<Blob>((resolve) => {
+        releaseFirst = () => resolve(new Blob())
+      })
+    })
+
+    const controller = new AbortController()
+    const first = removeImageBackground('data:image/png;base64,ONE', vi.fn())
+    const cancelled = removeImageBackground('data:image/png;base64,TWO', vi.fn(), controller.signal)
+
+    await vi.waitFor(() => {
+      expect(releaseFirst).toBeDefined()
+    })
+
+    // Closed while still queued behind inference that cannot be called back.
+    controller.abort()
+    releaseFirst?.()
+
+    await expect(first).resolves.toBe('data:image/png;base64,AAAA')
+    await expect(cancelled).rejects.toThrow()
+    // The cancelled open never reached the model, so reopening does not have
+    // to wait for a cutout no one would have seen.
+    expect(entered).toEqual(['data:image/png;base64,ONE'])
+
+    const reopened = removeImageBackground('data:image/png;base64,THREE', vi.fn())
+
+    await expect(reopened).resolves.toBe('data:image/png;base64,AAAA')
+    expect(entered).toEqual(['data:image/png;base64,ONE', 'data:image/png;base64,THREE'])
+  })
+
+  it('lets the next run through after a failure rather than wedging the queue', async () => {
+    stubFileReader({ result: 'data:image/png;base64,AAAA' })
+    removeBackground.mockRejectedValueOnce(new Error('WebAssembly.instantiate failed'))
+    removeBackground.mockResolvedValueOnce(new Blob())
+
+    const failed = removeImageBackground('data:image/png;base64,ONE', vi.fn())
+    const next = removeImageBackground('data:image/png;base64,TWO', vi.fn())
+
+    await expect(failed).rejects.toThrow('WebAssembly.instantiate failed')
+    await expect(next).resolves.toBe('data:image/png;base64,AAAA')
+  })
 })

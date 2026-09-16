@@ -23,7 +23,7 @@ The editor does the editing. Pixen owns the window, the native file dialogs, the
 - Saves as PNG, JPEG or WebP with `⌘S`, asking where to write the first time and reusing that destination afterwards
 - Saves to a new file with `⌘⇧S`
 - Copies the edited image to the system clipboard with `⌘⇧C`
-- Hides private data — an address, a token, a face — behind a mosaic, by dragging a box over it
+- Hides private data — an address, a token, a face — by pixelating it: drag a box over it
 - Numbers a screenshot for a step-by-step guide: click each spot and the badge counts itself up
 - Points at what matters: drag an arrow towards it, as many as the guide needs
 - Cuts the background away from the subject with a local segmentation model, previewing the result before it is applied

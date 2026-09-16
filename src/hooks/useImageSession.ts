@@ -70,8 +70,9 @@ export interface ImageSession {
   copyImage: () => void
   pixelizePreview: string | null
   startPixelize: () => void
-  applyPixelize: (region: Rect) => void
+  applyPixelize: (regions: Rect[]) => void
   cancelPixelize: () => void
+  reportPixelizeDraft: (regions: Rect[]) => void
   incrementPreview: string | null
   startIncrement: () => void
   applyIncrement: (stamps: Stamp[]) => void
@@ -88,6 +89,8 @@ export interface ImageSession {
   reportCutoutDraft: (image: string | null) => void
   /** The flattened image the cutout overlay runs the model on; null when closed. */
   cutoutPreview: string | null
+  /** Bumped each time Background opens, so the overlay remounts after Cancel. */
+  cutoutSession: number
   startCutout: () => void
   applyCutout: (dataUrl: string) => void
   cancelCutout: () => void
@@ -124,6 +127,7 @@ export const useImageSession = (): ImageSession => {
   const [incrementPreview, setIncrementPreview] = useState<string | null>(null)
   const [arrowPreview, setArrowPreview] = useState<string | null>(null)
   const [cutoutPreview, setCutoutPreview] = useState<string | null>(null)
+  const [cutoutSession, setCutoutSession] = useState(0)
   const [format, setFormatState] = useState<SaveFormat>(DEFAULT_SAVE_FORMAT)
   // Read once: nothing outside Pixen writes this key, so the stored list and
   // this one cannot drift apart while the window is open.
@@ -140,9 +144,15 @@ export const useImageSession = (): ImageSession => {
   const incrementPreviewRef = useRef<string | null>(null)
   const arrowPreviewRef = useRef<string | null>(null)
   const cutoutPreviewRef = useRef<string | null>(null)
-  const overlayDraftRef = useRef<{ arrows: Arrow[]; stamps: Stamp[]; cutout: string | null }>({
+  const overlayDraftRef = useRef<{
+    arrows: Arrow[]
+    stamps: Stamp[]
+    regions: Rect[]
+    cutout: string | null
+  }>({
     arrows: [],
     stamps: [],
+    regions: [],
     cutout: null,
   })
 
@@ -224,7 +234,7 @@ export const useImageSession = (): ImageSession => {
     incrementPreviewRef.current = null
     arrowPreviewRef.current = null
     cutoutPreviewRef.current = null
-    overlayDraftRef.current = { arrows: [], stamps: [], cutout: null }
+    overlayDraftRef.current = { arrows: [], stamps: [], regions: [], cutout: null }
     overlayOpenRef.current = false
     setPixelizePreview(null)
     setIncrementPreview(null)
@@ -258,13 +268,26 @@ export const useImageSession = (): ImageSession => {
 
   const readTabImage = useCallback(
     (tabId: string): string => {
-      const image = editorOf(tabId)?.getImage()
+      const editor = editorOf(tabId)
+      // Only the editor knows about edits made since the image was loaded, so
+      // it is asked only when it has any. Every tab keeps its own canvas, and
+      // an inactive one can lose its drawing context — one background removal
+      // on another tab is enough — after which `getImage()` still hands back a
+      // data URL, just one that no longer decodes. The stored image is the
+      // last thing loaded or baked into the tab, which is what is on screen.
+      const flattened = editor?.hasChanges() ? editor.getImage() : null
 
-      if (!image) {
+      if (flattened) {
+        return flattened
+      }
+
+      const stored = sessionRef.current.tabs.find((tab) => tab.id === tabId)?.image
+
+      if (!stored) {
         throw new PixenError('Pixen could not read the current image from the editor.')
       }
 
-      return image
+      return stored
     },
     [editorOf],
   )
@@ -282,6 +305,10 @@ export const useImageSession = (): ImageSession => {
   const currentOverlayDraft = useCallback((): OverlayDraft => {
     if (arrowPreviewRef.current !== null) {
       return { type: 'arrow', arrows: overlayDraftRef.current.arrows }
+    }
+
+    if (pixelizePreviewRef.current !== null) {
+      return { type: 'pixelize', regions: overlayDraftRef.current.regions }
     }
 
     if (incrementPreviewRef.current !== null) {
@@ -315,6 +342,20 @@ export const useImageSession = (): ImageSession => {
         bakedRef.current.set(active.id, true)
         patchTab(active.id, { image: annotated, dirty: true })
         return annotated
+      }
+
+      if (draft.type === 'pixelize') {
+        const preview = pixelizePreviewRef.current
+
+        if (!preview || draft.regions.length === 0) {
+          return null
+        }
+
+        const pixelized = await pixelizeImage(preview, draft.regions)
+
+        bakedRef.current.set(active.id, true)
+        patchTab(active.id, { image: pixelized, dirty: true })
+        return pixelized
       }
 
       if (draft.type === 'increment') {
@@ -587,25 +628,27 @@ export const useImageSession = (): ImageSession => {
 
   const cancelPixelize = useCallback(() => {
     pixelizePreviewRef.current = null
+    overlayDraftRef.current.regions = []
     overlayOpenRef.current = false
     setPixelizePreview(null)
   }, [])
 
   const applyPixelize = useCallback(
-    (region: Rect) => {
+    (regions: Rect[]) => {
       run(async () => {
         const active = activeTabOf(sessionRef.current)
         const preview = pixelizePreview
 
-        if (!active || !preview) {
+        if (!active || !preview || regions.length === 0) {
           return
         }
 
-        const pixelized = await pixelizeImage(preview, region)
+        const pixelized = await pixelizeImage(preview, regions)
 
         bakedRef.current.set(active.id, true)
         patchTab(active.id, { image: pixelized, dirty: true })
         pixelizePreviewRef.current = null
+        overlayDraftRef.current.regions = []
         overlayOpenRef.current = false
         setPixelizePreview(null)
       })
@@ -737,6 +780,7 @@ export const useImageSession = (): ImageSession => {
 
       cutoutPreviewRef.current = image
       overlayOpenRef.current = true
+      setCutoutSession((current) => current + 1)
       setCutoutPreview(image)
     })
   }, [run, settleOverlay])
@@ -968,6 +1012,10 @@ export const useImageSession = (): ImageSession => {
     setError(null)
   }, [])
 
+  const reportPixelizeDraft = useCallback((regions: Rect[]) => {
+    overlayDraftRef.current.regions = regions
+  }, [])
+
   const reportArrowDraft = useCallback((arrows: Arrow[]) => {
     overlayDraftRef.current.arrows = arrows
   }, [])
@@ -1007,6 +1055,7 @@ export const useImageSession = (): ImageSession => {
     startPixelize,
     applyPixelize,
     cancelPixelize,
+    reportPixelizeDraft,
     incrementPreview,
     startIncrement,
     applyIncrement,
@@ -1019,6 +1068,7 @@ export const useImageSession = (): ImageSession => {
     reportIncrementDraft,
     reportCutoutDraft,
     cutoutPreview,
+    cutoutSession,
     startCutout,
     applyCutout,
     cancelCutout,
