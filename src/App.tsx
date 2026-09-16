@@ -216,6 +216,7 @@ const App = () => {
             image={session.pixelizePreview}
             onApply={session.applyPixelize}
             onCancel={session.cancelPixelize}
+            onDraftChange={session.reportPixelizeDraft}
           />
         )}
 

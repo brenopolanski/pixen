@@ -144,26 +144,34 @@ copy from the keyboard or the native Edit menu says so too.
 
 ## Pixelizing
 
-**Pixelize** hides something you would rather not publish — an email address, an IP, a token — under
-a mosaic of averaged 12-pixel blocks. Drag a box over it and let go; there is no Apply step. Escape
-or **Cancel** closes without touching the image, and a stray click does the same.
+**Pixelize** hides something you would rather not publish — an email address, an IP, a token — by
+pixelating it into averaged 12-pixel blocks. Drag a box over each area, Escape or **Cancel** throws
+the lot away, and **Done** writes them onto the image.
 
+- **The boxes are not baked until Done.** They stay overlay marquees while you work, which is what
+  lets more than one area be hidden in a single flatten and Backspace undo. Applying on each drag
+  would reload the editor once per box.
 - **The selection is made on a still copy, not on the live canvas.** The editor reports neither its
   zoom nor where the image sits on screen, so a box drawn over it could not be mapped back to
   pixels. `PixelizeOverlay` covers the editor with the flattened image at a known `contain` fit, and
-  `src/lib/image/pixelize.ts` converts the drag into pixel coordinates from that.
-- **It flattens, like a save does.** The mosaic is applied to the image the editor currently shows,
-  and the result is loaded back in, so the editor's own undo history goes with it — pixelize is not
-  something Undo can take back. What survives is the document: the save path, the file name and the
-  unsaved marker, so `⌘S` still writes where it wrote before. The
-  [flattening costs](#what-a-flattened-save-costs) are the same ones a save pays.
-- **The mosaic is computed in Rust and stays a PNG in memory.** `pixelize_image` averages every
-  channel including alpha, so a mosaic over a transparent PNG stays transparent rather than growing
+  `src/lib/image/pixelize.ts` converts the drag into pixel coordinates from that. A stray click or a
+  drag in the letterbox is ignored rather than closing the tool, since you are mid-sequence.
+- **Click a box to select it — a halo marks it — and drag it to slide.** Size stays put; redraw to
+  change it. A click without a drag still only selects. A drag on empty space starts a new box.
+  Backspace deletes the selection, or the last box when none is selected.
+- **Done flattens once**, on the same terms as Steps and Arrow: the save path, file name and unsaved
+  marker survive, the editor's undo history does not. See
+  [flattening costs](#what-a-flattened-save-costs). Opening another tool or image while boxes are
+  waiting asks Apply / Don't Apply / Cancel. Apply flattens them the same way **Done** does; it does
+  not write a file.
+- **Pixelation is computed in Rust and stays a PNG in memory.** `pixelize_image` averages every
+  channel including alpha, so pixelating a transparent PNG stays transparent rather than growing
   a grey square. This is an edit passing through, not a save, so the toolbar's format has no say in
-  it. The region is clamped to the image on both sides of the boundary.
+  it. Regions are pixelated in order, so a later box wins where they overlap. Each region is clamped
+  to the image on both sides of the boundary.
 - **`⌘⇧P` opens it**, same as the Edit menu and the Tools grid. It still only starts the overlay —
-  the box is drawn with the mouse — and it does nothing when no image is open. It sits in the Edit
-  menu beside Copy Image.
+  the boxes are drawn with the mouse — and it does nothing when no image is open. Repeating it while
+  Pixelize is already open does not prompt. It sits in the Edit menu beside Copy Image.
 
 ## Numbering steps
 
@@ -178,7 +186,7 @@ last one back, Escape or **Cancel** throws the lot away, and **Done** writes the
   survive, the editor's undo history does not. See [flattening costs](#what-a-flattened-save-costs).
   Opening another tool or image while badges are waiting asks Apply / Don't Apply / Cancel. Apply
   flattens them the same way **Done** does; it does not write a file.
-- **The compositing is canvas, not Rust.** The mosaic belongs in Rust because it only averages
+- **The compositing is canvas, not Rust.** Pixelation belongs in Rust because it only averages
   pixels, but a badge has a digit in it, and drawing a digit needs a font — one the webview already
   has and the Rust binary would have to bundle. `src/lib/image/increment.ts` draws the circles and
   numbers onto a canvas and exports a PNG, so alpha survives and the toolbar's format stays out of
@@ -365,7 +373,7 @@ scripts/
 └── fetch-bg-removal-assets.mjs   # vendors the segmentation model into public/
 
 src-tauri/src/
-├── image.rs             # image file I/O, PNG/JPEG/WebP encoding, the pixelize mosaic
+├── image.rs             # image file I/O, PNG/JPEG/WebP encoding, pixelate
 ├── capture.rs           # macOS interactive screen capture
 ├── clipboard.rs         # copying the edited image out as pixels
 ├── dialog.rs            # the three-button unsaved-changes prompt
