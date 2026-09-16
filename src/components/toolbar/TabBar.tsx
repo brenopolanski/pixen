@@ -21,41 +21,61 @@ const tabLabel = (tab: ImageTab): string => {
 export const TabBar = ({ tabs, activeId, locked, onActivate, onClose, onNewTab }: TabBarProps) => {
   return (
     <div className="flex min-w-0 items-center gap-1 border-t border-border px-3 py-1.5">
-      <div className="no-scrollbar flex min-w-0 scroll-fade-x items-center gap-1 overflow-x-auto">
+      <div
+        className="no-scrollbar flex min-w-0 scroll-fade-x items-center gap-1 overflow-x-auto"
+        role="tablist"
+      >
         {tabs.map((tab) => {
           const active = tab.id === activeId
+          const label = tabLabel(tab)
 
           return (
             <div
               key={generateReactKey('tab', tab.id)}
+              aria-disabled={locked || undefined}
+              aria-selected={active}
               className={cn(
                 'flex max-w-45 shrink-0 items-center gap-1 rounded-md border px-2 py-1',
                 active
                   ? 'border-border bg-accent text-foreground'
                   : 'border-transparent text-muted-foreground hover:bg-accent/60',
+                locked ? 'opacity-40' : 'cursor-pointer',
               )}
+              role="tab"
+              tabIndex={locked ? -1 : active ? 0 : -1}
+              title={label}
+              onClick={() => {
+                if (!locked) {
+                  onActivate(tab.id)
+                }
+              }}
+              onKeyDown={(event) => {
+                if (locked || (event.key !== 'Enter' && event.key !== ' ')) {
+                  return
+                }
+
+                event.preventDefault()
+                onActivate(tab.id)
+              }}
             >
-              <button
-                className="flex min-w-0 items-center gap-1.5 text-left"
-                disabled={locked}
-                title={tabLabel(tab)}
-                type="button"
-                onClick={() => onActivate(tab.id)}
-              >
-                <span className="max-w-30 truncate text-[12px] font-medium">{tabLabel(tab)}</span>
+              <span className="flex min-w-0 items-center gap-1.5 text-left">
+                <span className="max-w-30 truncate text-[12px] font-medium">{label}</span>
                 {tab.dirty && (
                   <span
                     aria-label="Unsaved changes"
                     className="size-1.5 shrink-0 rounded-full bg-brand"
                   />
                 )}
-              </button>
+              </span>
               <button
-                aria-label={`Close ${tabLabel(tab)}`}
+                aria-label={`Close ${label}`}
                 className="shrink-0 rounded-sm p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-40"
                 disabled={locked}
                 type="button"
-                onClick={() => onClose(tab.id)}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onClose(tab.id)
+                }}
               >
                 <XIcon className="size-3" />
               </button>
