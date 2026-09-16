@@ -13,13 +13,13 @@ const SPARKLE_COLOR = '#e4c441'
 /** Fractions of the contained image, not the letterbox around it. */
 const SPARKLES = [
   { x: 0.18, y: 0.22, size: 18, delay: '0s' },
-  { x: 0.72, y: 0.16, size: 14, delay: '0.35s' },
-  { x: 0.84, y: 0.38, size: 22, delay: '0.7s' },
-  { x: 0.62, y: 0.48, size: 12, delay: '0.15s' },
-  { x: 0.28, y: 0.58, size: 16, delay: '0.9s' },
-  { x: 0.46, y: 0.74, size: 13, delay: '0.5s' },
-  { x: 0.78, y: 0.78, size: 15, delay: '1.1s' },
-  { x: 0.12, y: 0.8, size: 11, delay: '0.25s' },
+  { x: 0.72, y: 0.16, size: 14, delay: '0s' },
+  { x: 0.84, y: 0.38, size: 22, delay: '0s' },
+  { x: 0.62, y: 0.48, size: 12, delay: '0s' },
+  { x: 0.28, y: 0.58, size: 16, delay: '0s' },
+  { x: 0.46, y: 0.74, size: 13, delay: '0s' },
+  { x: 0.78, y: 0.78, size: 15, delay: '0s' },
+  { x: 0.12, y: 0.8, size: 11, delay: '0s' },
 ] as const
 
 const workingLabel = (ratio: number): string => {
