@@ -61,7 +61,7 @@ const EditorPane = ({
   return (
     <div
       className={
-        active ? 'flex min-h-0 flex-1 flex-col' : 'pointer-events-none invisible absolute inset-0'
+        active ? 'flex flex-col flex-1 min-h-0' : 'absolute inset-0 invisible pointer-events-none'
       }
     >
       <Editor
@@ -142,7 +142,7 @@ const App = () => {
   })
 
   return (
-    <div className="relative flex h-full flex-col bg-background">
+    <div className="flex relative flex-col h-full bg-background">
       <Toolbar
         activeId={session.activeId}
         busy={session.busy}
@@ -174,7 +174,7 @@ const App = () => {
 
       {session.error && <ErrorBanner message={session.error} onDismiss={session.dismissError} />}
 
-      <main className="relative flex min-h-0 flex-1 flex-col">
+      <main className="flex relative flex-col flex-1 min-h-0">
         {hasImage ? (
           session.tabs.map((tab) => (
             <EditorPane
@@ -203,7 +203,7 @@ const App = () => {
 
         {session.cutoutPreview && (
           <CutoutOverlay
-            // Not using generateReactKey here because it's a session id and it's not a stable key.
+            // Not using `generateReactKey` here because it's a session id and it's not a stable key.
             key={session.cutoutSession}
             image={session.cutoutPreview}
             onApply={session.applyCutout}
