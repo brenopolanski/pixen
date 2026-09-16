@@ -18,7 +18,7 @@ const IMAGE_SUBJECT: &str = "this image";
 /// Matches the quality the editor itself uses for lossy exports.
 const JPEG_QUALITY: u8 = 92;
 
-/// Mosaic block size. Coarse enough that small text cannot be read back out of
+/// Pixelate block size. Coarse enough that small text cannot be read back out of
 /// the averages, which is the whole point of censoring a region.
 const PIXELIZE_BLOCK: u32 = 12;
 
@@ -178,10 +178,10 @@ fn clamp_region(
 
 /// Averages each block of the region into a single colour.
 ///
-/// Alpha is averaged with the colour channels rather than dropped, so a mosaic
+/// Alpha is averaged with the colour channels rather than dropped, so pixelation
 /// over a transparent PNG stays transparent instead of growing a grey square.
 /// Blocks are clipped to the region, so nothing outside the drag is touched.
-fn mosaic(image: &DynamicImage, region: (u32, u32, u32, u32)) -> DynamicImage {
+fn pixelate(image: &DynamicImage, region: (u32, u32, u32, u32)) -> DynamicImage {
     let (left, top, width, height) = region;
     let mut canvas = image.to_rgba8();
 
@@ -223,7 +223,7 @@ fn mosaic(image: &DynamicImage, region: (u32, u32, u32, u32)) -> DynamicImage {
     DynamicImage::ImageRgba8(canvas)
 }
 
-/// A box to mosaic, in image pixels. Matches the overlay's `Rect`.
+/// A box to pixelate, in image pixels. Matches the overlay's `Rect`.
 #[derive(Deserialize)]
 pub struct PixelizeRegion {
     x: u32,
@@ -232,7 +232,7 @@ pub struct PixelizeRegion {
     height: u32,
 }
 
-/// Hides each region behind a mosaic and hands the whole image back.
+/// Pixelates each region and hands the whole image back.
 ///
 /// PNG both ways: this is an edit on its way back to the editor rather than
 /// something being saved, so the toolbar's chosen format has no say in it, and
@@ -252,7 +252,7 @@ pub fn pixelize_image(data_url: String, regions: Vec<PixelizeRegion>) -> Result<
             return Err(format!("That selection is outside {IMAGE_SUBJECT}."));
         };
 
-        current = mosaic(&current, clamped);
+        current = pixelate(&current, clamped);
     }
 
     let mut encoded = Vec::new();
@@ -533,7 +533,7 @@ mod tests {
     }
 
     #[test]
-    fn mosaics_each_region_and_lets_the_later_one_win() {
+    fn pixelates_each_region_and_lets_the_later_one_win() {
         // First box greys the centre; the second covers the whole image, so the
         // original split at the corners does not survive.
         let image = pixelized(

@@ -207,7 +207,7 @@ export const PixelizeOverlay = ({
     <div className="absolute inset-0 z-40 flex flex-col bg-background fade-in">
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2.5">
         <p className="text-[12px] text-muted-foreground">
-          Drag over anything private to hide it behind a mosaic.
+          Drag over anything private to pixelate it.
         </p>
 
         <div className="flex shrink-0 items-center gap-1.5">

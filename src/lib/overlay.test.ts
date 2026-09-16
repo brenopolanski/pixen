@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { overlayNeedsPrompt } from './overlay'
 
 describe('overlayNeedsPrompt', () => {
-  it('asks when an arrow, a step or a mosaic box has been drawn', () => {
+  it('asks when an arrow, a step or a pixelize box has been drawn', () => {
     expect(overlayNeedsPrompt({ type: 'arrow', arrows: [] })).toBe(false)
     expect(
       overlayNeedsPrompt({

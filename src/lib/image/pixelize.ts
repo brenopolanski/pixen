@@ -2,7 +2,7 @@ import { invoke } from '@tauri-apps/api/core'
 
 /**
  * A rectangle smaller than this on the image is treated as a stray click. Below
- * a couple of mosaic blocks there is nothing left to hide anyway.
+ * a couple of pixelate blocks there is nothing left to hide anyway.
  */
 export const MIN_PIXELIZE_SIDE = 4
 
@@ -89,7 +89,7 @@ export const selectionToPixels = (box: Box, image: Size, selection: Rect): Rect 
 
   const scale = image.width / displayed.width
 
-  // Floor the origin and ceil the far edge so the mosaic always covers every
+  // Floor the origin and ceil the far edge so pixelation always covers every
   // pixel the user dragged over, never a row less.
   const x = Math.floor((left - displayed.x) * scale)
   const y = Math.floor((top - displayed.y) * scale)
@@ -210,11 +210,11 @@ export const translateRect = (rect: Rect, delta: Point, image: Size): Rect => {
 }
 
 /**
- * Replaces each region with a mosaic and returns the whole image again.
+ * Replaces each region with pixelation and returns the whole image again.
  *
  * PNG in, PNG out: this is an edit passing through memory on its way back to
  * the editor, so the toolbar's save format has no say in it. Regions are
- * mosaiced in order, so a later box wins where they overlap.
+ * pixelated in order, so a later box wins where they overlap.
  */
 export const pixelizeImage = (dataUrl: string, regions: Rect[]): Promise<string> => {
   return invoke('pixelize_image', { dataUrl, regions })
