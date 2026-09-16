@@ -203,6 +203,7 @@ const App = () => {
 
         {session.cutoutPreview && (
           <CutoutOverlay
+            // Not using generateReactKey here because it's a session id and it's not a stable key.
             key={session.cutoutSession}
             image={session.cutoutPreview}
             onApply={session.applyCutout}
