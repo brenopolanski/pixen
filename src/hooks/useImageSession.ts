@@ -70,8 +70,9 @@ export interface ImageSession {
   copyImage: () => void
   pixelizePreview: string | null
   startPixelize: () => void
-  applyPixelize: (region: Rect) => void
+  applyPixelize: (regions: Rect[]) => void
   cancelPixelize: () => void
+  reportPixelizeDraft: (regions: Rect[]) => void
   incrementPreview: string | null
   startIncrement: () => void
   applyIncrement: (stamps: Stamp[]) => void
@@ -143,9 +144,15 @@ export const useImageSession = (): ImageSession => {
   const incrementPreviewRef = useRef<string | null>(null)
   const arrowPreviewRef = useRef<string | null>(null)
   const cutoutPreviewRef = useRef<string | null>(null)
-  const overlayDraftRef = useRef<{ arrows: Arrow[]; stamps: Stamp[]; cutout: string | null }>({
+  const overlayDraftRef = useRef<{
+    arrows: Arrow[]
+    stamps: Stamp[]
+    regions: Rect[]
+    cutout: string | null
+  }>({
     arrows: [],
     stamps: [],
+    regions: [],
     cutout: null,
   })
 
@@ -227,7 +234,7 @@ export const useImageSession = (): ImageSession => {
     incrementPreviewRef.current = null
     arrowPreviewRef.current = null
     cutoutPreviewRef.current = null
-    overlayDraftRef.current = { arrows: [], stamps: [], cutout: null }
+    overlayDraftRef.current = { arrows: [], stamps: [], regions: [], cutout: null }
     overlayOpenRef.current = false
     setPixelizePreview(null)
     setIncrementPreview(null)
@@ -300,6 +307,10 @@ export const useImageSession = (): ImageSession => {
       return { type: 'arrow', arrows: overlayDraftRef.current.arrows }
     }
 
+    if (pixelizePreviewRef.current !== null) {
+      return { type: 'pixelize', regions: overlayDraftRef.current.regions }
+    }
+
     if (incrementPreviewRef.current !== null) {
       return { type: 'increment', stamps: overlayDraftRef.current.stamps }
     }
@@ -331,6 +342,20 @@ export const useImageSession = (): ImageSession => {
         bakedRef.current.set(active.id, true)
         patchTab(active.id, { image: annotated, dirty: true })
         return annotated
+      }
+
+      if (draft.type === 'pixelize') {
+        const preview = pixelizePreviewRef.current
+
+        if (!preview || draft.regions.length === 0) {
+          return null
+        }
+
+        const pixelized = await pixelizeImage(preview, draft.regions)
+
+        bakedRef.current.set(active.id, true)
+        patchTab(active.id, { image: pixelized, dirty: true })
+        return pixelized
       }
 
       if (draft.type === 'increment') {
@@ -603,25 +628,27 @@ export const useImageSession = (): ImageSession => {
 
   const cancelPixelize = useCallback(() => {
     pixelizePreviewRef.current = null
+    overlayDraftRef.current.regions = []
     overlayOpenRef.current = false
     setPixelizePreview(null)
   }, [])
 
   const applyPixelize = useCallback(
-    (region: Rect) => {
+    (regions: Rect[]) => {
       run(async () => {
         const active = activeTabOf(sessionRef.current)
         const preview = pixelizePreview
 
-        if (!active || !preview) {
+        if (!active || !preview || regions.length === 0) {
           return
         }
 
-        const pixelized = await pixelizeImage(preview, region)
+        const pixelized = await pixelizeImage(preview, regions)
 
         bakedRef.current.set(active.id, true)
         patchTab(active.id, { image: pixelized, dirty: true })
         pixelizePreviewRef.current = null
+        overlayDraftRef.current.regions = []
         overlayOpenRef.current = false
         setPixelizePreview(null)
       })
@@ -985,6 +1012,10 @@ export const useImageSession = (): ImageSession => {
     setError(null)
   }, [])
 
+  const reportPixelizeDraft = useCallback((regions: Rect[]) => {
+    overlayDraftRef.current.regions = regions
+  }, [])
+
   const reportArrowDraft = useCallback((arrows: Arrow[]) => {
     overlayDraftRef.current.arrows = arrows
   }, [])
@@ -1024,6 +1055,7 @@ export const useImageSession = (): ImageSession => {
     startPixelize,
     applyPixelize,
     cancelPixelize,
+    reportPixelizeDraft,
     incrementPreview,
     startIncrement,
     applyIncrement,

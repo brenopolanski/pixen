@@ -161,7 +161,7 @@ const loadImage = (dataUrl: string): Promise<HTMLImageElement> => {
 /**
  * Draws the badges onto the image and hands the result back as a PNG data URL.
  *
- * A canvas rather than Rust, unlike the pixelize mosaic: a badge needs a font
+ * A canvas rather than Rust, unlike pixelation: a badge needs a font
  * to draw a digit, and the webview already has one. PNG so alpha survives —
  * this is an edit passing through memory, not a save, so the toolbar's format
  * has no say in it.
