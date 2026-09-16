@@ -4,7 +4,19 @@ import { Slider } from '@/components/ui/slider'
 import { ARROW_COLOR } from '@/lib/image/arrow'
 import { cn, generateReactKey } from '@/lib/utils'
 
-interface ArrowStyleControlsProps {
+const SWATCHES = [
+  { color: ARROW_COLOR, label: 'Red' },
+  { color: '#ffffff', label: 'White' },
+  { color: '#111111', label: 'Black' },
+  { color: '#f5d90a', label: 'Yellow' },
+  { color: '#3b82f6', label: 'Blue' },
+] as const
+
+const sameColor = (left: string, right: string): boolean => {
+  return left.toLowerCase() === right.toLowerCase()
+}
+
+interface StyleControlsProps {
   color: string
   size: number
   sizeMin?: number
@@ -15,18 +27,7 @@ interface ArrowStyleControlsProps {
   onSizeChange: (size: number) => void
 }
 
-const SWATCHES = [
-  { color: ARROW_COLOR, label: 'Red' },
-  { color: '#ffffff', label: 'White' },
-  { color: '#111111', label: 'Black' },
-  { color: '#f5d90a', label: 'Yellow' },
-  { color: '#3b82f6', label: 'Blue' },
-] as const
-
-const sameColor = (left: string, right: string): boolean =>
-  left.toLowerCase() === right.toLowerCase()
-
-export const ArrowStyleControls = ({
+export const StyleControls = ({
   color,
   size,
   sizeMin = 4,
@@ -35,7 +36,7 @@ export const ArrowStyleControls = ({
   sizeLabel = 'Stroke',
   onColorChange,
   onSizeChange,
-}: ArrowStyleControlsProps) => {
+}: StyleControlsProps) => {
   const isPreset = SWATCHES.some((swatch) => sameColor(swatch.color, color))
 
   return (
@@ -46,7 +47,7 @@ export const ArrowStyleControls = ({
 
           return (
             <button
-              key={generateReactKey('arrow-swatch', swatch.color)}
+              key={generateReactKey('color-swatch', swatch.color)}
               aria-checked={selected}
               aria-label={swatch.label}
               className={cn(

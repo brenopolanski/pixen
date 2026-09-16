@@ -1,7 +1,6 @@
 import type { PointerEvent as ReactPointerEvent } from 'react'
 import { useCallback, useEffect, useState } from 'react'
 
-import { ArrowStyleControls } from '@/components/overlays/ArrowStyleControls'
 import { CheckIcon, Undo2Icon, XIcon } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
 import type { Arrow } from '@/lib/image/arrow'
@@ -18,6 +17,8 @@ import {
 } from '@/lib/image/arrow'
 import { clickToPixel, displayedScale, pixelToDisplayed } from '@/lib/image/pixelize'
 import { generateReactKey } from '@/lib/utils'
+
+import { StyleControls } from './StyleControls'
 
 interface ArrowOverlayProps {
   /** The flattened canvas to draw on. */
@@ -242,7 +243,7 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
   return (
     <div className="absolute inset-0 z-40 flex flex-col bg-background fade-in">
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2.5">
-        <ArrowStyleControls
+        <StyleControls
           color={color}
           size={stroke}
           sizeLabel="Stroke"
