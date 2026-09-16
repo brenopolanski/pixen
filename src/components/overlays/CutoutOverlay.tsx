@@ -249,7 +249,6 @@ export const CutoutOverlay = ({
                     color: SPARKLE_COLOR,
                     animationDelay: sparkle.delay,
                   }}
-                  aria-hidden
                 />
               </div>
             ))}

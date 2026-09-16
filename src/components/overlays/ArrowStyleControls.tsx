@@ -74,7 +74,7 @@ export const ArrowStyleControls = ({
               style={!isPreset ? { backgroundColor: color } : undefined}
               type="button"
             >
-              {isPreset && <PlusIcon className="size-3" aria-hidden />}
+              {isPreset && <PlusIcon className="size-3" />}
             </button>
           </PopoverTrigger>
           <PopoverContent align="start" className="w-auto p-2">

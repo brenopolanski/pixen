@@ -36,7 +36,7 @@ export const ThemeSwitch = ({ theme, onThemeChange }: ThemeSwitchProps) => {
             onThemeChange(id)
           }}
         >
-          <Icon className="size-4" aria-hidden />
+          <Icon className="size-4" />
         </button>
       ))}
     </div>
