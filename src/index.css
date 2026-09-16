@@ -149,6 +149,10 @@ textarea {
   .progress-indicator {
     animation: progress 1.2s ease-in-out infinite;
   }
+
+  .twinkle {
+    animation: twinkle 1.8s ease-in-out infinite;
+  }
 }
 
 @keyframes fade-in {
@@ -166,5 +170,18 @@ textarea {
   }
   to {
     transform: translateX(300%);
+  }
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.55);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
   }
 }

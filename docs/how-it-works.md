@@ -244,9 +244,9 @@ onto the image.
 ## Removing a background
 
 **Background** in the Tools menu — **Remove Background…** in the native menu — runs a segmentation
-model over the image and keeps only what it thinks is the subject. The overlay shows a progress bar
-while it works, then the cutout on a checkerboard. **Apply** writes it to the document, Escape or
-**Cancel** leaves the image exactly as it was.
+model over the image and keeps only what it thinks is the subject. While it works, the original is
+dimmed and gold sparkles twinkle; they go when the cutout is ready on a checkerboard. **Apply**
+writes it to the document, Escape or **Cancel** leaves the image exactly as it was.
 
 - **The model runs on your machine and the image goes nowhere.** `@imgly/background-removal` is
   ONNX inference in the webview through `onnxruntime-web`, and `pnpm assets:bg-removal` vendors the
@@ -268,8 +268,29 @@ while it works, then the cutout on a checkerboard. **Apply** writes it to the do
   on a screenshot, and longer the first time while the model is read in.
 - **There is a preview because the model guesses.** Hair, glass and thin lines are where it goes
   wrong, and applying reloads the editor, so a bad result has to be refusable while the original is
-  still there. Cancelling mid-run closes the overlay, though the inference already in flight cannot
-  be called back — the library offers no cancellation.
+  still there. **Cancel** discards the preview; the next open starts from the original with the
+  in-progress UI. The model may still be in memory so the second run can finish quickly, but it
+  must not flash the previous cutout first. The original and the wait UI are painted a frame before
+  inference starts, because a cancelled run can still be holding the thread and would otherwise
+  leave the panel blank. Cancelling mid-run closes the overlay, though the inference already in
+  flight cannot be called back — the library offers no cancellation.
+- **Runs are queued, one at a time, and a cancelled one is dropped.** The library memoizes a single
+  ONNX session and the runtime will not take two `run` calls on it; overlapping them returns an
+  empty mask, which is a fully transparent PNG where the photo was. So a reopen waits its turn
+  rather than starting beside the abandoned run. Each open carries an `AbortSignal` that the
+  overlay aborts on close, read at the front of the queue — cancelling five times and reopening
+  waits for the one run already inside WASM, not for five. It is easiest to hit with several tabs,
+  because a cutout already applied elsewhere leaves the model warm, so Cancel lands mid-inference
+  instead of during the load.
+- **A tab's snapshot prefers its stored image.** Tools read the active tab from its own editor, but
+  only when that editor reports changes: every tab keeps its own canvas and an inactive one can
+  lose its drawing context — one background removal on another tab is enough — after which
+  `getImage()` still returns a data URL, just one that will not decode. Without editor changes the
+  image last loaded or baked into the tab is used, which is what is on screen anyway. An overlay
+  handed an image that will not decode would otherwise have nothing to draw.
+- **The wait UI does not depend on the picture.** Sparkles are placed as fractions of the photo
+  once it has been measured, and of the whole frame until then, so an image that fails to decode
+  still twinkles rather than leaving a bare **Starting…** on grey.
 - **Apply flattens**, on the same terms as Pixelize and Steps: the save path, file name and unsaved
   marker survive, the editor's undo history does not. See
   [flattening costs](#what-a-flattened-save-costs). Opening another tool or image once the preview
