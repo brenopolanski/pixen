@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 
+import { Logo } from '@/components/shared/Logo'
 import { APP_NAME } from '@/lib/constants'
 import { closeCurrentWindow, getAppVersion } from '@/lib/desktop'
-
-import { Logo } from './shared/Logo'
 
 export const About = () => {
   const [version, setVersion] = useState('')

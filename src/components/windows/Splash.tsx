@@ -1,6 +1,5 @@
+import { Logo } from '@/components/shared/Logo'
 import { APP_NAME, APP_TAGLINE } from '@/lib/constants'
-
-import { Logo } from './shared/Logo'
 
 export const Splash = () => {
   return (
