@@ -14,7 +14,9 @@ const SPARKLE_COLOR = '#e4c441'
 const SPARKLES = [
   { x: 0.18, y: 0.22, size: 18, delay: '0s' },
   { x: 0.72, y: 0.16, size: 14, delay: '0s' },
+  { x: 0.5, y: 0.28, size: 17, delay: '0s' },
   { x: 0.84, y: 0.38, size: 22, delay: '0s' },
+  { x: 0.16, y: 0.42, size: 13, delay: '0s' },
   { x: 0.62, y: 0.48, size: 12, delay: '0s' },
   { x: 0.28, y: 0.58, size: 16, delay: '0s' },
   { x: 0.46, y: 0.74, size: 13, delay: '0s' },
@@ -177,7 +179,7 @@ export const CutoutOverlay = ({
         <p className="text-[12px] text-muted-foreground">
           {done
             ? 'The checkerboard is what will be transparent. Save as PNG to keep it.'
-            : 'Finding the subject. The first run also loads the model.'}
+            : 'Removing the background.'}
           <span className="ml-2 text-muted-foreground/70">Esc to cancel</span>
         </p>
 
