@@ -3,11 +3,12 @@ import './styles/globals.css'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 
+import { About } from '@/components/windows/About'
+import { Splash } from '@/components/windows/Splash'
+import { isAboutWindow, isSplashWindow } from '@/lib/desktop'
+import { applyDocumentTheme, readSettings } from '@/lib/settings'
+
 import { App } from './App'
-import { About } from './components/windows/About'
-import { Splash } from './components/windows/Splash'
-import { isAboutWindow, isSplashWindow } from './lib/desktop'
-import { applyDocumentTheme, readSettings } from './lib/settings'
 
 const splash = isSplashWindow()
 const about = isAboutWindow()

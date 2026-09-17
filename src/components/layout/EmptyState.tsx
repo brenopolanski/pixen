@@ -1,8 +1,7 @@
+import { ImagePlusIcon, SplashDropIcon } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
+import { Kbd } from '@/components/ui/kbd'
 import { formatShortcut } from '@/lib/shortcuts'
-
-import { ImagePlusIcon, SplashDropIcon } from './shared/Icons'
-import { Kbd } from './ui/kbd'
 
 interface EmptyStateProps {
   busy: boolean

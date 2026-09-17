@@ -1,6 +1,5 @@
+import { XIcon } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
-
-import { XIcon } from './shared/Icons'
 
 interface ErrorBannerProps {
   message: string
