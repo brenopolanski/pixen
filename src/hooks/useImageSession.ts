@@ -28,7 +28,7 @@ import type { Stamp } from '@/lib/image/increment'
 import { composeStamps } from '@/lib/image/increment'
 import type { Rect } from '@/lib/image/pixelize'
 import { pixelizeImage } from '@/lib/image/pixelize'
-import type { OverlayDraft } from '@/lib/overlay'
+import type { OverlayDraft, OverlayKind } from '@/lib/overlay'
 import { overlayNeedsPrompt } from '@/lib/overlay'
 import { readRecent, withoutRecent, withRecent, writeRecent } from '@/lib/recent'
 import type { ImageTab } from '@/lib/tabs'
@@ -56,6 +56,8 @@ export interface ImageSession {
   error: string | null
   /** True while a tool overlay covers the canvas — tabs must not move. */
   overlayOpen: boolean
+  /** Which overlay is covering the canvas; null when none is. */
+  activeOverlay: OverlayKind | null
   format: SaveFormat
   setFormat: (format: SaveFormat) => void
   setEditorRef: (tabId: string, editor: ImageEditorRef | null) => void
@@ -156,11 +158,19 @@ export const useImageSession = (): ImageSession => {
     cutout: null,
   })
 
-  const overlayOpen =
-    pixelizePreview !== null ||
-    incrementPreview !== null ||
-    arrowPreview !== null ||
-    cutoutPreview !== null
+  // Same order as currentOverlayDraft: only one overlay is open at a time,
+  // but if two previews were ever set, the draft reader wins.
+  const activeOverlay: OverlayKind | null =
+    arrowPreview !== null
+      ? 'arrow'
+      : pixelizePreview !== null
+        ? 'pixelize'
+        : incrementPreview !== null
+          ? 'increment'
+          : cutoutPreview !== null
+            ? 'cutout'
+            : null
+  const overlayOpen = activeOverlay !== null
   const overlayOpenRef = useRef(overlayOpen)
 
   useEffect(() => {
@@ -1040,6 +1050,7 @@ export const useImageSession = (): ImageSession => {
     busy,
     error,
     overlayOpen,
+    activeOverlay,
     format,
     setFormat,
     setEditorRef,

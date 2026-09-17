@@ -3,6 +3,7 @@ import { Logo } from '@/components/shared/Logo'
 import { Button } from '@/components/ui/button'
 import { APP_NAME } from '@/lib/constants'
 import type { SaveFormat } from '@/lib/image/image'
+import type { OverlayKind } from '@/lib/overlay'
 import type { ImageTab } from '@/lib/tabs'
 
 import { SaveMenu } from './SaveMenu'
@@ -16,6 +17,7 @@ interface ToolbarProps {
   tabs: ImageTab[]
   activeId: string | null
   overlayOpen: boolean
+  activeOverlay: OverlayKind | null
   captureAccelerator: string
   onArrow: () => void
   onCaptureScreen: () => void
@@ -41,6 +43,7 @@ export const Toolbar = ({
   tabs,
   activeId,
   overlayOpen,
+  activeOverlay,
   captureAccelerator,
   onArrow,
   onCaptureScreen,
@@ -94,6 +97,7 @@ export const Toolbar = ({
 
         <div className="flex shrink-0 items-center gap-1.5">
           <ToolsMenu
+            activeOverlay={activeOverlay}
             busy={busy}
             captureAccelerator={captureAccelerator}
             hasImage={hasImage}

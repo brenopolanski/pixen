@@ -94,6 +94,7 @@ export const App = () => {
     <div className="relative flex h-full flex-col bg-background">
       <Toolbar
         activeId={session.activeId}
+        activeOverlay={session.activeOverlay}
         busy={session.busy}
         captureAccelerator={captureAccelerator}
         format={session.format}

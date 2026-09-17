@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Kbd } from '@/components/ui/kbd'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import type { OverlayKind } from '@/lib/overlay'
 import { formatAccelerator, formatShortcut } from '@/lib/shortcuts'
 import { generateReactKey } from '@/lib/utils'
 
@@ -24,6 +25,8 @@ interface ToolItem {
   disabled: boolean
   icon: ReactNode
   shortcut?: string
+  /** Overlay this item opens; omitted for one-shot actions like Copy. */
+  overlay?: OverlayKind
   onSelect: () => void
 }
 
@@ -31,6 +34,7 @@ interface ToolsMenuProps {
   busy: boolean
   hasImage: boolean
   captureAccelerator: string
+  activeOverlay: OverlayKind | null
   onArrow: () => void
   onCaptureScreen: () => void
   onCopyImage: () => void
@@ -47,6 +51,7 @@ export const ToolsMenu = ({
   busy,
   hasImage,
   captureAccelerator,
+  activeOverlay,
   onArrow,
   onCaptureScreen,
   onCopyImage,
@@ -69,6 +74,7 @@ export const ToolsMenu = ({
       label: 'Arrow',
       disabled: busy || !hasImage,
       icon: <MoveUpRightIcon className="size-3.5" />,
+      overlay: 'arrow',
       shortcut: formatShortcut('a', true),
       onSelect: onArrow,
     },
@@ -76,6 +82,7 @@ export const ToolsMenu = ({
       label: 'Background',
       disabled: busy || !hasImage,
       icon: <WandSparklesIcon className="size-5" />,
+      overlay: 'cutout',
       shortcut: formatShortcut('b', true),
       onSelect: onCutout,
     },
@@ -92,6 +99,7 @@ export const ToolsMenu = ({
       label: 'Pixelize',
       disabled: busy || !hasImage,
       icon: <Grid2x2Icon className="size-5" />,
+      overlay: 'pixelize',
       shortcut: formatShortcut('p', true),
       onSelect: onPixelize,
     },
@@ -106,6 +114,7 @@ export const ToolsMenu = ({
       label: 'Steps',
       disabled: busy || !hasImage,
       icon: <ListOrderedIcon className="size-5" />,
+      overlay: 'increment',
       shortcut: formatShortcut('n', true),
       onSelect: onIncrement,
     },
@@ -114,6 +123,8 @@ export const ToolsMenu = ({
   // Sorted on what the user reads, so the grid does not depend on the order
   // the items happen to be declared in.
   items.sort((left, right) => left.label.localeCompare(right.label))
+
+  const activeLabel = items.find((item) => item.overlay === activeOverlay)?.label
 
   return (
     <Popover
@@ -129,7 +140,7 @@ export const ToolsMenu = ({
       <PopoverTrigger asChild>
         <Button className="h-auto gap-1.5 px-2.5 py-1.5 text-[12px]" variant="outline">
           <WrenchIcon className="size-3.5" />
-          Tools
+          {activeLabel ? `Tools (${activeLabel})` : 'Tools'}
           <ChevronDownIcon className="size-3 text-muted-foreground" />
         </Button>
       </PopoverTrigger>

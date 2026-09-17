@@ -10,6 +10,9 @@ export type OverlayDraft =
   | { type: 'cutout'; image: string | null }
   | { type: 'none' }
 
+/** An overlay that is actually open, as opposed to `none`. */
+export type OverlayKind = Exclude<OverlayDraft['type'], 'none'>
+
 /** True when leaving would drop marks that have not been baked yet. */
 export const overlayNeedsPrompt = (draft: OverlayDraft): boolean => {
   switch (draft.type) {
