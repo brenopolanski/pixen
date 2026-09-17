@@ -1,5 +1,5 @@
-import type { ImageEditorRef } from '@unlayer/react-image-editor'
-import ImageEditor from '@unlayer/react-image-editor'
+import type { ImageEditorRef as UnlayerImageEditorRef } from '@unlayer/react-image-editor'
+import UnlayerImageEditor from '@unlayer/react-image-editor'
 
 import { useCropDoubleClick } from '@/hooks/useCropDoubleClick'
 import { EDITOR_CONTAINER_CLASS } from '@/lib/constants'
@@ -11,7 +11,7 @@ interface EditorProps {
   image: string
   theme: EditorTheme
   onCancel: () => void
-  onEditor: (editor: ImageEditorRef | null) => void
+  onEditor: (editor: UnlayerImageEditorRef | null) => void
   onError: (message: string) => void
   onSave: () => void
 }
@@ -26,7 +26,7 @@ interface EditorProps {
  * covers them, but they stay wired: if a future editor build moves them out of
  * reach of that rule, they act on the project instead of going dead.
  */
-export const Editor = ({
+export const ImageEditor = ({
   editorId,
   image,
   theme,
@@ -39,7 +39,7 @@ export const Editor = ({
 
   return (
     <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${EDITOR_CONTAINER_CLASS}`} id={editorId}>
-      <ImageEditor
+      <UnlayerImageEditor
         ref={onEditor}
         editorId={editorId}
         image={image}

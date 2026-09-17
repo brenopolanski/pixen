@@ -1,83 +1,32 @@
-import type { ImageEditorRef } from '@unlayer/react-image-editor'
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 
-import { Editor } from '@/components/Editor'
-import { EmptyState } from '@/components/EmptyState'
-import { ErrorBanner } from '@/components/ErrorBanner'
-import { ArrowOverlay } from '@/components/overlays/ArrowOverlay'
-import { CutoutOverlay } from '@/components/overlays/CutoutOverlay'
-import { DropOverlay } from '@/components/overlays/DropOverlay'
-import { IncrementOverlay } from '@/components/overlays/IncrementOverlay'
-import { PixelizeOverlay } from '@/components/overlays/PixelizeOverlay'
-import { Settings } from '@/components/settings/Settings'
-import { ShortcutsDialog } from '@/components/shortcuts/ShortcutsDialog'
-import { Toolbar } from '@/components/toolbar/Toolbar'
-import { Toaster } from '@/components/ui/sonner'
-import { useCaptureShortcut } from '@/hooks/useCaptureShortcut'
-import { useClipboardPaste } from '@/hooks/useClipboardPaste'
-import { useCloseGuard } from '@/hooks/useCloseGuard'
-import { useEditorSettings } from '@/hooks/useEditorSettings'
-import { useFileDrop } from '@/hooks/useFileDrop'
-import { useImageSession } from '@/hooks/useImageSession'
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
-import { useLaunchSequence } from '@/hooks/useLaunchSequence'
-import { useNativeMenu } from '@/hooks/useNativeMenu'
-import { useTrayRequests } from '@/hooks/useTrayRequests'
-import { useWindowTitle } from '@/hooks/useWindowTitle'
-import { editorContainerId } from '@/lib/constants'
-import { showAboutWindow } from '@/lib/desktop'
-import type { EditorTheme } from '@/lib/settings'
-import type { ImageTab } from '@/lib/tabs'
-
+import { EditorPane } from './components/editor/EditorPane'
+import { EmptyState } from './components/EmptyState'
+import { ErrorBanner } from './components/ErrorBanner'
+import { ArrowOverlay } from './components/overlays/ArrowOverlay'
+import { CutoutOverlay } from './components/overlays/CutoutOverlay'
+import { DropOverlay } from './components/overlays/DropOverlay'
+import { IncrementOverlay } from './components/overlays/IncrementOverlay'
+import { PixelizeOverlay } from './components/overlays/PixelizeOverlay'
+import { Settings } from './components/settings/Settings'
+import { ShortcutsDialog } from './components/shortcuts/ShortcutsDialog'
+import { Toolbar } from './components/toolbar/Toolbar'
+import { Toaster } from './components/ui/sonner'
+import { useCaptureShortcut } from './hooks/useCaptureShortcut'
+import { useClipboardPaste } from './hooks/useClipboardPaste'
+import { useCloseGuard } from './hooks/useCloseGuard'
+import { useEditorSettings } from './hooks/useEditorSettings'
+import { useFileDrop } from './hooks/useFileDrop'
+import { useImageSession } from './hooks/useImageSession'
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { useLaunchSequence } from './hooks/useLaunchSequence'
+import { useNativeMenu } from './hooks/useNativeMenu'
+import { useTrayRequests } from './hooks/useTrayRequests'
+import { useWindowTitle } from './hooks/useWindowTitle'
+import { showAboutWindow } from './lib/desktop'
 import { generateReactKey } from './lib/utils'
 
-interface EditorPaneProps {
-  tab: ImageTab
-  active: boolean
-  theme: EditorTheme
-  onCancel: () => void
-  onEditor: (tabId: string, editor: ImageEditorRef | null) => void
-  onError: (message: string) => void
-  onSave: () => void
-}
-
-/** Owns a stable callback ref so the editor is not remounted on every render. */
-const EditorPane = ({
-  tab,
-  active,
-  theme,
-  onCancel,
-  onEditor,
-  onError,
-  onSave,
-}: EditorPaneProps) => {
-  const bindEditor = useCallback(
-    (editor: ImageEditorRef | null) => {
-      onEditor(tab.id, editor)
-    },
-    [onEditor, tab.id],
-  )
-
-  return (
-    <div
-      className={
-        active ? 'flex flex-col flex-1 min-h-0' : 'absolute inset-0 invisible pointer-events-none'
-      }
-    >
-      <Editor
-        editorId={editorContainerId(tab.id)}
-        image={tab.image}
-        theme={theme}
-        onCancel={onCancel}
-        onEditor={bindEditor}
-        onError={onError}
-        onSave={onSave}
-      />
-    </div>
-  )
-}
-
-const App = () => {
+export const App = () => {
   const session = useImageSession()
   const { theme, setTheme } = useEditorSettings()
   const { captureAccelerator, rebindCapture } = useCaptureShortcut()
@@ -142,7 +91,7 @@ const App = () => {
   })
 
   return (
-    <div className="flex relative flex-col h-full bg-background">
+    <div className="relative flex h-full flex-col bg-background">
       <Toolbar
         activeId={session.activeId}
         busy={session.busy}
@@ -174,7 +123,7 @@ const App = () => {
 
       {session.error && <ErrorBanner message={session.error} onDismiss={session.dismissError} />}
 
-      <main className="flex relative flex-col flex-1 min-h-0">
+      <main className="relative flex min-h-0 flex-1 flex-col">
         {hasImage ? (
           session.tabs.map((tab) => (
             <EditorPane
@@ -257,5 +206,3 @@ const App = () => {
     </div>
   )
 }
-
-export default App
