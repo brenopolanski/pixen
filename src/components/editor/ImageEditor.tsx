@@ -1,12 +1,13 @@
 import type { ImageEditorRef as UnlayerImageEditorRef } from '@unlayer/react-image-editor'
 import UnlayerImageEditor from '@unlayer/react-image-editor'
+import { cn } from 'cn'
 
 import { useCropDoubleClick } from '@/hooks/useCropDoubleClick'
 import { EDITOR_CONTAINER_CLASS } from '@/lib/constants'
 import { EDITOR_OPTIONS } from '@/lib/editor/engine'
 import type { EditorTheme } from '@/lib/settings'
 
-interface EditorProps {
+interface ImageEditorProps {
   editorId: string
   image: string
   theme: EditorTheme
@@ -34,11 +35,14 @@ export const ImageEditor = ({
   onEditor,
   onError,
   onSave,
-}: EditorProps) => {
+}: ImageEditorProps) => {
   useCropDoubleClick(editorId)
 
   return (
-    <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${EDITOR_CONTAINER_CLASS}`} id={editorId}>
+    <div
+      className={cn('flex min-h-0 min-w-0 flex-1 flex-col', EDITOR_CONTAINER_CLASS)}
+      id={editorId}
+    >
       <UnlayerImageEditor
         ref={onEditor}
         editorId={editorId}
