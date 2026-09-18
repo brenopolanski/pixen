@@ -1,4 +1,5 @@
 import js from '@eslint/js'
+import { plugin as shadcn } from '@shadcn/lint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 import prettier from 'eslint-config-prettier/flat'
 import importPlugin from 'eslint-plugin-import'
@@ -34,6 +35,7 @@ const eslintConfig = defineConfig([
     },
     plugins: {
       import: importPlugin,
+      shadcn,
       'simple-import-sort': simpleImportSort,
       'unused-imports': unusedImports,
     },
@@ -67,6 +69,7 @@ const eslintConfig = defineConfig([
       'simple-import-sort/exports': 'error',
       'simple-import-sort/imports': 'error',
       'unused-imports/no-unused-imports': 'error',
+      'shadcn/no-unknown-classes': 'error',
     },
   },
   {
