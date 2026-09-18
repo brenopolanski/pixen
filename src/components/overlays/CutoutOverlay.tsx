@@ -255,13 +255,20 @@ export const CutoutOverlay = ({
               </div>
             ))}
 
-            <div className="absolute inset-x-0 bottom-0 flex justify-center px-4 pb-4">
+            <div className="absolute inset-x-0 bottom-0 flex justify-center px-4 pb-6">
               {/* The fraction only covers loading the model. Inference reports
                   nothing, so a full load says Working rather than sitting on 100%. */}
               <p
                 aria-live="polite"
-                className="rounded-full bg-black/70 px-3 py-1 text-[12px] text-white"
+                className="flex items-center gap-2 rounded-full bg-black/75 px-4 py-2 text-[15px] font-medium text-white"
               >
+                <SparkleIcon
+                  className="twinkle size-4"
+                  fill="currentColor"
+                  stroke="none"
+                  style={{ color: SPARKLE_COLOR }}
+                  aria-hidden
+                />
                 {workingLabel(ratio)}
               </p>
             </div>
