@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { toUserMessage } from '@/lib/errors'
 import { removeImageBackground } from '@/lib/image/cutout'
 import { displayedImageRect } from '@/lib/image/pixelize'
-import { generateReactKey } from '@/lib/utils'
+import { cn, generateReactKey } from '@/lib/utils'
 
 const SPARKLE_COLOR = '#e4c441'
 
@@ -207,7 +207,7 @@ export const CutoutOverlay = ({
       <div ref={setFrame} className="relative min-h-0 flex-1">
         {/* Only behind the result: showing it under the original would suggest
             the untouched image already has transparency. */}
-        <div className={`absolute inset-0 ${done ? 'checkerboard' : ''}`}>
+        <div className={cn('absolute inset-0', done && 'checkerboard')}>
           <img
             ref={measure}
             alt={done ? 'The image with its background removed' : 'The image being processed'}
