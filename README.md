@@ -7,9 +7,9 @@
 </p>
 
 <h1 align="center">
-  Pixen
+  Pixen - The Fast, Simple Screenshot Editor
 </h1>
-<p align="center">An open-source desktop image editor, ideal for screenshots — crop, annotate, hide private information, and make quick edits.</p>
+<p align="center">Capture, edit, and refine your screenshots.</p>
 
 ![Pixen Banner](./preview/pixen-banner.png)
 
