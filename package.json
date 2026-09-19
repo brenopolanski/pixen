@@ -17,7 +17,8 @@
   "scripts": {
     "assets:bg-removal": "node scripts/fetch-bg-removal-assets.mjs",
     "build": "tsc && vite build",
-    "check:fix": "pnpm format && pnpm lint:fix && pnpm typecheck && pnpm test && pnpm test:rust",
+    "check:circular": "madge --circular --extensions ts,tsx src/ --ts-config tsconfig.json",
+    "check:fix": "pnpm format && pnpm lint:fix && pnpm typecheck && pnpm test && pnpm test:rust && pnpm check:circular",
     "clean": "/bin/bash scripts/clean.sh",
     "dev": "vite",
     "format": "pnpm prettier --write",
@@ -75,6 +76,7 @@
     "globals": "^17.11.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.3.0",
+    "madge": "^8.0.0",
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "sharp": "^0.35.3",
