@@ -13,8 +13,9 @@
 
 ![Pixen Banner](./preview/pixen-banner.png)
 
-Pixen is a small desktop shell around the [Unlayer Image Editor](https://unlayer.com/image-editor).
-The editor does the editing. Pixen owns the window, the native file dialogs, the encoding, and the keyboard shortcuts.
+Pixen is a lightweight screenshot editor for macOS.
+
+Capture your screen, make quick edits, annotate important details, hide private information, and export the result — all from one simple app.
 
 ## What it does
 
