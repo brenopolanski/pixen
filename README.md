@@ -1,5 +1,9 @@
 <p align="center">
-  <img src="./src-tauri/icons/128x128.png" alt="Pixen Logo" width="128">
+  <picture>
+    <source srcset="./preview/pixen-logo-dark.png" media="(prefers-color-scheme: light)">
+    <source srcset="./preview/pixen-logo-light.png" media="(prefers-color-scheme: dark)">
+    <img src="./preview/pixen-logo-light.png" alt="Pixen logo" width="128">
+  </picture>
 </p>
 
 <h1 align="center">
