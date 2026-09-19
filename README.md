@@ -9,7 +9,7 @@
 <h1 align="center">
   Pixen - The Fast, Simple Screenshot Editor
 </h1>
-<p align="center">Capture, edit, and refine your screenshots.</p>
+<p align="center">Capture, edit, and refine screenshots on your Mac.</p>
 
 ![Pixen Banner](./preview/pixen-banner.png)
 
