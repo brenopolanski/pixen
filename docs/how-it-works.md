@@ -4,7 +4,7 @@
 
 A drop, a paste, the File menu and the toolbar all end up in the same place: `useImageSession`
 places the image in a tab. A clean tab is replaced; a dirty tab is kept and a new one opens. The
-tab strip’s **+** always creates a tab so you can keep a clean image open. Only where the image
+tab strip’s `+` always creates a tab so you can keep a clean image open. Only where the image
 comes from differs.
 
 - **Dropping** goes through the window's `onDragDropEvent`. Tauri intercepts file drops before the
