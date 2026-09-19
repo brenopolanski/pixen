@@ -8,6 +8,7 @@
     "type": "git",
     "url": "git@github.com:brenopolanski/pixen.git"
   },
+  "license": "AGPL-3.0-or-later",
   "author": {
     "name": "Breno Polanski",
     "email": "breno.polanski@gmail.com",
