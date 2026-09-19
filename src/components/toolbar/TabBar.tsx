@@ -35,7 +35,7 @@ export const TabBar = ({ tabs, activeId, locked, onActivate, onClose, onNewTab }
               aria-disabled={locked || undefined}
               aria-selected={active}
               className={cn(
-                'flex max-w-45 shrink-0 items-center gap-1 rounded-md border px-2 py-1',
+                'flex max-w-45 shrink-0 items-center gap-1 rounded-md border px-2 py-1 outline-none',
                 active
                   ? 'border-border bg-accent text-foreground'
                   : 'border-transparent text-muted-foreground hover:bg-accent/60',
