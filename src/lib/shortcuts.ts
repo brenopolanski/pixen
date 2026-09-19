@@ -204,7 +204,10 @@ export const shortcutCatalog = (captureAccelerator: string): ShortcutCatalogGrou
       { keys: formatShortcut('s'), action: 'Save' },
       { keys: formatShortcut('s', true), action: 'Save As' },
       { keys: formatShortcut('c', true), action: 'Copy the image' },
-      { keys: formatAccelerator(captureAccelerator), action: 'Take a screenshot' },
+      {
+        keys: formatAccelerator(captureAccelerator),
+        action: 'Take a screenshot (global shortcut)',
+      },
     ],
   },
   {

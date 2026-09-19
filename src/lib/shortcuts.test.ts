@@ -151,7 +151,10 @@ describe('shortcutCatalog', () => {
   it('follows a rebound capture shortcut', () => {
     const items = shortcutCatalog('CommandOrControl+Alt+8')[0]?.items ?? []
 
-    expect(items[items.length - 1]).toEqual({ keys: '⌘⌥8', action: 'Take a screenshot' })
+    expect(items[items.length - 1]).toEqual({
+      keys: '⌘⌥8',
+      action: 'Take a screenshot (global shortcut)',
+    })
   })
 })
 

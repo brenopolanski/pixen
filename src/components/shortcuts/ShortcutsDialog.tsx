@@ -1,13 +1,7 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Kbd } from '@/components/ui/kbd'
 import { Separator } from '@/components/ui/separator'
-import { formatAccelerator, shortcutCatalog } from '@/lib/shortcuts'
+import { shortcutCatalog } from '@/lib/shortcuts'
 import { generateReactKey } from '@/lib/utils'
 
 interface ShortcutsDialogProps {
@@ -29,10 +23,6 @@ export const ShortcutsDialog = ({ open, captureAccelerator, onClose }: Shortcuts
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Keyboard Shortcuts</DialogTitle>
-          <DialogDescription>
-            These work while Pixen is focused. <Kbd>{formatAccelerator(captureAccelerator)}</Kbd>{' '}
-            also works from any app.
-          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
