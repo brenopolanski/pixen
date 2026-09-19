@@ -43,10 +43,10 @@ export const App = () => {
     onIncrement: session.startIncrement,
     onOpenImage: session.openImage,
     onOpenSettings: () => {
-      setSettingsOpen(true)
+      setSettingsOpen((prev) => !prev)
     },
     onOpenShortcuts: () => {
-      setShortcutsOpen(true)
+      setShortcutsOpen((prev) => !prev)
     },
     onPixelize: session.startPixelize,
     onSave: session.save,
