@@ -152,3 +152,9 @@ capture, right-click it for the menu.
 
 A capture from the tray goes through the same session as one from the toolbar, so it replaces a
 clean tab, opens a new one next to a dirty one, and asks before dropping unapplied marks.
+
+## License
+
+Pixen is licensed under the AGPL-3.0 License. See the [LICENSE](./LICENSE) file for details.
+
+Third-party components and dependencies retain their respective licenses.
