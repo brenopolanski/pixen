@@ -20,7 +20,7 @@ export const ShortcutsDialog = ({ open, captureAccelerator, onClose }: Shortcuts
         }
       }}
     >
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onOpenAutoFocus={(event) => event.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Keyboard Shortcuts</DialogTitle>
         </DialogHeader>
