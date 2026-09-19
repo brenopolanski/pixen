@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { XIcon } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
-import { ButtonGroup } from '@/components/ui/button-group'
+import { ButtonGroup, ButtonGroupText } from '@/components/ui/button-group'
 import { Input } from '@/components/ui/input'
 import { restoreCaptureShortcut, suspendCaptureShortcut } from '@/lib/desktop'
 import {
@@ -100,10 +100,14 @@ export const ShortcutRecorder = ({ accelerator, onRebind }: ShortcutRecorderProp
   return (
     <div className="flex flex-col items-start gap-1">
       <ButtonGroup className="w-full">
+        <ButtonGroupText className="h-8 px-2.5 text-xs text-muted-foreground" asChild>
+          <label htmlFor="capture-shortcut">Shortcut</label>
+        </ButtonGroupText>
         <Input
           ref={inputRef}
           aria-invalid={error !== null}
           className="h-8 text-center text-[12px]"
+          id="capture-shortcut"
           placeholder="Press shortcut…"
           value={recording ? '' : formatAccelerator(accelerator)}
           readOnly
