@@ -17,6 +17,16 @@ Pixen is a lightweight screenshot editor for macOS.
 
 Capture your screen, make quick edits, annotate important details, hide private information, and export the result — all from one simple app.
 
+## Features
+
+### Capture Screenshots
+
+Capture any region of your screen directly into Pixen.
+
+Use the toolbar, the menu bar, or the global keyboard shortcut `⌘⇧9` from any app.
+
+<img src="./preview/feature-screenshot.png" alt="Capture screenshots with Pixen" />
+
 ## What it does
 
 - Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or through a native file dialog. A clean tab is replaced; a dirty one stays and a new tab opens. The tab strip’s **+** always opens another tab.
