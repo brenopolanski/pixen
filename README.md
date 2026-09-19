@@ -25,7 +25,15 @@ Capture any region of your screen directly into Pixen.
 
 Use the toolbar, the menu bar, or the global keyboard shortcut `⌘⇧9` from any app.
 
-<img src="./preview/demo-feature-screenshot.png" width="500" alt="Capture screenshots with Pixen" />
+<img src="./preview/demo-feature-screenshot.png" alt="Capture screenshots with Pixen" />
+
+### Edit Screenshots
+
+Edit your screenshots with a familiar image editor powered by [Unlayer Image Editor](https://unlayer.com/image-editor).
+
+Crop, resize, apply filters, draw, add text, shapes, stickers, and frames.
+
+<img src="./preview/demo-feature-editor.png" alt="Edit screenshots with Pixen" />
 
 ## What it does
 
