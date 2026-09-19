@@ -25,7 +25,7 @@ Capture any region of your screen directly into Pixen.
 
 Use the toolbar, the menu bar, or the global keyboard shortcut `⌘⇧9` from any app.
 
-<img src="./preview/feature-screenshot.png" width="500" alt="Capture screenshots with Pixen" />
+<img src="./preview/demo-feature-screenshot.png" width="500" alt="Capture screenshots with Pixen" />
 
 ## What it does
 
