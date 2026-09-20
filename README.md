@@ -43,6 +43,14 @@ Draw arrows anywhere on the screenshot and add as many as you need.
 
 <img src="./preview/demo-feature-arrows.png" alt="Add arrows to screenshots" />
 
+### Add Numbered Steps
+
+Create step-by-step guides directly on your screenshots.
+
+Click each location and Pixen automatically numbers the markers.
+
+<img src="./preview/demo-feature-numbered-steps.png" alt="Add numbered steps to screenshots" />
+
 ## What it does
 
 - Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or through a native file dialog. A clean tab is replaced; a dirty one stays and a new tab opens. The tab strip’s **+** always opens another tab.
