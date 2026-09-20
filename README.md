@@ -35,6 +35,14 @@ Crop, resize, apply filters, draw, add text, shapes, stickers, and frames.
 
 <img src="./preview/demo-feature-editor.png" alt="Edit screenshots with Pixen" />
 
+### Annotate with Arrows
+
+Point out exactly what matters.
+
+Draw arrows anywhere on the screenshot and add as many as you need.
+
+<img src="./preview/demo-feature-arrows.png" alt="Add arrows to screenshots" />
+
 ## What it does
 
 - Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or through a native file dialog. A clean tab is replaced; a dirty one stays and a new tab opens. The tab strip’s **+** always opens another tab.
