@@ -99,34 +99,16 @@ Use `⌘S` to save and `⌘⇧S` to save a new copy. Pixen remembers the destina
 
 Copy your edited screenshot directly to the system clipboard with `⌘⇧C`.
 
-## What it does
+## Tech Stack
 
-- Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or through a native file dialog. A clean tab is replaced; a dirty one stays and a new tab opens. The tab strip’s **+** always opens another tab.
-- Captures a region of the screen straight into the editor, from the toolbar or from the menu bar
-- Lives in the menu bar as well as the Dock: click the icon or press `⌘⇧9` from any app to capture, right-click it for **Take Screenshot**, **Start at Login**, **About** and **Quit**. The capture shortcut can be rebound in Settings
-- Reopens the last ten images from **File → Open Recent**
-- Edits them with [`@unlayer/react-image-editor`](https://github.com/unlayer/react-image-editor) — crop, resize, filters, draw, text, shapes, stickers and frames. Double-click inside a crop to apply it.
-- Chooses a light or dark theme in Settings — Pixen’s chrome and the image editor; the choice is remembered in `localStorage`
-- Saves as PNG, JPEG or WebP with `⌘S`, asking where to write the first time and reusing that destination afterwards
-- Saves to a new file with `⌘⇧S`
-- Copies the edited image to the system clipboard with `⌘⇧C`
-- Hides private data — an address, a token, a face — by pixelating it: drag a box over it
-- Numbers a screenshot for a step-by-step guide: click each spot and the badge counts itself up
-- Points at what matters: drag an arrow towards it, as many as the guide needs
-- Cuts the background away from the subject with a local segmentation model, previewing the result before it is applied
-
-## Tech stack
-
-- [Tauri](https://tauri.app) 2 for the native shell, windows and filesystem access
+- [Tauri](https://tauri.app/) 2 for the native shell, windows, and filesystem access
 - React 19 + TypeScript + Vite for the UI
-- Tailwind CSS 4, with [shadcn/ui](https://ui.shadcn.com) primitives in `src/components/ui/`
-- [`@unlayer/react-image-editor`](https://www.npmjs.com/package/@unlayer/react-image-editor) as the
-  editing engine
-- [`@imgly/background-removal`](https://www.npmjs.com/package/@imgly/background-removal) on
-  `onnxruntime-web` for background removal — see [License](#license), it is AGPL
+- Tailwind CSS 4 with [shadcn/ui](https://ui.shadcn.com/) primitives
+- [`@unlayer/react-image-editor`](https://github.com/unlayer/react-image-editor) as the editing engine
+- [`@imgly/background-removal`](https://github.com/imgly/background-removal-js) with `onnxruntime-web` for local background removal
 - Vitest for unit tests
 
-## Supported platforms
+## Supported Platforms
 
 | Platform | Status                                        |
 | -------- | --------------------------------------------- |
@@ -150,17 +132,18 @@ pnpm tauri:dev
 ```
 
 `assets:bg-removal` downloads the segmentation model into `public/bg-removal/` (76 MB, gitignored).
-It is needed once per checkout, and only for the background removal tool — everything else works
-without it. `tauri:build` runs it for you.
 
-Rust must be on your `PATH`. If `cargo` is missing in an already-open terminal, run
-`source "$HOME/.cargo/env"` or open a new tab.
+It is needed once per checkout and only for the background removal tool. Everything else works without it. `tauri:build` runs it automatically.
 
-`pnpm dev` starts the Vite UI only. Every Tauri call fails there, so use `pnpm tauri:dev` for the
-real app.
+Rust must be on your `PATH`. If `cargo` is missing in an already-open terminal, run:
 
-Pixen loads the editor engine from `cdn.unlayer.com`, so the first launch needs an internet
-connection.
+```bash
+source "$HOME/.cargo/env"
+```
+
+`pnpm dev` starts the Vite UI only. Tauri APIs are unavailable in that mode, so use `pnpm tauri:dev` for the full application.
+
+Pixen loads the editor engine from `cdn.unlayer.com`, so the first launch requires an internet connection.
 
 ## Scripts
 
@@ -185,19 +168,38 @@ connection.
 pnpm tauri:build
 ```
 
-Bundles land in `src-tauri/target/release/bundle/` as a `.app` and a `.dmg`. Builds are unsigned, so
-the first launch is right-click the app → Open.
+Builds are generated in:
 
-Pushing a `v*` tag runs the release workflow on macOS and attaches a universal `.dmg` to the GitHub
-Release.
+```text
+src-tauri/target/release/bundle/
+```
 
-## How it works
+The output includes a macOS `.app` and `.dmg`.
 
-Why a drop is not an HTML5 drop zone, why encoding is in Rust, and what a flattened save costs: [docs/how-it-works.md](./docs/how-it-works.md).
+Builds are unsigned, so macOS may require you to right-click the app and choose **Open** on first launch.
 
-## Keyboard shortcuts
+Pushing a `v*` tag runs the release workflow on macOS and attaches a universal `.dmg` to the GitHub Release.
 
-The same list is in the app: the **?** button next to Settings.
+## How It Works
+
+Pixen combines a lightweight Tauri desktop shell with a web-based image editor.
+
+The native layer handles things such as:
+
+- Window management
+- Native file dialogs
+- Filesystem access
+- Image encoding
+- Clipboard integration
+- Screen capture
+- Global keyboard shortcuts
+- Menu bar integration
+
+The editor handles image manipulation and rendering.
+
+For more details, see [How It Works](./docs/how-it-works.md).
+
+## Keyboard Shortcuts
 
 | Shortcut | Action                          |
 | -------- | ------------------------------- |
@@ -210,38 +212,45 @@ The same list is in the app: the **?** button next to Settings.
 | `⌘⇧P`    | Pixelize                        |
 | `⌘⇧N`    | Numbered steps                  |
 | `⌘⇧B`    | Remove background               |
-| `⌘⇧9`    | Take a screenshot, from any app |
+| `⌘⇧9`    | Take a screenshot from any app  |
 | `⌘,`     | Open Settings                   |
 | `⌘?`     | Open keyboard shortcuts         |
 | `⌘Q`     | Quit, guarding unsaved work     |
 | `⌘W`     | Close the About window          |
 | `Escape` | Close the About window          |
 
-`⌘⇧9` is registered system-wide in `src-tauri/src/shortcut.rs`, which is what lets it fire while
-another app is in front. During `tauri dev`, macOS may ask for Accessibility permission so the
-terminal can register it.
+`⌘⇧9` is registered system-wide in `src-tauri/src/shortcut.rs`, allowing it to capture the screen while another app is in front.
 
-It is also the only shortcut you can change: **Settings → Capture screenshot** records a new combo,
-and the **×** puts `⌘⇧9` back. Combos Pixen already answers — Save, Copy Image, the tool shortcuts,
-Quit — are refused, as is anything without `⌘`. Everything else in the table is fixed.
+During `tauri dev`, macOS may ask for Accessibility permission so the terminal can register the global shortcut.
 
-## Menu bar
+The screenshot shortcut can be changed from **Settings → Capture screenshot**.
 
-Pixen keeps its Dock icon and editor window and adds a menu bar item next to them. Left-click it to
-capture, right-click it for the menu.
+Pixen prevents conflicts with shortcuts it already uses, including Save, Copy Image, tool shortcuts, and Quit. Custom shortcuts must include `⌘`.
 
-| Item              | Action                                             |
-| ----------------- | -------------------------------------------------- |
-| `Take Screenshot` | Capture into a tab (`⌘⇧9`)                         |
-| `Start at Login`  | Toggle launch at login (checked when on)           |
-| `About Pixen`     | Open the About window                              |
-| `Quit Pixen`      | Quit, still asking about unsaved work first (`⌘Q`) |
+## Menu Bar
 
-A capture from the tray goes through the same session as one from the toolbar, so it replaces a
-clean tab, opens a new one next to a dirty one, and asks before dropping unapplied marks.
+Pixen lives in both the Dock and the macOS menu bar.
+
+Left-click the menu bar icon to capture a screenshot. Right-click it to access the available actions.
+
+| Item              | Action                           |
+| ----------------- | -------------------------------- |
+| `Take Screenshot` | Capture into a tab (`⌘⇧9`)       |
+| `Start at Login`  | Toggle launch at login           |
+| `About Pixen`     | Open the About window            |
+| `Quit Pixen`      | Quit while guarding unsaved work |
+
+Captures from the menu bar use the same editing session as captures from the main window.
 
 ## License
 
-Pixen is licensed under the AGPL-3.0 License. See the [LICENSE](./LICENSE) file for details.
+Pixen is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See the [LICENSE](./LICENSE) file for details.
 
-Third-party components and dependencies retain their respective licenses.
+Pixen includes third-party components and dependencies that retain their respective licenses.
+
+In particular:
+
+- [`@unlayer/react-image-editor`](https://github.com/unlayer/react-image-editor) — MIT
+- [`@imgly/background-removal`](https://github.com/imgly/background-removal-js) — AGPL-3.0
+
+Third-party components remain subject to their original license terms.
