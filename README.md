@@ -59,6 +59,14 @@ Pixelate addresses, tokens, faces, and other private data by simply dragging a b
 
 <img src="./preview/demo-feature-pixelize.png" alt="Pixelate private information" />
 
+### Remove Backgrounds
+
+Remove the background from an image using a local segmentation model.
+
+The result is previewed before being applied to your image.
+
+<img src="./preview/feature-background-removal.png" alt="Remove image backgrounds" />
+
 ## What it does
 
 - Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or through a native file dialog. A clean tab is replaced; a dirty one stays and a new tab opens. The tab strip’s **+** always opens another tab.
