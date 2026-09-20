@@ -83,8 +83,6 @@ Work with multiple images at the same time.
 
 A clean tab can be replaced when opening an image, while a modified tab stays open and a new tab is created.
 
-The `+` button always opens a new tab.
-
 ### Light and Dark Mode
 
 Choose between light and dark mode from Settings.
