@@ -51,6 +51,14 @@ Click each location and Pixen automatically numbers the markers.
 
 <img src="./preview/demo-feature-numbered-steps.png" alt="Add numbered steps to screenshots" />
 
+### Hide Private Information
+
+Protect sensitive information before sharing a screenshot.
+
+Pixelate addresses, tokens, faces, and other private data by simply dragging a box over it.
+
+<img src="./preview/demo-feature-pixelize.png" alt="Pixelate private information" />
+
 ## What it does
 
 - Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or through a native file dialog. A clean tab is replaced; a dirty one stays and a new tab opens. The tab strip’s **+** always opens another tab.
