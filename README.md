@@ -67,6 +67,40 @@ The result is previewed before being applied to your image.
 
 <img src="./preview/feature-background-removal.png" alt="Remove image backgrounds" />
 
+### Menu Bar
+
+Keep Pixen available from the macOS menu bar.
+
+Capture your screen, start Pixen at login, open the app, or quit without leaving your current workflow.
+
+### Recent Images
+
+Quickly reopen your last ten images from **File → Open Recent**.
+
+### Tabs
+
+Work with multiple images at the same time.
+
+A clean tab can be replaced when opening an image, while a modified tab stays open and a new tab is created.
+
+The `+` button always opens a new tab.
+
+### Light and Dark Mode
+
+Choose between light and dark mode from Settings.
+
+Pixen's interface and image editor follow your preference, which is remembered between launches.
+
+### Export Anywhere
+
+Save your work as PNG, JPEG, or WebP.
+
+Use `⌘S` to save and `⌘⇧S` to save a new copy. Pixen remembers the destination after the first save.
+
+### Clipboard
+
+Copy your edited screenshot directly to the system clipboard with `⌘⇧C`.
+
 ## What it does
 
 - Opens PNG, JPEG and WebP images by dropping them on the window, pasting from the clipboard, or through a native file dialog. A clean tab is replaced; a dirty one stays and a new tab opens. The tab strip’s **+** always opens another tab.
