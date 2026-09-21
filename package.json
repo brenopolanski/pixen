@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Pixen - The Fast, Simple Screenshot Editor for macOS.",
+  "description": "Pixen - The Fast, Simple Screenshot Editor",
   "repository": {
     "type": "git",
     "url": "git@github.com:brenopolanski/pixen.git"
