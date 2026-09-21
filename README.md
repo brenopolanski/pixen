@@ -17,6 +17,13 @@ Pixen is a lightweight screenshot editor for macOS.
 
 Capture your screen, make quick edits, annotate important details, hide private information, and export the result — all from one simple app.
 
+<!--idoc:ignore:start-->
+
+> [!TIP]
+> Press `⌘⇧9` from any app to capture a region straight into the editor. You don't need to switch to Pixen first.
+
+<!--idoc:ignore:end-->
+
 ## Features
 
 ### Capture Screenshots
