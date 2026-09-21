@@ -180,7 +180,7 @@ Builds are unsigned, so macOS may require you to right-click the app and choose 
 
 Pushing a `v*` tag runs the release workflow on macOS and attaches a universal `.dmg` to the GitHub Release.
 
-## How It Works
+## How it Works
 
 Pixen combines a lightweight Tauri desktop shell with a web-based image editor.
 
