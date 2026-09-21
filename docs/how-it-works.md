@@ -154,8 +154,9 @@ the lot away, and **Done** writes them onto the image.
 - **The selection is made on a still copy, not on the live canvas.** The editor reports neither its
   zoom nor where the image sits on screen, so a box drawn over it could not be mapped back to
   pixels. `PixelizeOverlay` covers the editor with the flattened image at a known `contain` fit, and
-  `src/lib/image/pixelize.ts` converts the drag into pixel coordinates from that. A stray click or a
-  drag in the letterbox is ignored rather than closing the tool, since you are mid-sequence.
+  `src/lib/image/pixelize.ts` converts the drag into pixel coordinates from that. The overlay remaps
+  when the frame resizes; marks stay in image pixels — the same for Steps and Arrow. A stray click
+  or a drag in the letterbox is ignored rather than closing the tool, since you are mid-sequence.
 - **Click a box to select it — a halo marks it — and drag it to slide.** Size stays put; redraw to
   change it. A click without a drag still only selects. A drag on empty space starts a new box.
   Backspace deletes the selection, or the last box when none is selected.

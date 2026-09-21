@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { CheckIcon, Undo2Icon, XIcon } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
+import { useOverlayFrame } from '@/hooks/useOverlayFrame'
 import type { Arrow } from '@/lib/image/arrow'
 import {
   ARROW_COLOR,
@@ -37,7 +38,7 @@ interface ArrowOverlayProps {
  * per arrow.
  */
 export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowOverlayProps) => {
-  const [frame, setFrame] = useState<HTMLDivElement | null>(null)
+  const { box, setFrame } = useOverlayFrame()
   const [size, setSize] = useState<{ width: number; height: number } | null>(null)
   const [arrows, setArrows] = useState<Arrow[]>([])
   const [drawing, setDrawing] = useState<Arrow | null>(null)
@@ -118,7 +119,6 @@ export const ArrowOverlay = ({ image, onApply, onCancel, onDraftChange }: ArrowO
     }
   }, [apply, deleteSelected, onCancel])
 
-  const box = frame ? { width: frame.clientWidth, height: frame.clientHeight } : null
   // Arrows are measured in image pixels, so on screen they thin out with the
   // image exactly as the baked ones will.
   const scale = box && size ? displayedScale(box, size) : 1

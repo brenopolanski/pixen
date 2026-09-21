@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { CheckIcon, Undo2Icon, XIcon } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
+import { useOverlayFrame } from '@/hooks/useOverlayFrame'
 import { clampPixel } from '@/lib/image/arrow'
 import type { Rect } from '@/lib/image/pixelize'
 import {
@@ -46,7 +47,7 @@ export const PixelizeOverlay = ({
   onCancel,
   onDraftChange,
 }: PixelizeOverlayProps) => {
-  const [frame, setFrame] = useState<HTMLDivElement | null>(null)
+  const { box, setFrame } = useOverlayFrame()
   const [size, setSize] = useState<{ width: number; height: number } | null>(null)
   const [regions, setRegions] = useState<Rect[]>([])
   const [selected, setSelected] = useState<number | null>(null)
@@ -109,7 +110,6 @@ export const PixelizeOverlay = ({
     }
   }, [apply, deleteSelected, onCancel])
 
-  const box = frame ? { width: frame.clientWidth, height: frame.clientHeight } : null
   const scale = box && size ? displayedScale(box, size) : 1
 
   /** Where the pointer is inside the frame the image is fitted into. */

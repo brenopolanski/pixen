@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { CheckIcon, SparkleIcon, XIcon } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
+import { useOverlayFrame } from '@/hooks/useOverlayFrame'
 import { toUserMessage } from '@/lib/errors'
 import { removeImageBackground } from '@/lib/image/cutout'
 import { displayedImageRect } from '@/lib/image/pixelize'
@@ -59,7 +60,7 @@ export const CutoutOverlay = ({
   onDraftChange,
   onError,
 }: CutoutOverlayProps) => {
-  const [frame, setFrame] = useState<HTMLDivElement | null>(null)
+  const { box, setFrame } = useOverlayFrame()
   const [size, setSize] = useState<{ width: number; height: number } | null>(null)
   const [cutout, setCutout] = useState<string | null>(null)
   const [ratio, setRatio] = useState(0)
@@ -164,7 +165,6 @@ export const CutoutOverlay = ({
   }, [apply, onCancel])
 
   const done = cutout !== null
-  const box = frame ? { width: frame.clientWidth, height: frame.clientHeight } : null
   const displayed = box && size ? displayedImageRect(box, size) : null
   const onPhoto = displayed !== null && displayed.width > 0
   // The whole frame until the picture has been measured, so the tool never

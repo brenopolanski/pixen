@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 import { CheckIcon, Undo2Icon, XIcon } from '@/components/shared/Icons'
 import { Button } from '@/components/ui/button'
+import { useOverlayFrame } from '@/hooks/useOverlayFrame'
 import { clampPixel } from '@/lib/image/arrow'
 import type { Stamp } from '@/lib/image/increment'
 import {
@@ -46,7 +47,7 @@ export const IncrementOverlay = ({
   onCancel,
   onDraftChange,
 }: IncrementOverlayProps) => {
-  const [frame, setFrame] = useState<HTMLDivElement | null>(null)
+  const { box, setFrame } = useOverlayFrame()
   const [size, setSize] = useState<{ width: number; height: number } | null>(null)
   const [stamps, setStamps] = useState<Stamp[]>([])
   const [selected, setSelected] = useState<number | null>(null)
@@ -123,7 +124,6 @@ export const IncrementOverlay = ({
     }
   }, [apply, deleteSelected, onCancel])
 
-  const box = frame ? { width: frame.clientWidth, height: frame.clientHeight } : null
   // Badges are measured in image pixels, so on screen they shrink with the
   // image the same way the baked ones will.
   const scale = box && size ? displayedScale(box, size) : 1
