@@ -1,9 +1,5 @@
 <p align="center">
-  <picture>
-    <source srcset="./preview/pixen-logo-dark.png" media="(prefers-color-scheme: light)">
-    <source srcset="./preview/pixen-logo-light.png" media="(prefers-color-scheme: dark)">
-    <img src="./preview/pixen-logo-light.png" alt="Pixen logo" width="128">
-  </picture>
+  <img src="./preview/pixen-logo.png" alt="Pixen logo" width="128">
 </p>
 
 <h1 align="center">
