@@ -24,9 +24,7 @@ Capture your screen, make quick edits, annotate important details, hide private 
 
 ### Capture Screenshots
 
-Capture any region of your screen directly into Pixen.
-
-Use the toolbar, the menu bar, or the global keyboard shortcut `⌘⇧9` from any app.
+Capture any region of your screen directly into Pixen, from the toolbar, the menu bar, or `⌘⇧9`.
 
 <img src="./preview/demo-feature-screenshot.png" alt="Capture screenshots with Pixen" />
 
@@ -40,17 +38,13 @@ Crop, resize, apply filters, draw, add text, shapes, stickers, and frames.
 
 ### Annotate with Arrows
 
-Point out exactly what matters.
-
-Draw arrows anywhere on the screenshot and add as many as you need.
+Point out exactly what matters. Draw arrows anywhere on the screenshot and add as many as you need.
 
 <img src="./preview/demo-feature-arrows.png" alt="Add arrows to screenshots" />
 
 ### Add Numbered Steps
 
-Create step-by-step guides directly on your screenshots.
-
-Click each location and Pixen automatically numbers the markers.
+Create step-by-step guides directly on your screenshots. Click each location and Pixen automatically numbers the markers.
 
 <img src="./preview/demo-feature-numbered-steps.png" alt="Add numbered steps to screenshots" />
 
