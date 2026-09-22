@@ -50,29 +50,23 @@ Create step-by-step guides directly on your screenshots. Click each location and
 
 ### Hide Private Information
 
-Protect sensitive information before sharing a screenshot.
-
-Pixelate addresses, tokens, faces, and other private data by simply dragging a box over it.
+Protect sensitive information before sharing a screenshot. Pixelate addresses, tokens, faces, and other private data by simply dragging a box over it.
 
 <img src="./preview/demo-feature-pixelize.png" alt="Pixelate private information" />
 
 ### Remove Backgrounds
 
-Remove the background from an image using a local segmentation model.
-
-The result is previewed before being applied to your image.
+Remove the background with a local segmentation model. The result is previewed before it is applied, and the image never leaves your Mac.
 
 <img src="./preview/feature-background-removal.png" alt="Remove image backgrounds" />
 
 ### Menu Bar
 
-Keep Pixen available from the macOS menu bar.
-
-Capture your screen, start Pixen at login, open the app, or quit without leaving your current workflow.
+Pixen stays in the Dock and adds a menu bar item. Left-click it to capture. Right-click it to start at login, open About, or quit, without leaving the app you are in.
 
 ### Recent Images
 
-Quickly reopen your last ten images from **File → Open Recent**.
+Reopen the last ten images from **File → Open Recent**.
 
 ### Tabs
 
