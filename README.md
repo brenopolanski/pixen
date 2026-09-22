@@ -44,25 +44,33 @@ Point out exactly what matters. Draw arrows anywhere on the screenshot and add a
 
 ### Add Numbered Steps
 
-Create step-by-step guides directly on your screenshots. Click each location and Pixen automatically numbers the markers.
+Create step-by-step guides directly on your screenshots.
+
+Click each location, and Pixen automatically numbers the markers.
 
 <img src="./preview/demo-feature-numbered-steps.png" alt="Add numbered steps to screenshots" />
 
 ### Hide Private Information
 
-Protect sensitive information before sharing a screenshot. Pixelate addresses, tokens, faces, and other private data by simply dragging a box over it.
+Protect sensitive information before sharing a screenshot.
+
+Pixelate addresses, tokens, faces, and other private data by simply dragging a box over it.
 
 <img src="./preview/demo-feature-pixelize.png" alt="Pixelate private information" />
 
 ### Remove Backgrounds
 
-Remove the background with a local segmentation model. The result is previewed before it is applied, and the image never leaves your Mac.
+Remove the background with a local segmentation model.
+
+The result is previewed before it is applied, and the image never leaves your Mac.
 
 <img src="./preview/feature-background-removal.png" alt="Remove image backgrounds" />
 
 ### Menu Bar
 
-Pixen stays in the Dock and adds a menu bar item. Left-click it to capture. Right-click it to start at login, open About, or quit, without leaving the app you are in.
+Pixen stays in the Dock and adds a menu bar item.
+
+Left-click it to capture. Right-click it to start at login, open About, or quit, without leaving the app you are in.
 
 ### Recent Images
 
