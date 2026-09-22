@@ -38,7 +38,7 @@ export const Settings = ({
         }
       }}
     >
-      <SheetContent className="w-full p-0 sm:max-w-md">
+      <SheetContent className="w-full p-0 sm:max-w-sm">
         <div className="flex h-full flex-col">
           <div className="px-6 pt-6">
             <SheetHeader className="p-0">
