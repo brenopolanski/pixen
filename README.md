@@ -9,11 +9,11 @@
 
 <p align="center">
   <a href="https://brenopolanski.com/apps/pixen">Website</a>
-  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <span>&nbsp;•&nbsp;</span>
   <a href="./docs/how-it-works.md">How it Works</a>
-  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <span>&nbsp;•&nbsp;</span>
   <a href="https://github.com/brenopolanski/pixen/issues">Contact & Support</a>
-  <span>&nbsp;&nbsp;•&nbsp;&nbsp;</span>
+  <span>&nbsp;•&nbsp;</span>
   <a href="https://brenopolanski.com/apps/pixen/privacy-policy">Privacy Policy</a>
 </p>
 
