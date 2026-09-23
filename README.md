@@ -222,7 +222,7 @@ For more details, see [How It Works](./docs/how-it-works.md).
 
 During `tauri dev`, macOS may ask for Accessibility permission so the terminal can register the global shortcut.
 
-The screenshot shortcut can be changed from **Settings → Capture screenshot**.
+The screenshot shortcut can be changed from **Settings → Capture Screenshot**.
 
 Pixen prevents conflicts with shortcuts it already uses, including Save, Copy Image, tool shortcuts, and Quit. Custom shortcuts must include `⌘`.
 
