@@ -16,7 +16,7 @@
   <span>&nbsp;•&nbsp;</span>
   <a href="https://brenopolanski.com/apps/pixen/privacy-policy">Privacy Policy</a>
   <span>&nbsp;•&nbsp;</span>
-  <a href="https://personal-website.localhost/apps/terms?from=pixen">Terms of Use</a>
+  <a href="https://brenopolanski.com/apps/terms?from=pixen">Terms of Use</a>
 </p>
 
 <p align="center">
