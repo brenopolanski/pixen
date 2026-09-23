@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./preview/pixen-logo.png" alt="Pixen logo" width="128">
+  <img src="./preview/logo.png" alt="Pixen logo" width="128">
 </p>
 
 <h1 align="center">
@@ -7,7 +7,13 @@
 </h1>
 <p align="center">Capture, edit, and refine screenshots on your Mac.</p>
 
-![Pixen Banner](./preview/pixen-banner.png)
+<p align="center">
+  <a href="https://apps.apple.com">
+    <img src="./preview/download-on-app-store-badge.svg" alt="Download on the App Store" height="60">
+  </a>
+</p>
+
+![Pixen Banner](./preview/banner.png)
 
 Pixen is a lightweight screenshot editor for macOS.
 
