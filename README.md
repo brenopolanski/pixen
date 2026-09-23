@@ -15,6 +15,8 @@
   <a href="https://github.com/brenopolanski/pixen/issues">Contact & Support</a>
   <span>&nbsp;•&nbsp;</span>
   <a href="https://brenopolanski.com/apps/pixen/privacy-policy">Privacy Policy</a>
+  <span>&nbsp;•&nbsp;</span>
+  <a href="https://brenopolanski.com/apps/terms">Terms of Use</a>
 </p>
 
 <p align="center">
