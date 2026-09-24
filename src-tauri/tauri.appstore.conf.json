@@ -1,0 +1,9 @@
+{
+  "bundle": {
+    "macOS": {
+      "files": {
+        "embedded.provisionprofile": "./Pixen_Mac_App_Store.provisionprofile"
+      }
+    }
+  }
+}

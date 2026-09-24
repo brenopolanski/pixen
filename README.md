@@ -127,13 +127,13 @@ Copy your edited screenshot directly to the system clipboard with `⌘⇧C`.
 
 ## Supported Platforms
 
-| Platform | Status                                        |
-| -------- | --------------------------------------------- |
-| macOS    | 10.15+, unsigned `.dmg` from the tag workflow |
+| Platform | Status                                                        |
+| -------- | ------------------------------------------------------------- |
+| macOS    | 13.0+ on Apple Silicon, unsigned `.dmg` from the tag workflow |
 
 ## Requirements
 
-- macOS 10.15+
+- macOS 13.0+ on Apple Silicon
 - [pnpm](https://pnpm.io) 10
 - Node.js 20+
 - Rust 1.77.2+ (`rustup`)

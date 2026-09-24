@@ -63,9 +63,6 @@ body:
         - macOS 15.x (Sequoia)
         - macOS 14.x (Sonoma)
         - macOS 13.x (Ventura)
-        - macOS 12.x (Monterey)
-        - macOS 11.x (Big Sur)
-        - macOS 10.15.x (Catalina)
       default: 0
     validations:
       required: true
