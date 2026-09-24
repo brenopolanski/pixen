@@ -40,3 +40,6 @@ public/bg-removal
 *.cer
 *.key
 *.mobileprovision
+
+# Apple App Store provisioning profile
+src-tauri/*.provisionprofile
