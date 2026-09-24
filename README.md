@@ -12,7 +12,7 @@
   <span>&nbsp;•&nbsp;</span>
   <a href="./docs/how-it-works.md">How it Works</a>
   <span>&nbsp;•&nbsp;</span>
-  <a href="https://github.com/brenopolanski/pixen/issues/new?template=support.yml">Contact & Support</a>
+  <a href="https://brenopolanski.com/apps/pixen/support">Contact & Support</a>
   <span>&nbsp;•&nbsp;</span>
   <a href="https://brenopolanski.com/apps/pixen/privacy-policy">Privacy Policy</a>
   <span>&nbsp;•&nbsp;</span>
