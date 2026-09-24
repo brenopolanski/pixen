@@ -26,6 +26,7 @@ dist-ssr
 # Rust / Tauri
 src-tauri/target
 src-tauri/gen
+*.pkg
 
 # background removal model, vendored by pnpm assets:bg-removal
 public/bg-removal
