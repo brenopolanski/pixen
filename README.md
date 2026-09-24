@@ -21,7 +21,7 @@
 
 <p align="center">
   <a href="https://apps.apple.com">
-    <img src="./preview/download-on-app-store-badge.svg" alt="Download on the App Store" height="60">
+    <img src="./preview/download-app-store-badge.svg" alt="Download on the App Store" height="60">
   </a>
 </p>
 
