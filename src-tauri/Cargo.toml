@@ -22,7 +22,6 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [
   "image-png",
-  "macos-private-api",
   "tray-icon",
 ] }
 tauri-plugin-dialog = "2"

@@ -33,3 +33,10 @@ public/bg-removal
 # env
 .env
 .env.*
+
+# Apple signing credentials
+*.p12
+*.pfx
+*.cer
+*.key
+*.mobileprovision

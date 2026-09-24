@@ -15,10 +15,6 @@ const about = isAboutWindow()
 
 applyDocumentTheme(readSettings().theme)
 
-if (splash) {
-  document.documentElement.classList.add('splash')
-}
-
 const renderView = () => {
   if (about) {
     return <About />
