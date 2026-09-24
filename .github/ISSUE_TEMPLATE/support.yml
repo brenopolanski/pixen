@@ -1,0 +1,95 @@
+name: 🙋‍♂️ [Pixen] - Support & Feedback
+description: Get help with Pixen, report bugs, or request features.
+title: '🙋‍♂️ Support & Feedback: Pixen'
+labels: ['support', 'feedback', 'question']
+assignees:
+  - brenopolanski
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please provide as much detail as possible about your support request or feedback.
+
+        Pixen is a lightweight screenshot editor for macOS. Capture your screen, make quick edits, annotate important details, hide private information, and export the result — all from one simple app.
+
+        ### Contact Information
+
+        If you encounter any issues or need support while using Pixen, please feel free to contact us through the following methods:
+
+        - **Email Support**: [breno.polanski@gmail.com](mailto:breno.polanski@gmail.com)
+        - **X (Twitter)**: [@brenopolanski](https://x.com/brenopolanski)
+
+        We will respond to your message as soon as possible. Thank you for your support of Pixen!
+
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: '📋 Request Type'
+      options:
+        - Bug report
+        - Feature request
+        - Question
+        - Feedback
+    validations:
+      required: true
+
+  - type: textarea
+    id: request
+    attributes:
+      label: '🙋‍♂️ How can we help you?'
+      description: Describe the issue you're facing or the feature you'd like to request.
+      placeholder: For example, I'm experiencing an issue with...
+    validations:
+      required: true
+
+  - type: input
+    id: pixen_version
+    attributes:
+      label: '📦 Pixen Version'
+      description: Which version of Pixen are you using?
+      placeholder: 'e.g. 1.0.0'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os_version
+    attributes:
+      label: '💻 macOS Version'
+      description: Which version of macOS are you using?
+      options:
+        - macOS 27.x (Golden Gate)
+        - macOS 26.x (Tahoe)
+        - macOS 15.x (Sequoia)
+        - macOS 14.x (Sonoma)
+        - macOS 13.x (Ventura)
+        - macOS 12.x (Monterey)
+        - macOS 11.x (Big Sur)
+        - macOS 10.15.x (Catalina)
+      default: 0
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### Crash reports
+
+        If Pixen crashes, a crash report can help us investigate the problem.
+
+        1. Open **Finder**
+        2. Press <kbd>⇧</kbd> + <kbd>⌘</kbd> + <kbd>G</kbd>
+        3. Enter `~/Library/Logs/DiagnosticReports`
+        4. Find the most recent Pixen crash report
+        5. Attach it to this issue
+
+        Please avoid attaching files containing personal or sensitive information.
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: 'ℹ️ Additional Context'
+      description: Add any additional information that could be helpful.
+      placeholder: Screenshots, steps to reproduce, error messages, etc.
+    validations:
+      required: false
