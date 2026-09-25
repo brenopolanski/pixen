@@ -4,6 +4,7 @@ import { EditorPane } from '@/components/editor/EditorPane'
 import { EmptyState } from '@/components/layout/EmptyState'
 import { ErrorBanner } from '@/components/layout/ErrorBanner'
 import { ArrowOverlay } from '@/components/overlays/ArrowOverlay'
+import { CutoutDiagnosticPanel } from '@/components/overlays/CutoutDiagnosticPanel'
 import { CutoutOverlay } from '@/components/overlays/CutoutOverlay'
 import { DropOverlay } from '@/components/overlays/DropOverlay'
 import { IncrementOverlay } from '@/components/overlays/IncrementOverlay'
@@ -24,6 +25,7 @@ import { useNativeMenu } from '@/hooks/useNativeMenu'
 import { useTrayRequests } from '@/hooks/useTrayRequests'
 import { useWindowTitle } from '@/hooks/useWindowTitle'
 import { showAboutWindow } from '@/lib/desktop'
+import { openCutoutDiagnostic } from '@/lib/image/cutout'
 import { generateReactKey } from '@/lib/utils'
 
 export const App = () => {
@@ -41,6 +43,7 @@ export const App = () => {
     onCopyImage: session.copyImage,
     onCutout: session.startCutout,
     onIncrement: session.startIncrement,
+    onOpenDiagnostics: openCutoutDiagnostic,
     onOpenImage: session.openImage,
     onOpenSettings: () => {
       setSettingsOpen((prev) => !prev)
@@ -202,6 +205,8 @@ export const App = () => {
           setShortcutsOpen(false)
         }}
       />
+
+      <CutoutDiagnosticPanel />
 
       <Toaster position="bottom-right" theme={theme} />
     </div>

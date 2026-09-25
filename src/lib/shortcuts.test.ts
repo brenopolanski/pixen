@@ -9,6 +9,7 @@ import {
   isArrowShortcut,
   isCopyImageShortcut,
   isCutoutShortcut,
+  isDiagnosticsShortcut,
   isOpenImageShortcut,
   isPixelizeShortcut,
   isReservedShortcut,
@@ -72,6 +73,21 @@ describe('isCopyImageShortcut', () => {
 
   it('leaves plain Copy alone, which text fields need', () => {
     expect(isCopyImageShortcut(event({ key: 'c', metaKey: true }))).toBe(false)
+  })
+})
+
+describe('isDiagnosticsShortcut', () => {
+  it('opens only after ⌘⇧D then ⌘⇧0', () => {
+    expect(isDiagnosticsShortcut(event({ key: 'D', metaKey: true, shiftKey: true }))).toBe(false)
+    expect(
+      isDiagnosticsShortcut(event({ key: ')', code: 'Digit0', metaKey: true, shiftKey: true })),
+    ).toBe(true)
+  })
+
+  it('does not fire 0 without the D first', () => {
+    expect(
+      isDiagnosticsShortcut(event({ key: ')', code: 'Digit0', metaKey: true, shiftKey: true })),
+    ).toBe(false)
   })
 })
 

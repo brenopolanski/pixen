@@ -40,7 +40,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.unlayer.com https://editor.unlayer.com; style-src 'self' 'unsafe-inline' https://cdn.unlayer.com https://editor.unlayer.com https://fonts.googleapis.com; font-src 'self' data: https://cdn.unlayer.com https://editor.unlayer.com https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob:; worker-src 'self' blob:; frame-src 'self' https://editor.unlayer.com; connect-src 'self' data: blob: ipc: http://ipc.localhost https://ipc.localhost https://cdn.unlayer.com https://editor.unlayer.com https://api.unlayer.com"
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.unlayer.com https://editor.unlayer.com; style-src 'self' 'unsafe-inline' https://cdn.unlayer.com https://editor.unlayer.com https://fonts.googleapis.com; font-src 'self' data: https://cdn.unlayer.com https://editor.unlayer.com https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob:; worker-src 'self' blob:; frame-src 'self' https://editor.unlayer.com; connect-src 'self' data: blob: ipc: http://ipc.localhost https://ipc.localhost https://cdn.unlayer.com https://editor.unlayer.com https://api.unlayer.com"
     }
   },
   "bundle": {
@@ -55,7 +55,7 @@
     ],
     "macOS": {
       "minimumSystemVersion": "13.0",
-      "bundleVersion": "2",
+      "bundleVersion": "6",
       "entitlements": "Entitlements.plist",
       "signingIdentity": "3rd Party Mac Developer Application: Breno Polanski Gomes Pessoa Diniz (L5D47ZQB9Z)"
     }

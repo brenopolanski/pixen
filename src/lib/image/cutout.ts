@@ -136,6 +136,306 @@ const logBackgroundRemovalFailure = (base: string, error: unknown): void => {
   })
 }
 
+/**
+ * Logical keys in resources.json for the CPU ONNX runtime. The files on disk
+ * are content-hashed, so the probe reads each key's first chunk name from the
+ * manifest instead of remembering a hash.
+ */
+const WASM_RESOURCE = '/onnxruntime-web/ort-wasm-simd-threaded.wasm'
+const MJS_RESOURCE = '/onnxruntime-web/ort-wasm-simd-threaded.mjs'
+
+/** TEMPORARY. One fetched resource, shown in the diagnostic panel. */
+export interface ResourceProbe {
+  url: string
+  status: number | null
+  ok: boolean | null
+  contentType: string | null
+  blobSize: number | null
+  error: string | null
+}
+
+const logResourceProbe = async (
+  base: string,
+  name: string,
+  readBody: boolean,
+): Promise<ResourceProbe> => {
+  const url = new URL(name, base).href
+
+  try {
+    const response = await fetch(url)
+    const probe: ResourceProbe = {
+      url,
+      status: response.status,
+      ok: response.ok,
+      contentType: response.headers.get('content-type'),
+      blobSize: readBody ? (await response.blob()).size : null,
+      error: null,
+    }
+
+    console.error('[Pixen] Background removal diagnostic', {
+      name,
+      url: probe.url,
+      status: probe.status,
+      ok: probe.ok,
+      contentType: probe.contentType,
+      contentLength: response.headers.get('content-length'),
+      ...(readBody ? { blobSize: probe.blobSize } : {}),
+    })
+
+    return probe
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+
+    console.error('[Pixen] Background removal diagnostic', { name, url, message, error })
+
+    return { url, status: null, ok: null, contentType: null, blobSize: null, error: message }
+  }
+}
+
+/** TEMPORARY. The panel reads this; closing it does not stop the cutout. */
+export interface CutoutDiagnostic {
+  publicPath: string
+  resourcesJsonUrl: string
+  resources: ResourceProbe | null
+  wasm: ResourceProbe | null
+  mjs: ResourceProbe | null
+  result: 'Idle' | 'Running' | 'Success' | 'Failed'
+  message: string | null
+  stack: string | null
+}
+
+let diagnostic: CutoutDiagnostic | null = null
+// The panel opens only from ⌘⇧D0. Probes update this store either way.
+let diagnosticHidden = true
+const diagnosticListeners = new Set<() => void>()
+
+const emitDiagnostic = (): void => {
+  for (const listener of diagnosticListeners) {
+    listener()
+  }
+}
+
+const publishDiagnostic = (next: CutoutDiagnostic): void => {
+  diagnostic = next
+  emitDiagnostic()
+}
+
+const patchDiagnostic = (partial: Partial<CutoutDiagnostic>): void => {
+  if (!diagnostic) {
+    return
+  }
+
+  diagnostic = { ...diagnostic, ...partial }
+  emitDiagnostic()
+}
+
+/** Shows the panel. A removal in progress keeps updating it; opening does not start one. */
+export const openCutoutDiagnostic = (): void => {
+  diagnosticHidden = false
+
+  if (!diagnostic) {
+    const base = publicPath()
+
+    diagnostic = {
+      publicPath: base,
+      resourcesJsonUrl: new URL('resources.json', base).href,
+      resources: null,
+      wasm: null,
+      mjs: null,
+      result: 'Idle',
+      message: null,
+      stack: null,
+    }
+  }
+
+  emitDiagnostic()
+}
+
+const probeLine = (label: string, probe: ResourceProbe | null): string[] => {
+  if (!probe) {
+    return [`${label}: not checked`]
+  }
+
+  return [
+    `${label} URL: ${probe.url}`,
+    `${label} HTTP status: ${probe.status ?? '—'}`,
+    `${label} ok: ${probe.ok ?? '—'}`,
+    `${label} Content-Type: ${probe.contentType ?? '—'}`,
+    `${label} Blob size: ${probe.blobSize ?? '—'}`,
+    `${label} error: ${probe.error ?? '—'}`,
+  ]
+}
+
+/** Plain text for the clipboard. The panel renders the same fields. */
+export const formatCutoutDiagnostic = (
+  current: CutoutDiagnostic,
+  app: { version: string; runtime: string },
+): string => {
+  return [
+    'Pixen diagnostics',
+    `App version: ${app.version}`,
+    `Runtime: ${app.runtime}`,
+    `Public Path: ${current.publicPath}`,
+    `resources.json URL: ${current.resourcesJsonUrl}`,
+    ...probeLine('resources.json', current.resources),
+    ...probeLine('WASM chunk', current.wasm),
+    ...probeLine('MJS chunk', current.mjs),
+    `Background removal: ${current.result}`,
+    `Last error: ${current.message ?? '—'}`,
+    `Stack: ${current.stack ?? '—'}`,
+  ].join('\n')
+}
+
+export const dismissCutoutDiagnostic = (): void => {
+  diagnosticHidden = true
+  emitDiagnostic()
+}
+
+export const subscribeCutoutDiagnostic = (listener: () => void): (() => void) => {
+  diagnosticListeners.add(listener)
+
+  return () => {
+    diagnosticListeners.delete(listener)
+  }
+}
+
+export const getCutoutDiagnostic = (): CutoutDiagnostic | null => {
+  return diagnosticHidden ? null : diagnostic
+}
+
+/** First chunk filename for a resources.json entry. Throws when the entry is missing. */
+const firstChunkName = (manifest: unknown, key: string): string => {
+  if (manifest === null || typeof manifest !== 'object') {
+    throw new Error('resources.json is not an object')
+  }
+
+  const entry: unknown = Reflect.get(manifest, key)
+
+  if (entry === null || typeof entry !== 'object') {
+    throw new Error(`resources.json has no ${key}`)
+  }
+
+  const chunks: unknown = Reflect.get(entry, 'chunks')
+  const first: unknown = Array.isArray(chunks) ? chunks[0] : undefined
+  const name: unknown =
+    first !== null && typeof first === 'object' ? Reflect.get(first, 'name') : undefined
+
+  if (typeof name !== 'string' || name.length === 0) {
+    throw new Error(`resources.json has no chunk name for ${key}`)
+  }
+
+  return name
+}
+
+const failedProbe = (url: string, error: string): ResourceProbe => ({
+  url,
+  status: null,
+  ok: null,
+  contentType: null,
+  blobSize: null,
+  error,
+})
+
+/**
+ * Reads resources.json once, then probes the WASM and MJS chunk URLs it names.
+ * A failure here is only logged; it does not change the removal result.
+ */
+const logBackgroundRemovalResources = async (base: string): Promise<void> => {
+  const resourcesJsonUrl = new URL('resources.json', base).href
+
+  console.error('[Pixen] Background removal diagnostic', { publicPath: base })
+  console.error('[Pixen] Background removal diagnostic', { resourcesJson: resourcesJsonUrl })
+
+  const manifest = await readResourcesManifest(base)
+  patchDiagnostic({ resources: manifest.probe })
+
+  patchDiagnostic({ wasm: await probeManifestChunk(base, manifest, WASM_RESOURCE) })
+  patchDiagnostic({ mjs: await probeManifestChunk(base, manifest, MJS_RESOURCE) })
+}
+
+/** Fetches resources.json for the panel and keeps the parsed body for chunk names. */
+const readResourcesManifest = async (
+  base: string,
+): Promise<{ probe: ResourceProbe; body: unknown | null }> => {
+  const url = new URL('resources.json', base).href
+
+  try {
+    const response = await fetch(url)
+    const probe: ResourceProbe = {
+      url,
+      status: response.status,
+      ok: response.ok,
+      contentType: response.headers.get('content-type'),
+      blobSize: null,
+      error: null,
+    }
+
+    console.error('[Pixen] Background removal diagnostic', {
+      name: 'resources.json',
+      url: probe.url,
+      status: probe.status,
+      ok: probe.ok,
+      contentType: probe.contentType,
+      contentLength: response.headers.get('content-length'),
+    })
+
+    if (!response.ok) {
+      return { probe, body: null }
+    }
+
+    try {
+      return { probe, body: await response.json() }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+
+      return { probe: { ...probe, error: message }, body: null }
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+
+    console.error('[Pixen] Background removal diagnostic', {
+      name: 'resources.json',
+      url,
+      message,
+      error,
+    })
+
+    return { probe: failedProbe(url, message), body: null }
+  }
+}
+
+/** Probes the first chunk of one resources.json entry. */
+const probeManifestChunk = async (
+  base: string,
+  manifest: { probe: ResourceProbe; body: unknown | null },
+  key: string,
+): Promise<ResourceProbe> => {
+  if (!manifest.body) {
+    const reason =
+      manifest.probe.error ??
+      (manifest.probe.status === null
+        ? 'resources.json could not be read'
+        : `resources.json responded ${manifest.probe.status}`)
+
+    return failedProbe(manifest.probe.url, reason)
+  }
+
+  try {
+    return await logResourceProbe(base, firstChunkName(manifest.body, key), true)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+
+    console.error('[Pixen] Background removal diagnostic', {
+      name: key,
+      url: manifest.probe.url,
+      message,
+      error,
+    })
+
+    return failedProbe(manifest.probe.url, message)
+  }
+}
+
 const enqueue = <T>(work: () => Promise<T>): Promise<T> => {
   // Queued behind the previous run either way: one failure must not wedge
   // every cutout after it.
@@ -161,11 +461,25 @@ export const removeImageBackground = async (
 ): Promise<string> => {
   const base = publicPath()
 
-  await assertAssetsPresent(base)
+  publishDiagnostic({
+    publicPath: base,
+    resourcesJsonUrl: new URL('resources.json', base).href,
+    resources: null,
+    wasm: null,
+    mjs: null,
+    result: 'Running',
+    message: null,
+    stack: null,
+  })
 
-  // The reporter is built inside the queued work, so a caller still waiting
-  // its turn reports nothing and its overlay stays on Starting.
   try {
+    await assertAssetsPresent(base)
+
+    // TEMPORARY. Does not change the result; each probe catches its own failure.
+    await logBackgroundRemovalResources(base)
+
+    // The reporter is built inside the queued work, so a caller still waiting
+    // its turn reports nothing and its overlay stays on Starting.
     const blob = await enqueue(() => {
       // Read at the front of the queue rather than when queued: cancelling
       // closes the overlay while its turn is still behind inference that
@@ -181,12 +495,21 @@ export const removeImageBackground = async (
       })
     })
 
-    return await blobToDataUrl(blob)
+    const result = await blobToDataUrl(blob)
+
+    patchDiagnostic({ result: 'Success', message: null, stack: null })
+
+    return result
   } catch (error) {
     // Cancelling a queued run rejects with AbortError. That is expected and
     // already ignored by the overlay, so it is not the failure we are tracing.
     if (!(error instanceof DOMException && error.name === 'AbortError')) {
       logBackgroundRemovalFailure(base, error)
+      patchDiagnostic({
+        result: 'Failed',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? (error.stack ?? null) : null,
+      })
     }
 
     throw error

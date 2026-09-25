@@ -20,7 +20,7 @@ const eslintConfig = defineConfig([
   reactHooks.configs.flat.recommended,
   reactRefresh.configs.vite,
   prettier,
-  globalIgnores(['dist/**', 'src-tauri/**', 'src/components/ui/**']),
+  globalIgnores(['dist/**', 'public/bg-removal/**', 'src-tauri/**', 'src/components/ui/**']),
   {
     languageOptions: {
       globals: {
