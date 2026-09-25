@@ -55,7 +55,7 @@
     ],
     "macOS": {
       "minimumSystemVersion": "13.0",
-      "bundleVersion": "4",
+      "bundleVersion": "5",
       "entitlements": "Entitlements.plist",
       "signingIdentity": "3rd Party Mac Developer Application: Breno Polanski Gomes Pessoa Diniz (L5D47ZQB9Z)"
     }

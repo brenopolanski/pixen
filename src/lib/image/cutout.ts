@@ -137,12 +137,12 @@ const logBackgroundRemovalFailure = (base: string, error: unknown): void => {
 }
 
 /**
- * TEMPORARY TestFlight instrumentation. Remove once we know whether the
- * WebView can fetch the vendored IMG.LY chunks. These hashes are the CPU WASM
- * and MJS chunks named by resources.json; a failure here is only logged.
+ * Logical keys in resources.json for the CPU ONNX runtime. The files on disk
+ * are content-hashed, so the probe reads each key's first chunk name from the
+ * manifest instead of remembering a hash.
  */
-const WASM_CHUNK = '3dae4038fc722ce4ce041fbc9c63fd5c2d9864bc732a01994518f96e9ec2f357'
-const MJS_CHUNK = 'aa485cf3fa61ca007b3e1ca7b65068328270f072b61cdda490b732211e1da5d9'
+const WASM_RESOURCE = '/onnxruntime-web/ort-wasm-simd-threaded.wasm'
+const MJS_RESOURCE = '/onnxruntime-web/ort-wasm-simd-threaded.mjs'
 
 /** TEMPORARY. One fetched resource, shown in the diagnostic panel. */
 export interface ResourceProbe {
@@ -303,16 +303,137 @@ export const getCutoutDiagnostic = (): CutoutDiagnostic | null => {
   return diagnosticHidden ? null : diagnostic
 }
 
-/** TEMPORARY. Logs whether the production WebView can read the local assets. */
+/** First chunk filename for a resources.json entry. Throws when the entry is missing. */
+const firstChunkName = (manifest: unknown, key: string): string => {
+  if (manifest === null || typeof manifest !== 'object') {
+    throw new Error('resources.json is not an object')
+  }
+
+  const entry: unknown = Reflect.get(manifest, key)
+
+  if (entry === null || typeof entry !== 'object') {
+    throw new Error(`resources.json has no ${key}`)
+  }
+
+  const chunks: unknown = Reflect.get(entry, 'chunks')
+  const first: unknown = Array.isArray(chunks) ? chunks[0] : undefined
+  const name: unknown =
+    first !== null && typeof first === 'object' ? Reflect.get(first, 'name') : undefined
+
+  if (typeof name !== 'string' || name.length === 0) {
+    throw new Error(`resources.json has no chunk name for ${key}`)
+  }
+
+  return name
+}
+
+const failedProbe = (url: string, error: string): ResourceProbe => ({
+  url,
+  status: null,
+  ok: null,
+  contentType: null,
+  blobSize: null,
+  error,
+})
+
+/**
+ * Reads resources.json once, then probes the WASM and MJS chunk URLs it names.
+ * A failure here is only logged; it does not change the removal result.
+ */
 const logBackgroundRemovalResources = async (base: string): Promise<void> => {
   const resourcesJsonUrl = new URL('resources.json', base).href
 
   console.error('[Pixen] Background removal diagnostic', { publicPath: base })
   console.error('[Pixen] Background removal diagnostic', { resourcesJson: resourcesJsonUrl })
 
-  patchDiagnostic({ resources: await logResourceProbe(base, 'resources.json', false) })
-  patchDiagnostic({ wasm: await logResourceProbe(base, WASM_CHUNK, true) })
-  patchDiagnostic({ mjs: await logResourceProbe(base, MJS_CHUNK, true) })
+  const manifest = await readResourcesManifest(base)
+  patchDiagnostic({ resources: manifest.probe })
+
+  patchDiagnostic({ wasm: await probeManifestChunk(base, manifest, WASM_RESOURCE) })
+  patchDiagnostic({ mjs: await probeManifestChunk(base, manifest, MJS_RESOURCE) })
+}
+
+/** Fetches resources.json for the panel and keeps the parsed body for chunk names. */
+const readResourcesManifest = async (
+  base: string,
+): Promise<{ probe: ResourceProbe; body: unknown | null }> => {
+  const url = new URL('resources.json', base).href
+
+  try {
+    const response = await fetch(url)
+    const probe: ResourceProbe = {
+      url,
+      status: response.status,
+      ok: response.ok,
+      contentType: response.headers.get('content-type'),
+      blobSize: null,
+      error: null,
+    }
+
+    console.error('[Pixen] Background removal diagnostic', {
+      name: 'resources.json',
+      url: probe.url,
+      status: probe.status,
+      ok: probe.ok,
+      contentType: probe.contentType,
+      contentLength: response.headers.get('content-length'),
+    })
+
+    if (!response.ok) {
+      return { probe, body: null }
+    }
+
+    try {
+      return { probe, body: await response.json() }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+
+      return { probe: { ...probe, error: message }, body: null }
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+
+    console.error('[Pixen] Background removal diagnostic', {
+      name: 'resources.json',
+      url,
+      message,
+      error,
+    })
+
+    return { probe: failedProbe(url, message), body: null }
+  }
+}
+
+/** Probes the first chunk of one resources.json entry. */
+const probeManifestChunk = async (
+  base: string,
+  manifest: { probe: ResourceProbe; body: unknown | null },
+  key: string,
+): Promise<ResourceProbe> => {
+  if (!manifest.body) {
+    const reason =
+      manifest.probe.error ??
+      (manifest.probe.status === null
+        ? 'resources.json could not be read'
+        : `resources.json responded ${manifest.probe.status}`)
+
+    return failedProbe(manifest.probe.url, reason)
+  }
+
+  try {
+    return await logResourceProbe(base, firstChunkName(manifest.body, key), true)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+
+    console.error('[Pixen] Background removal diagnostic', {
+      name: key,
+      url: manifest.probe.url,
+      message,
+      error,
+    })
+
+    return failedProbe(manifest.probe.url, message)
+  }
 }
 
 const enqueue = <T>(work: () => Promise<T>): Promise<T> => {

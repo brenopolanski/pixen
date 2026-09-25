@@ -7,7 +7,7 @@
 // alternative precisions Pixen never asks for.
 
 import { createHash } from 'node:crypto'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import process from 'node:process'
 
@@ -66,31 +66,56 @@ const run = async () => {
 
   await mkdir(OUTPUT_DIR, { recursive: true })
 
-  // Every entry is split into content-addressed chunks, and the two wasm
-  // builds share some, so the same hash is only downloaded once.
+  // Tauri's production protocol sniffs bytes, then falls back to the file
+  // suffix. An extensionless name falls back to text/html. WASM still sniffs
+  // as application/wasm; the ONNX loader is JavaScript and does not, so those
+  // chunks have to be named .mjs or WebKit refuses to import them.
   const chunks = new Map()
 
   for (const key of RESOURCES) {
+    const extension = key.endsWith('.mjs') ? '.mjs' : ''
+
     for (const chunk of manifest[key].chunks) {
-      chunks.set(chunk.hash, chunk.name)
+      const remoteName = chunk.name
+      const existing = chunks.get(chunk.hash)
+
+      if (existing && existing.extension !== extension) {
+        throw new Error(
+          `${chunk.hash} is used both with and without ${extension || 'an extension'}`,
+        )
+      }
+
+      chunks.set(chunk.hash, { remoteName, extension })
+      chunk.name = `${chunk.hash}${extension}`
     }
   }
 
   let done = 0
 
-  for (const [hash, name] of chunks) {
-    const body = Buffer.from(await (await fetchOk(`${baseUrl}${name}`)).arrayBuffer())
+  for (const [hash, { remoteName, extension }] of chunks) {
+    const body = Buffer.from(await (await fetchOk(`${baseUrl}${remoteName}`)).arrayBuffer())
     const digest = createHash('sha256').update(body).digest('hex')
 
-    // The name is the hash, so a mismatch means a corrupted or swapped file.
+    // The remote name is the hash, so a mismatch means a corrupted or swapped file.
     if (digest !== hash) {
-      throw new Error(`${name} does not match its hash`)
+      throw new Error(`${remoteName} does not match its hash`)
     }
 
-    await writeFile(path.join(OUTPUT_DIR, name), body)
+    const fileName = `${hash}${extension}`
+
+    await writeFile(path.join(OUTPUT_DIR, fileName), body)
+
+    if (fileName !== remoteName) {
+      // Drop the extensionless copy so a stale file is not what gets embedded.
+      await unlink(path.join(OUTPUT_DIR, remoteName)).catch((error) => {
+        if (error.code !== 'ENOENT') {
+          throw error
+        }
+      })
+    }
 
     done += 1
-    console.log(`  ${done}/${chunks.size} ${name.slice(0, 12)}…`)
+    console.log(`  ${done}/${chunks.size} ${fileName.slice(0, 12)}…`)
   }
 
   // Pruned to what was written: an entry whose chunks are absent would fail at
@@ -98,6 +123,18 @@ const run = async () => {
   const pruned = Object.fromEntries(RESOURCES.map((key) => [key, manifest[key]]))
 
   await writeFile(path.join(OUTPUT_DIR, 'resources.json'), `${JSON.stringify(pruned, null, 2)}\n`)
+
+  for (const key of RESOURCES) {
+    if (!key.endsWith('.mjs')) {
+      continue
+    }
+
+    for (const chunk of pruned[key].chunks) {
+      if (!chunk.name.endsWith('.mjs')) {
+        throw new Error(`${key} chunk ${chunk.name} is still extensionless`)
+      }
+    }
+  }
 
   console.log(`Wrote ${chunks.size} files to public/bg-removal`)
 }
