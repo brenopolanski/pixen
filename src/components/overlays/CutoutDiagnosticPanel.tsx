@@ -14,7 +14,12 @@ const line = (label: string, value: string | number | boolean | null): string =>
   return `${label}: ${value === null ? '—' : String(value)}`
 }
 
-const Probe = ({ title, probe }: { title: string; probe: ResourceProbe | null }) => {
+interface ProbeProps {
+  title: string
+  probe: ResourceProbe | null
+}
+
+const Probe = ({ title, probe }: ProbeProps) => {
   return (
     <section className="flex flex-col gap-0.5">
       <p className="font-medium text-foreground">{title}</p>
