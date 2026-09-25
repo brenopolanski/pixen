@@ -300,27 +300,13 @@ fn ensure_size_limit(path: &Path, limit: u64, subject: &str) -> Result<(), Strin
     Ok(())
 }
 
-/// Writes through a sibling temp file so an interrupted save cannot leave a
-/// half-written file where a readable one used to be.
-fn write_atomically(path: &Path, contents: &[u8], subject: &str) -> Result<(), String> {
-    let Some(file_name) = path.file_name() else {
-        return Err(format!(
-            "Could not write {subject}: the path is not a file."
-        ));
-    };
-
-    let mut temp_name = file_name.to_os_string();
-    temp_name.push(".tmp");
-    let temp_path = path.with_file_name(temp_name);
-
-    fs::write(&temp_path, contents).map_err(|error| io_error_message(&error, "write", subject))?;
-
-    if let Err(error) = fs::rename(&temp_path, path) {
-        let _ = fs::remove_file(&temp_path);
-        return Err(io_error_message(&error, "write", subject));
-    }
-
-    Ok(())
+/// Writes straight to the path the save dialog returned.
+///
+/// That path is the only file the App Sandbox has granted. A sibling temp file
+/// and a rename are a different URL, so the sandbox refuses them even after it
+/// has attached an extension for the destination itself.
+fn write_destination(path: &Path, contents: &[u8], subject: &str) -> Result<(), String> {
+    fs::write(path, contents).map_err(|error| io_error_message(&error, "write", subject))
 }
 
 /// Reads an image file of a known format as a data URL, which is the only image
@@ -371,7 +357,7 @@ pub fn write_image(path: String, data_url: String) -> Result<(), String> {
         _ => encode(&bytes, format)?,
     };
 
-    write_atomically(&path, &contents, IMAGE_SUBJECT)
+    write_destination(&path, &contents, IMAGE_SUBJECT)
 }
 
 #[cfg(test)]
@@ -550,5 +536,27 @@ mod tests {
         assert!(decode_data_url("https://example.com/photo.png").is_err());
         assert!(decode_data_url("data:image/png,unencoded").is_err());
         assert!(decode_data_url("data:image/png;base64,not base64").is_err());
+    }
+
+    #[test]
+    fn writes_the_selected_path_and_leaves_no_sibling() {
+        let path = std::env::temp_dir().join(format!("pixen-save-{}.png", std::process::id()));
+        let mut sibling_name = path.file_name().expect("the path is a file").to_os_string();
+        sibling_name.push(".tmp");
+        let sibling = path.with_file_name(sibling_name);
+
+        let _ = fs::remove_file(&path);
+        let _ = fs::remove_file(&sibling);
+
+        write_image(
+            path.to_string_lossy().into_owned(),
+            as_data_url(transparent_png()),
+        )
+        .expect("the destination is writable");
+
+        assert!(path.is_file());
+        assert!(!sibling.exists());
+
+        let _ = fs::remove_file(&path);
     }
 }
