@@ -115,6 +115,27 @@ const progressReporter = (onProgress: CutoutProgress) => {
  */
 let queue: Promise<unknown> = Promise.resolve()
 
+/** Diagnostic only. The overlay still shows the generic sentence. */
+const logBackgroundRemovalFailure = (base: string, error: unknown): void => {
+  const properties =
+    error !== null && typeof error === 'object'
+      ? Object.fromEntries(
+          Object.getOwnPropertyNames(error).map((key) => [key, Reflect.get(error, key)]),
+        )
+      : undefined
+
+  console.error('[Pixen] Background removal failed:', error)
+  console.error('[Pixen] Background removal error details:', {
+    error,
+    message: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined,
+    properties,
+    publicPath: base,
+    model: MODEL,
+    dev: import.meta.env.DEV,
+  })
+}
+
 const enqueue = <T>(work: () => Promise<T>): Promise<T> => {
   // Queued behind the previous run either way: one failure must not wedge
   // every cutout after it.
@@ -144,20 +165,30 @@ export const removeImageBackground = async (
 
   // The reporter is built inside the queued work, so a caller still waiting
   // its turn reports nothing and its overlay stays on Starting.
-  const blob = await enqueue(() => {
-    // Read at the front of the queue rather than when queued: cancelling
-    // closes the overlay while its turn is still behind inference that
-    // nothing can abort, and running that job anyway would only make the
-    // next open wait for a cutout no one is going to see.
-    signal?.throwIfAborted()
+  try {
+    const blob = await enqueue(() => {
+      // Read at the front of the queue rather than when queued: cancelling
+      // closes the overlay while its turn is still behind inference that
+      // nothing can abort, and running that job anyway would only make the
+      // next open wait for a cutout no one is going to see.
+      signal?.throwIfAborted()
 
-    return removeBackground(dataUrl, {
-      publicPath: base,
-      model: MODEL,
-      output: { format: 'image/png' },
-      progress: progressReporter(onProgress),
+      return removeBackground(dataUrl, {
+        publicPath: base,
+        model: MODEL,
+        output: { format: 'image/png' },
+        progress: progressReporter(onProgress),
+      })
     })
-  })
 
-  return blobToDataUrl(blob)
+    return await blobToDataUrl(blob)
+  } catch (error) {
+    // Cancelling a queued run rejects with AbortError. That is expected and
+    // already ignored by the overlay, so it is not the failure we are tracing.
+    if (!(error instanceof DOMException && error.name === 'AbortError')) {
+      logBackgroundRemovalFailure(base, error)
+    }
+
+    throw error
+  }
 }

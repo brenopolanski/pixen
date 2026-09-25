@@ -137,11 +137,25 @@ describe('removeImageBackground', () => {
   })
 
   it('passes a failure from the model through untouched', async () => {
-    removeBackground.mockRejectedValue(new Error('WebAssembly.instantiate failed'))
+    const error = new Error('WebAssembly.instantiate failed')
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+
+    removeBackground.mockRejectedValue(error)
 
     await expect(removeImageBackground('data:image/png;base64,BBBB', vi.fn())).rejects.toThrow(
       'WebAssembly.instantiate failed',
     )
+    expect(consoleError).toHaveBeenCalledWith('[Pixen] Background removal failed:', error)
+    expect(consoleError).toHaveBeenCalledWith(
+      '[Pixen] Background removal error details:',
+      expect.objectContaining({
+        message: 'WebAssembly.instantiate failed',
+        publicPath: 'tauri://localhost/bg-removal/',
+        model: 'isnet_quint8',
+      }),
+    )
+
+    consoleError.mockRestore()
   })
 
   it('holds the next run until the one in flight is done', async () => {

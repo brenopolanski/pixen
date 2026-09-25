@@ -21,6 +21,9 @@ export default defineConfig({
     },
   },
   clearScreen: false,
+  optimizeDeps: {
+    exclude: ['onnxruntime-web'],
+  },
   server: {
     port: 1420,
     strictPort: true,
