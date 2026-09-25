@@ -41,6 +41,35 @@ export const isStepsShortcut = (event: ShortcutEvent): boolean => matches(event,
 export const isCutoutShortcut = (event: ShortcutEvent): boolean => matches(event, 'b', true)
 
 /**
+ * ⌘⇧D0 is two keydowns: D, then 0, while Command and Shift stay down.
+ * One event only has one `key`, and Shift+0 reports `)` rather than `0`, so
+ * the second key is matched on `code`.
+ */
+let diagnosticsArmed = false
+
+export const isDiagnosticsShortcut = (event: ShortcutEvent): boolean => {
+  if (!hasPrimaryModifier(event) || event.altKey || !event.shiftKey) {
+    diagnosticsArmed = false
+    return false
+  }
+
+  if (event.key.toLowerCase() === 'd') {
+    diagnosticsArmed = true
+    return false
+  }
+
+  const digitZero = event.code === 'Digit0' || event.key === '0' || event.key === ')'
+
+  if (diagnosticsArmed && digitZero) {
+    diagnosticsArmed = false
+    return true
+  }
+
+  diagnosticsArmed = false
+  return false
+}
+
+/**
  * ⌘? — browsers disagree whether Shift+/ reports `key` as `?` or `/`.
  */
 export const isShortcutsShortcut = (event: ShortcutEvent): boolean =>

@@ -10,7 +10,7 @@ importers:
     dependencies:
       '@imgly/background-removal':
         specifier: ^1.7.0
-        version: 1.7.0(onnxruntime-web@1.21.0-dev.20250206-d981b153d3)
+        version: 1.7.0(onnxruntime-web@1.21.0)
       '@tauri-apps/api':
         specifier: ^2
         version: 2.11.1
@@ -33,8 +33,8 @@ importers:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       onnxruntime-web:
-        specifier: 1.21.0-dev.20250206-d981b153d3
-        version: 1.21.0-dev.20250206-d981b153d3
+        specifier: 1.21.0
+        version: 1.21.0
       radix-ui:
         specifier: ^1.6.7
         version: 1.6.7(@types/react-dom@19.2.5(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -3870,11 +3870,11 @@ packages:
     resolution: {integrity: sha512-VXJjc87FScF88uafS3JllDgvAm+c/Slfz06lorj2uAY34rlUu0Nt+v8wreiImcrgAjjIHp1rXpTDlLOGw29WwQ==}
     engines: {node: '>=18'}
 
-  onnxruntime-common@1.21.0-dev.20250206-d981b153d3:
-    resolution: {integrity: sha512-TwaE51xV9q2y8pM61q73rbywJnusw9ivTEHAJ39GVWNZqxCoDBpe/tQkh/w9S+o/g+zS7YeeL0I/2mEWd+dgyA==}
+  onnxruntime-common@1.21.0:
+    resolution: {integrity: sha512-Q632iLLrtCAVOTO65dh2+mNbQir/QNTVBG3h/QdZBpns7mZ0RYbLRBgGABPbpU9351AgYy7SJf1WaeVwMrBFPQ==}
 
-  onnxruntime-web@1.21.0-dev.20250206-d981b153d3:
-    resolution: {integrity: sha512-esDVQdRic6J44VBMFLumYvcGfioMh80ceLmzF1yheJyuLKq/Th8VT2aj42XWQst+2bcWnAhw4IKmRQaqzU8ugg==}
+  onnxruntime-web@1.21.0:
+    resolution: {integrity: sha512-adzOe+7uI7lKz6pQNbAsLMQd2Fq5Jhmoxd8LZjJr8m3KvbFyiYyRxRiC57/XXD+jb18voppjeGAjoZmskXG+7A==}
 
   open@11.0.3:
     resolution: {integrity: sha512-b3souUgU0VaAvMmzA4+9cRgrOgMdE0vc9H9VhQ0FYnjjcyZ8R/f9DiwMU9V8rl+vjf05On9UJhbgb06fsTs87Q==}
@@ -5497,11 +5497,11 @@ snapshots:
   '@img/sharp-win32-x64@0.35.4':
     optional: true
 
-  '@imgly/background-removal@1.7.0(onnxruntime-web@1.21.0-dev.20250206-d981b153d3)':
+  '@imgly/background-removal@1.7.0(onnxruntime-web@1.21.0)':
     dependencies:
       lodash-es: 4.18.1
       ndarray: 1.0.19
-      onnxruntime-web: 1.21.0-dev.20250206-d981b153d3
+      onnxruntime-web: 1.21.0
       zod: 3.25.76
 
   '@jridgewell/gen-mapping@0.3.13':
@@ -8664,14 +8664,14 @@ snapshots:
     dependencies:
       mimic-function: 5.0.1
 
-  onnxruntime-common@1.21.0-dev.20250206-d981b153d3: {}
+  onnxruntime-common@1.21.0: {}
 
-  onnxruntime-web@1.21.0-dev.20250206-d981b153d3:
+  onnxruntime-web@1.21.0:
     dependencies:
       flatbuffers: 25.9.23
       guid-typescript: 1.0.9
       long: 5.3.2
-      onnxruntime-common: 1.21.0-dev.20250206-d981b153d3
+      onnxruntime-common: 1.21.0
       platform: 1.3.6
       protobufjs: 7.6.6
 

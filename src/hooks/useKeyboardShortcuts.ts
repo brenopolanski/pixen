@@ -4,6 +4,7 @@ import {
   isArrowShortcut,
   isCopyImageShortcut,
   isCutoutShortcut,
+  isDiagnosticsShortcut,
   isOpenImageShortcut,
   isPixelizeShortcut,
   isRecordingCaptureShortcut,
@@ -20,6 +21,7 @@ interface ShortcutHandlers {
   onCopyImage: () => void
   onCutout: () => void
   onIncrement: () => void
+  onOpenDiagnostics: () => void
   onOpenImage: () => void
   onOpenSettings: () => void
   onOpenShortcuts: () => void
@@ -34,6 +36,7 @@ export const useKeyboardShortcuts = ({
   onCopyImage,
   onCutout,
   onIncrement,
+  onOpenDiagnostics,
   onOpenImage,
   onOpenSettings,
   onOpenShortcuts,
@@ -83,6 +86,12 @@ export const useKeyboardShortcuts = ({
         return
       }
 
+      if (isDiagnosticsShortcut(event)) {
+        event.preventDefault()
+        onOpenDiagnostics()
+        return
+      }
+
       // Overlay tools only make sense with an image open. Swallowing the key
       // on the empty state would do nothing useful.
       if (!hasImage) {
@@ -125,6 +134,7 @@ export const useKeyboardShortcuts = ({
     onCopyImage,
     onCutout,
     onIncrement,
+    onOpenDiagnostics,
     onOpenImage,
     onOpenSettings,
     onOpenShortcuts,
