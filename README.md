@@ -26,7 +26,7 @@
 </p>
 
 <p align="center">
-  <img src="./preview/promo.gif" alt="Pixen promo">
+  <img src="./preview/promo.gif" alt="Pixen promo" width="100%">
 </p>
 
 Pixen is a lightweight screenshot editor for macOS.
