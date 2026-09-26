@@ -31,8 +31,6 @@
 
 ## Introduction
 
-![Pixen Banner](./preview/banner.png)
-
 Pixen is a lightweight screenshot editor for macOS.
 
 Capture your screen, make quick edits, annotate important details, hide private information, and export the result — all from one simple app.
@@ -43,6 +41,12 @@ Capture your screen, make quick edits, annotate important details, hide private 
 > Press `⌘⇧9` from any app to capture a region straight into the editor. You don't need to switch to Pixen first.
 
 <!--idoc:ignore:end-->
+
+![Pixen Banner](./preview/banner.png)
+
+### :heart: Found this project useful?
+
+If you found this project useful, then please consider giving it a :star: on GitHub and sharing it with your friends via social media. It helps to promote the project and attract more contributors.
 
 ## Features
 
