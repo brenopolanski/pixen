@@ -29,6 +29,10 @@
   <img src="./preview/promo.gif" alt="Pixen promo" width="100%">
 </p>
 
+## Introduction
+
+![Pixen Banner](./preview/banner.png)
+
 Pixen is a lightweight screenshot editor for macOS.
 
 Capture your screen, make quick edits, annotate important details, hide private information, and export the result — all from one simple app.
