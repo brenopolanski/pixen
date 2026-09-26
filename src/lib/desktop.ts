@@ -46,19 +46,6 @@ export const setWindowTitle = (title: string): Promise<void> => {
 }
 
 /**
- * Takes over the window's close button so unsaved work can be guarded. The
- * handler decides when — or whether — to call `quitApp`.
- */
-export const onCloseRequested = (handler: () => void): Promise<() => void> => {
-  return getCurrentWindow()
-    .onCloseRequested((event) => {
-      event.preventDefault()
-      handler()
-    })
-    .then((unlisten) => () => unlisten())
-}
-
-/**
  * Subscribes to a request from the menu bar item or the global shortcut.
  *
  * The tray cannot capture on its own: the shot still has to land in a tab,

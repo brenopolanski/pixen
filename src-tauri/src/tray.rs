@@ -4,10 +4,12 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Emitter, Manager,
 };
+#[cfg(not(debug_assertions))]
 use tauri_plugin_autostart::ManagerExt;
 
+use crate::login;
 use crate::shortcut::CaptureShortcut;
-use crate::window::{show_about_window, MAIN_WINDOW_LABEL};
+use crate::window::{self, show_about_window, MAIN_WINDOW_LABEL};
 
 const APP_NAME: &str = "Pixen";
 
@@ -16,9 +18,8 @@ const CAPTURE_REQUESTED_EVENT: &str = "pixen-capture-requested";
 /// Keep in sync with QUIT_REQUESTED_EVENT in src/lib/constants.ts
 const QUIT_REQUESTED_EVENT: &str = "pixen-quit-requested";
 
-/// Builds the menu bar item. Pixen keeps its Dock icon and editor window, so
-/// this is a second way in rather than the whole app: the activation policy is
-/// left alone.
+/// Builds the menu bar item. Closing the editor hides it and leaves this
+/// running; only Quit exits the process.
 ///
 /// Left-click captures, like Lightshot. The menu is the right-click, which is
 /// what `show_menu_on_left_click(false)` buys.
@@ -30,6 +31,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
     // Whatever the recorder last stored, so the menu is not left advertising
     // a combo that no longer fires.
+    let open_item = MenuItem::with_id(app, "open", format!("Open {APP_NAME}"), true, None::<&str>)?;
     let capture_item = MenuItem::with_id(
         app,
         "capture",
@@ -42,7 +44,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         "launch-at-login",
         "Start at Login",
         true,
-        app.autolaunch().is_enabled().unwrap_or(false),
+        login::is_enabled(),
         None::<&str>,
     )?;
     let about_item = MenuItem::with_id(
@@ -59,6 +61,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
     let menu = Menu::with_items(
         app,
         &[
+            &open_item,
             &capture_item,
             &top_separator,
             &launch_at_login_item,
@@ -77,8 +80,9 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
         .menu(&menu)
         .show_menu_on_left_click(false)
         .on_menu_event(move |app, event| match event.id.as_ref() {
+            "open" => window::show_main(app),
             "capture" => request_capture(app),
-            "launch-at-login" => toggle_launch_at_login(app, &launch_at_login_item),
+            "launch-at-login" => toggle_launch_at_login(&launch_at_login_item),
             "about" => show_about_window(app.clone()),
             "quit" => request_quit(app),
             _ => {}
@@ -111,7 +115,7 @@ pub fn request_capture(app: &AppHandle) {
 /// `app.exit` would drop unsaved edits without asking.
 fn request_quit(app: &AppHandle) {
     if !emit_to_main(app, QUIT_REQUESTED_EVENT) {
-        app.exit(0);
+        window::quit_app(app.clone());
     }
 }
 
@@ -124,20 +128,15 @@ fn emit_to_main(app: &AppHandle, event: &str) -> bool {
     window.emit(event, ()).is_ok()
 }
 
-fn toggle_launch_at_login(app: &AppHandle, item: &CheckMenuItem<tauri::Wry>) {
-    let autostart = app.autolaunch();
-    let currently_enabled = autostart.is_enabled().unwrap_or(false);
-    let changed = if currently_enabled {
-        autostart.disable().is_ok()
-    } else {
-        autostart.enable().is_ok()
-    };
+fn toggle_launch_at_login(item: &CheckMenuItem<tauri::Wry>) {
+    let currently_enabled = login::is_enabled();
+    let changed = login::set_enabled(!currently_enabled);
     // The checkmark follows what the system actually reports, so a refused
     // toggle leaves the menu telling the truth.
     let enabled = if changed {
         !currently_enabled
     } else {
-        autostart.is_enabled().unwrap_or(currently_enabled)
+        login::is_enabled()
     };
 
     let _ = item.set_checked(enabled);
@@ -145,8 +144,16 @@ fn toggle_launch_at_login(app: &AppHandle, item: &CheckMenuItem<tauri::Wry>) {
 
 /// Registers login launch the first time a packaged build runs. A marker file
 /// keeps later launches from turning it back on after the user unchecks it.
+///
+/// An older build may already have a LaunchAgent. That is turned off here and
+/// replaced with `SMAppService`, which is what the check item uses from now on.
 #[cfg(not(debug_assertions))]
 fn enable_autostart_on_first_launch(app: &AppHandle) {
+    if app.autolaunch().is_enabled().unwrap_or(false) {
+        let _ = app.autolaunch().disable();
+        let _ = login::set_enabled(true);
+    }
+
     let Ok(config_dir) = app.path().app_config_dir() else {
         return;
     };
@@ -158,7 +165,7 @@ fn enable_autostart_on_first_launch(app: &AppHandle) {
 
     let _ = std::fs::create_dir_all(&config_dir);
 
-    if app.autolaunch().enable().is_ok() {
+    if login::set_enabled(true) {
         let _ = std::fs::write(marker, []);
     }
 }

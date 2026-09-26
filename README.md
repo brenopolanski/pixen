@@ -96,9 +96,9 @@ The result is previewed before it is applied, and the image never leaves your Ma
 
 ### Menu Bar
 
-Pixen stays in the Dock and adds a menu bar item.
+Closing the window leaves Pixen in the menu bar. The Dock icon comes back when the window does.
 
-Left-click it to capture. Right-click it to start at login, open About, or quit, without leaving the app you are in.
+Left-click the icon to capture. The window opens after a screenshot if it was closed. Right-click for **Open Pixen**, start at login, About, or quit. Quit is what removes the icon. Starting at login puts the menu bar up without opening the window.
 
 ### Recent Images
 
@@ -256,18 +256,19 @@ Pixen prevents conflicts with shortcuts it already uses, including Save, Copy Im
 
 ## Menu Bar
 
-Pixen lives in both the Dock and the macOS menu bar.
+Closing the window hides it and leaves the menu bar and the global shortcut running. The Dock icon goes away until the window is shown again. **Quit Pixen** is what exits and removes the icon. A login launch starts the menu bar without opening the window.
 
-Left-click the menu bar icon to capture a screenshot. Right-click it to access the available actions.
+Left-click the menu bar icon to capture a screenshot. If the window was hidden, it opens only after the screenshot succeeds. Right-click it to access the available actions.
 
-| Item              | Action                           |
-| ----------------- | -------------------------------- |
-| `Take Screenshot` | Capture into a tab (`⌘⇧9`)       |
-| `Start at Login`  | Toggle launch at login           |
-| `About Pixen`     | Open the About window            |
-| `Quit Pixen`      | Quit while guarding unsaved work |
+| Item              | Action                            |
+| ----------------- | --------------------------------- |
+| `Open Pixen`      | Show the editor without capturing |
+| `Take Screenshot` | Capture into a tab (`⌘⇧9`)        |
+| `Start at Login`  | Toggle launch at login            |
+| `About Pixen`     | Open the About window             |
+| `Quit Pixen`      | Quit while guarding unsaved work  |
 
-Captures from the menu bar use the same editing session as captures from the main window.
+Captures from the menu bar use the same editing session as captures from the main window. Opening Pixen from Finder while the menu bar is already running shows the window. Opening it after a full quit is a normal launch.
 
 ## License
 

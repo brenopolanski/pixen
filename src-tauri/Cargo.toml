@@ -41,3 +41,11 @@ image = { version = "0.25", default-features = false, features = [
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# SMAppService and the login-launch Apple event. A sandboxed app cannot write
+# the LaunchAgent that tauri-plugin-autostart uses.
+objc2-foundation = { version = "0.3", features = [
+  "NSAppleEventDescriptor",
+  "NSAppleEventManager",
+  "objc2-core-services",
+] }
+objc2-service-management = "0.3"

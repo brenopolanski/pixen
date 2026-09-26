@@ -16,8 +16,10 @@ comes from differs.
   is left alone, which is what keeps the editor's text tool working. A pasted image has no path, so
   its first save asks where to write.
 - **Screenshotting** runs macOS's own `screencapture -i`, so you get the crosshair you already know
-  — drag a region, or press Space to pick a window. Pixen hides itself for the duration and comes
-  back whatever happens. A capture has no path either, so its first save offers `Screenshot.png`.
+  — drag a region, or press Space to pick a window. An open editor hides for the duration and comes
+  back whatever happens. If the window was already hidden, it comes back only when a file was
+  produced; Escape leaves the menu bar alone. A capture has no path either, so its first save
+  offers `Screenshot.png`.
 - **The File menu** is built with `@tauri-apps/api/menu`, so its actions sit next to the session
   rather than in Rust. Save, Save As, Copy Image and the four image tools are disabled until an
   image is open. A menu replaces the entire bar, so the App, Edit and Window submenus are rebuilt
@@ -61,14 +63,23 @@ Capturing over unsaved edits asks before replacing them, the same as any other w
 
 ## The menu bar item
 
-Pixen is a Dock app that also puts an item in the menu bar, so a screenshot does not need the
-editor window in front first. The activation policy is left alone — this is a second way in, not a
-conversion into a menu-bar-only app.
+The menu bar item lives in the Pixen process, so it stays up after the editor window closes.
+Closing the window hides it and switches the activation policy to Accessory, which drops the Dock
+icon. Unsaved tabs stay in the hidden webview. **Quit Pixen** — the tray item or `⌘Q` — is what
+exits and removes the icon. Quit still goes through `requestClose` and the unsaved-changes prompt.
+The red close button does not: Rust intercepts `CloseRequested`, prevents the close, and hides the
+window. About is hidden at the same time, so it cannot be left as the only visible window.
+
+Showing the window again switches back to Regular, which restores the Dock icon. That happens from
+**Open Pixen** in the tray menu, from opening Pixen in Finder while the process is already running
+(`RunEvent::Reopen`, and only when nothing is visible), and from a capture that produced a file.
+Left-click and the global shortcut stay as capture. They open a hidden window only after the shot
+lands.
 
 `setup_tray` in `src-tauri/src/tray.rs` builds it with `show_menu_on_left_click(false)`, which is
 what splits the two gestures the way [Lightshot](https://app.prntscr.com/en/) does: left-click
-captures, right-click opens **Take Screenshot**, **Start at Login**, **About Pixen** and **Quit**.
-The icon is a template image, so macOS tints it to match a light or a dark menu bar.
+captures, right-click opens **Open Pixen**, **Take Screenshot**, **Start at Login**, **About Pixen**
+and **Quit**. The icon is a template image, so macOS tints it to match a light or a dark menu bar.
 
 ### Why the tray does not capture directly
 
@@ -116,11 +127,22 @@ again elsewhere — the physical key is the only stable answer.
 
 ### Start at Login
 
-`tauri-plugin-autostart`, toggled from the check item. A packaged build turns it on once on first
-launch and drops a marker file in the app config directory, so unchecking it stays unchecked. Debug
-builds skip that entirely — otherwise `tauri dev` would register the debug binary to launch at
-login. Both plugins are driven from Rust only, so neither is granted anything in
-`capabilities/default.json`.
+The check item registers the main app with `SMAppService.mainApp`. A sandboxed Mac App Store app
+cannot write `~/Library/LaunchAgents`, which is what `tauri-plugin-autostart` does, and registering
+the main app needs no extra entitlement. The plugin stays so a LaunchAgent left by an older build
+can be turned off once and replaced. It stays driven from Rust only, so it is not granted
+anything in `capabilities/default.json`. A packaged build still opts in on first launch and drops a
+marker file in the app config directory, so unchecking it stays unchecked. Debug builds skip that
+entirely — otherwise `tauri dev` would register the debug binary to launch at login. The checkmark
+follows what the system reports, including when registration is waiting on System Settings.
+
+A login launch is a normal open unless the current Apple event is `kAEOpenApplication` marked
+`kAELaunchedAsLogInItem` (or carries that `'lgit'` parameter itself). In that case Pixen does not
+show the splash or the editor. It becomes an accessory immediately and still loads the main
+webview, so a later capture has a session to land in. The splash window is created hidden and
+shown from `setup` only for a normal launch, and `finish_launch` — including its 12 second timeout
+— refuses to reveal the window after a background start. Opening Pixen from Finder, the Dock or
+Spotlight after a full quit is that normal launch: splash, then the editor, and the menu bar.
 
 ## Copying
 
@@ -381,7 +403,7 @@ set from `readSettings()` before React mounts so the empty state does not flash 
 src/
 ├── components/          # Toolbar, TabBar, Editor, Settings, EmptyState, overlays, ErrorBanner, Splash, About
 │   └── ui/              # shadcn/ui primitives: Button, DropdownMenu, Sheet, Popover, Tooltip, the Sonner toaster
-├── hooks/               # session state, drop, paste, menu, shortcuts, tray requests, title, close guard, launch, settings, crop double-click
+├── hooks/               # session state, drop, paste, menu, shortcuts, tray requests, title, launch, settings, crop double-click
 └── lib/
     ├── editor/          # engine preload, editor options, unsaved-edit detection, crop double-click
     ├── image/           # paths and formats, clipboard, capture, pixelize, badge and arrow geometry, cutout, dialogs and I/O
@@ -400,8 +422,9 @@ src-tauri/src/
 ├── clipboard.rs         # copying the edited image out as pixels
 ├── dialog.rs            # the three-button unsaved-changes prompt
 ├── shortcut.rs          # the stored capture combo, registered system-wide
-├── tray.rs              # menu bar item, Start at Login, the capture and quit events
-└── window.rs            # splash → main handoff, About window, quit
+├── login.rs             # SMAppService login item, and detecting a login launch
+├── tray.rs              # menu bar item, Open Pixen, Start at Login, capture and quit
+└── window.rs            # splash → main handoff, hide on close, About window, quit
 ```
 
 The primitives under `components/ui/` are the generated shadcn files, themed to Pixen's own tokens
