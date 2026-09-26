@@ -2,6 +2,7 @@ mod capture;
 mod clipboard;
 mod dialog;
 mod image;
+mod login;
 mod shortcut;
 mod tray;
 mod window;
@@ -9,6 +10,7 @@ mod window;
 use std::thread;
 use std::time::Duration;
 
+use tauri::Manager;
 use tauri_plugin_global_shortcut::{Builder as ShortcutBuilder, ShortcutState};
 
 /// If the frontend never reports that it is ready — a bundle that failed to
@@ -57,6 +59,14 @@ pub fn run() {
             window::show_about_window,
         ])
         .setup(|app| {
+            // The splash is created hidden. A login launch never shows it;
+            // a normal launch does, before the editor is ready.
+            if login::launched_as_login_item() {
+                window::enter_background(app.handle());
+            } else if let Some(splash) = app.get_webview_window(window::SPLASH_WINDOW_LABEL) {
+                let _ = splash.show();
+            }
+
             let handle = app.handle().clone();
 
             thread::spawn(move || {
@@ -71,6 +81,35 @@ pub fn run() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running Pixen");
+        .on_window_event(|window, event| {
+            if window.label() != window::MAIN_WINDOW_LABEL {
+                return;
+            }
+
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                window::hide_main(window.app_handle());
+            }
+        })
+        .build(tauri::generate_context!())
+        .expect("error while building Pixen")
+        .run(|app, event| match event {
+            tauri::RunEvent::ExitRequested { api, .. } => {
+                if window::should_keep_running() {
+                    api.prevent_exit();
+                }
+            }
+            #[cfg(target_os = "macos")]
+            tauri::RunEvent::Reopen {
+                has_visible_windows,
+                ..
+            } => {
+                // Finder or the Dock relaunching an already-running app. A
+                // click while the editor is already up should not steal focus.
+                if !has_visible_windows {
+                    window::show_main(app);
+                }
+            }
+            _ => {}
+        });
 }
