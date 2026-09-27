@@ -57,6 +57,8 @@ pub fn run() {
             window::show_about_window,
         ])
         .setup(|app| {
+            window::round_splash_corners(app.handle());
+
             let handle = app.handle().clone();
 
             thread::spawn(move || {

@@ -41,3 +41,18 @@ image = { version = "0.25", default-features = false, features = [
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Public AppKit, used only to clip the splash window. Tauri's transparent
+# window flag needs a private macOS API, which this does not. `cornerRadius`
+# needs CoreFoundation types, which AppKit does not turn on for CALayer.
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", default-features = false, features = [
+  "NSColor",
+  "NSView",
+  "NSWindow",
+  "objc2-quartz-core",
+  "std",
+] }
+objc2-quartz-core = { version = "0.3", default-features = false, features = [
+  "CALayer",
+  "objc2-core-foundation",
+] }
