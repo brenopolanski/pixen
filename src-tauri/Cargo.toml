@@ -1,6 +1,6 @@
 [package]
 name = "pixen"
-version = "1.0.0"
+version = "1.0.1"
 description = "Pixen - The Fast, Simple Screenshot Editor"
 authors = ["Breno Polanski <breno.polanski@gmail.com>"]
 edition = "2021"
