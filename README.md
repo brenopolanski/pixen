@@ -50,10 +50,10 @@ If you found this project useful, then please consider giving it a :star: on Git
 
 ## Get Pixen
 
-- **Signed app:** Buy the notarized App Store build at [apps.apple.com](https://apps.apple.com/app/id6814540472).
+- **Signed app:** Buy Pixen on the [Mac App Store](https://apps.apple.com/app/id6814540472).
 - **Build it yourself:** Clone this repository and follow the instructions below.
 
-The paid build funds development and removes the work of compiling, signing, notarizing, and updating the app. The application source is available under AGPL-3.0-or-later.
+The paid App Store build saves you the work of compiling, signing, packaging, and keeping the app updated. The application source is available under AGPL-3.0-or-later.
 
 ## Features
 
