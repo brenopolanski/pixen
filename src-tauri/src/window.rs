@@ -65,3 +65,52 @@ pub fn show_about_window(app: AppHandle) {
 
     let _ = window.set_focus();
 }
+
+/// Matches `--radius-xl` in src/styles/globals.css. AppKit measures in points,
+/// and one CSS pixel in this webview is one point.
+const SPLASH_CORNER_RADIUS: f64 = 16.0;
+
+/// Clips the splash window to a rounded rect. The main window is never looked up.
+#[cfg(target_os = "macos")]
+pub fn round_splash_corners(app: &AppHandle) {
+    let Some(splash) = app.get_webview_window(SPLASH_WINDOW_LABEL) else {
+        return;
+    };
+
+    clip_splash_window(&splash);
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn round_splash_corners(_app: &AppHandle) {}
+
+/// Public AppKit only: a non-opaque window, a clear background, and a content
+/// view layer that masks to the corner radius. The window shadow stays on.
+#[cfg(target_os = "macos")]
+fn clip_splash_window(splash: &tauri::WebviewWindow) {
+    use objc2::rc::Retained;
+    use objc2_app_kit::{NSColor, NSWindow};
+
+    let Ok(raw) = splash.ns_window() else {
+        return;
+    };
+    // The pointer belongs to the window. Retain it for this call, then release.
+    let Some(ns_window) = (unsafe { Retained::<NSWindow>::retain(raw.cast()) }) else {
+        return;
+    };
+
+    ns_window.setOpaque(false);
+    ns_window.setBackgroundColor(Some(&NSColor::clearColor()));
+
+    let Some(content) = ns_window.contentView() else {
+        return;
+    };
+    content.setWantsLayer(true);
+
+    if let Some(layer) = content.layer() {
+        layer.setCornerRadius(SPLASH_CORNER_RADIUS);
+        layer.setMasksToBounds(true);
+    }
+
+    ns_window.setHasShadow(true);
+    ns_window.invalidateShadow();
+}
