@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <a href="https://apps.apple.com">
+  <a href="https://apps.apple.com/app/id6814540472">
     <img src="./preview/download-app-store-badge.svg" alt="Download on the App Store" height="60">
   </a>
 </p>
@@ -47,6 +47,13 @@ Capture your screen, make quick edits, annotate important details, hide private 
 ### :heart: Found this project useful?
 
 If you found this project useful, then please consider giving it a :star: on GitHub and sharing it with your friends via social media. It helps to promote the project and attract more contributors.
+
+## Get Pixen
+
+- **Signed app:** Buy Pixen on the [Mac App Store](https://apps.apple.com/app/id6814540472).
+- **Build it yourself:** Clone this repository and follow the instructions below.
+
+The paid App Store build saves you the work of compiling, signing, packaging, and keeping the app updated. The application source is available under AGPL-3.0-or-later.
 
 ## Features
 

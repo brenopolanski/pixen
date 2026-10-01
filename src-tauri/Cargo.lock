@@ -2140,6 +2140,7 @@ dependencies = [
  "objc2-core-foundation",
  "objc2-core-graphics",
  "objc2-foundation",
+ "objc2-quartz-core",
 ]
 
 [[package]]
@@ -2500,11 +2501,14 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "pixen"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "base64 0.22.1",
  "image",
+ "objc2",
+ "objc2-app-kit",
  "objc2-foundation",
+ "objc2-quartz-core",
  "objc2-service-management",
  "serde",
  "serde_json",

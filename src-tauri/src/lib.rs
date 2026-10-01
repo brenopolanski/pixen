@@ -59,6 +59,11 @@ pub fn run() {
             window::show_about_window,
         ])
         .setup(|app| {
+            // Clip before show or destroy, so a normal launch never flashes
+            // square corners and a login launch does not round a window it
+            // is about to drop.
+            window::round_splash_corners(app.handle());
+
             // The splash is created hidden. A login launch never shows it;
             // a normal launch does, before the editor is ready.
             if login::launched_as_login_item() {
