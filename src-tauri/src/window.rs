@@ -6,6 +6,8 @@ pub const MAIN_WINDOW_LABEL: &str = "main";
 pub const SPLASH_WINDOW_LABEL: &str = "splash";
 /// Keep in sync with ABOUT_WINDOW_LABEL in src/lib/constants.ts
 pub const ABOUT_WINDOW_LABEL: &str = "about";
+/// Keep in sync with HIDE_REQUESTED_EVENT in src/lib/constants.ts
+pub const HIDE_REQUESTED_EVENT: &str = "pixen-hide-requested";
 
 /// Set for a login launch, which must never reveal the splash or the editor.
 static BACKGROUND_LAUNCH: AtomicBool = AtomicBool::new(false);
@@ -43,8 +45,10 @@ pub fn show_main(app: &AppHandle) {
     }
 }
 
-/// Hides the editor and drops the Dock icon. The webview stays loaded, so
-/// unsaved tabs and a later capture still have a session to land in.
+/// Hides the editor and drops the Dock icon. The webview stays loaded, so a
+/// later capture still has a session to land in. Unsaved work is settled by
+/// the webview before this runs: the red close button only asks, via
+/// `HIDE_REQUESTED_EVENT`.
 pub fn hide_main(app: &AppHandle) {
     // Before the hide, so an exit requested as the last window disappears is
     // still refused.
@@ -72,6 +76,13 @@ pub fn should_keep_running() -> bool {
 
 fn keep_process_alive(parked: bool, quitting: bool) -> bool {
     parked && !quitting
+}
+
+/// Hides the editor after the webview has resolved the unsaved-changes prompt.
+/// The close button does not call this; it only emits `HIDE_REQUESTED_EVENT`.
+#[tauri::command]
+pub fn hide_main_window(app: AppHandle) {
+    hide_main(&app);
 }
 
 /// Reveals the main window and dismisses the splash screen. The order matters:

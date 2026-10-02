@@ -13,6 +13,7 @@ import {
   askAboutUnsavedChanges,
   askToApplyOverlay,
   askToDiscardChanges,
+  hideMainWindow,
   quitApp,
 } from '@/lib/desktop'
 import { hasUnsavedEdits } from '@/lib/editor/engine'
@@ -105,6 +106,8 @@ export interface ImageSession {
   saveAs: () => void
   discardEdits: () => void
   requestClose: () => void
+  /** Red close button: same unsaved prompt as quit, then hides instead of exiting. */
+  requestHide: () => void
   reportError: (message: string) => void
   dismissError: () => void
 }
@@ -846,6 +849,28 @@ export const useImageSession = (): ImageSession => {
     })
   }, [persistTab, readTabImage, run])
 
+  const revertTab = useCallback(
+    async (tabId: string) => {
+      const tab = sessionRef.current.tabs.find((entry) => entry.id === tabId)
+      const editor = editorOf(tabId)
+
+      if (!tab || !editor) {
+        return
+      }
+
+      const baseline = baselinesRef.current.get(tabId) ?? null
+
+      await editor.reset(baseline ?? tab.image)
+
+      if (baseline !== null) {
+        bakedRef.current.set(tabId, false)
+      }
+
+      patchTab(tabId, { dirty: bakedRef.current.get(tabId) === true })
+    },
+    [editorOf, patchTab],
+  )
+
   const discardEdits = useCallback(() => {
     run(async () => {
       const active = activeTabOf(sessionRef.current)
@@ -859,17 +884,9 @@ export const useImageSession = (): ImageSession => {
         return
       }
 
-      const baseline = baselinesRef.current.get(active.id) ?? null
-
-      await editor.reset(baseline ?? active.image)
-
-      if (baseline !== null) {
-        bakedRef.current.set(active.id, false)
-      }
-
-      patchTab(active.id, { dirty: bakedRef.current.get(active.id) === true })
+      await revertTab(active.id)
     })
-  }, [editorOf, patchTab, run])
+  }, [editorOf, revertTab, run])
 
   const snapshotActiveDirty = useCallback(() => {
     const active = activeTabOf(sessionRef.current)
@@ -948,33 +965,62 @@ export const useImageSession = (): ImageSession => {
     [isTabUnsaved, persistTab, readTabImage, removeTab, run],
   )
 
+  /**
+   * Save, discard, or cancel for every dirty tab. True only when it is safe
+   * to leave: nothing was dirty, every save succeeded, or the user discarded.
+   * Cancel, a failed write, and a dismissed save panel all return false.
+   */
+  const settleUnsaved = useCallback(async (): Promise<boolean> => {
+    snapshotActiveDirty()
+
+    if (!anyUnsaved()) {
+      return true
+    }
+
+    const decision = await askAboutUnsavedChanges()
+
+    if (decision === 'cancel') {
+      return false
+    }
+
+    const tabs = sessionRef.current.tabs.filter((tab) => tab.dirty || isTabUnsaved(tab.id))
+
+    if (decision === 'save') {
+      for (const tab of tabs) {
+        if (!(await persistTab(tab, readTabImage(tab.id), tab.path))) {
+          return false
+        }
+      }
+
+      return true
+    }
+
+    for (const tab of tabs) {
+      await revertTab(tab.id)
+    }
+
+    return true
+  }, [anyUnsaved, isTabUnsaved, persistTab, readTabImage, revertTab, snapshotActiveDirty])
+
   const requestClose = useCallback(() => {
     run(async () => {
-      snapshotActiveDirty()
-
-      if (anyUnsaved()) {
-        const decision = await askAboutUnsavedChanges()
-
-        if (decision === 'cancel') {
-          return
-        }
-
-        if (decision === 'save') {
-          for (const tab of sessionRef.current.tabs) {
-            if (!(tab.dirty || isTabUnsaved(tab.id))) {
-              continue
-            }
-
-            if (!(await persistTab(tab, readTabImage(tab.id), tab.path))) {
-              return
-            }
-          }
-        }
+      if (!(await settleUnsaved())) {
+        return
       }
 
       await quitApp()
     })
-  }, [anyUnsaved, isTabUnsaved, persistTab, readTabImage, run, snapshotActiveDirty])
+  }, [run, settleUnsaved])
+
+  const requestHide = useCallback(() => {
+    run(async () => {
+      if (!(await settleUnsaved())) {
+        return
+      }
+
+      await hideMainWindow()
+    })
+  }, [run, settleUnsaved])
 
   const refreshUnsavedState = useCallback(() => {
     snapshotActiveDirty()
@@ -1090,6 +1136,7 @@ export const useImageSession = (): ImageSession => {
     saveAs,
     discardEdits,
     requestClose,
+    requestHide,
     reportError,
     dismissError,
   }

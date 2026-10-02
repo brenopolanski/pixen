@@ -1,20 +1,25 @@
 import { useEffect } from 'react'
 
-import { CAPTURE_REQUESTED_EVENT, QUIT_REQUESTED_EVENT } from '@/lib/constants'
+import {
+  CAPTURE_REQUESTED_EVENT,
+  HIDE_REQUESTED_EVENT,
+  QUIT_REQUESTED_EVENT,
+} from '@/lib/constants'
 import { onTrayRequest } from '@/lib/desktop'
 
 interface TrayHandlers {
   onCaptureScreen: () => void
   onQuit: () => void
+  onHide: () => void
 }
 
 /**
  * Routes the menu bar item and the global capture shortcut back through the
  * session, so a shot taken from the tray lands in a tab under the same rules
- * as one taken from the toolbar — and Quit still gets to ask about unsaved
- * work before anything exits.
+ * as one taken from the toolbar. Quit still asks about unsaved work before
+ * exiting. The red close button asks the same way, then hides the window.
  */
-export const useTrayRequests = ({ onCaptureScreen, onQuit }: TrayHandlers) => {
+export const useTrayRequests = ({ onCaptureScreen, onHide, onQuit }: TrayHandlers) => {
   useEffect(() => {
     let disposed = false
     const stops: (() => void)[] = []
@@ -39,6 +44,7 @@ export const useTrayRequests = ({ onCaptureScreen, onQuit }: TrayHandlers) => {
     }
 
     subscribe(CAPTURE_REQUESTED_EVENT, onCaptureScreen)
+    subscribe(HIDE_REQUESTED_EVENT, onHide)
     subscribe(QUIT_REQUESTED_EVENT, onQuit)
 
     return () => {
@@ -47,5 +53,5 @@ export const useTrayRequests = ({ onCaptureScreen, onQuit }: TrayHandlers) => {
         stop()
       })
     }
-  }, [onCaptureScreen, onQuit])
+  }, [onCaptureScreen, onHide, onQuit])
 }

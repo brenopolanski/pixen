@@ -65,10 +65,13 @@ Capturing over unsaved edits asks before replacing them, the same as any other w
 
 The menu bar item lives in the Pixen process, so it stays up after the editor window closes.
 Closing the window hides it and switches the activation policy to Accessory, which drops the Dock
-icon. Unsaved tabs stay in the hidden webview. **Quit Pixen** — the tray item or `⌘Q` — is what
-exits and removes the icon. Quit still goes through `requestClose` and the unsaved-changes prompt.
-The red close button does not: Rust intercepts `CloseRequested`, prevents the close, and hides the
-window. About is hidden at the same time, so it cannot be left as the only visible window.
+icon. **Quit Pixen** — the tray item or `⌘Q` — is what exits and removes the icon. Both Quit and
+the red close button go through the same unsaved-changes prompt. Quit then calls `quit_app`. The
+red button keeps the process running: Rust intercepts `CloseRequested`, prevents the close, and
+emits `pixen-hide-requested`. The webview saves or discards, and only then calls
+`hide_main_window`. Cancel, a failed save, or a cancelled save panel leaves the window up. A clean
+editor hides immediately. About is hidden with the editor, so it cannot be left as the only
+visible window.
 
 Showing the window again switches back to Regular, which restores the Dock icon. That happens from
 **Open Pixen** in the tray menu, from opening Pixen in Finder while the process is already running

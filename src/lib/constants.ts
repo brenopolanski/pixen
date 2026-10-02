@@ -16,6 +16,8 @@ export const ABOUT_WINDOW_LABEL = 'about'
 export const CAPTURE_REQUESTED_EVENT = 'pixen-capture-requested'
 /** Keep in sync with QUIT_REQUESTED_EVENT in src-tauri/src/tray.rs */
 export const QUIT_REQUESTED_EVENT = 'pixen-quit-requested'
+/** Keep in sync with HIDE_REQUESTED_EVENT in src-tauri/src/window.rs */
+export const HIDE_REQUESTED_EVENT = 'pixen-hide-requested'
 
 /**
  * Class on every editor mount. The Save/Cancel hide rule in `globals.css` keys

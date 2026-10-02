@@ -79,6 +79,7 @@ export const App = () => {
   useWindowTitle({ path: session.path, hasImage, dirty: session.dirty })
   useTrayRequests({
     onCaptureScreen: session.captureScreen,
+    onHide: session.requestHide,
     onQuit: session.requestClose,
   })
   useClipboardPaste({

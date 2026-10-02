@@ -10,7 +10,7 @@ mod window;
 use std::thread;
 use std::time::Duration;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{Builder as ShortcutBuilder, ShortcutState};
 
 /// If the frontend never reports that it is ready — a bundle that failed to
@@ -55,6 +55,7 @@ pub fn run() {
             shortcut::set_capture_shortcut,
             shortcut::suspend_capture_shortcut,
             window::finish_launch,
+            window::hide_main_window,
             window::quit_app,
             window::show_about_window,
         ])
@@ -92,8 +93,16 @@ pub fn run() {
             }
 
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // Keep the window up until the webview saves, discards, or
+                // cancels. Hiding here would drop that prompt. Emit on the
+                // webview, the same way Quit does, so the listener is the one
+                // `getCurrentWindow().listen` registered.
                 api.prevent_close();
-                window::hide_main(window.app_handle());
+                let app = window.app_handle();
+
+                if let Some(main) = app.get_webview_window(window::MAIN_WINDOW_LABEL) {
+                    let _ = main.emit(window::HIDE_REQUESTED_EVENT, ());
+                }
             }
         })
         .build(tauri::generate_context!())

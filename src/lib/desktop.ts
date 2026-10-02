@@ -41,6 +41,11 @@ export const quitApp = (): Promise<void> => {
   return invoke('quit_app')
 }
 
+/** Hides the editor after unsaved work has been saved or discarded. */
+export const hideMainWindow = (): Promise<void> => {
+  return invoke('hide_main_window')
+}
+
 export const setWindowTitle = (title: string): Promise<void> => {
   return getCurrentWindow().setTitle(title)
 }
