@@ -83,18 +83,25 @@ pub async fn capture_screen(app: AppHandle) -> Result<Option<String>, String> {
 
     let path = screenshot_path();
     let main = app.get_webview_window(MAIN_WINDOW_LABEL);
+    let was_visible = main
+        .as_ref()
+        .and_then(|window| window.is_visible().ok())
+        .unwrap_or(false);
 
-    // Pixen would otherwise cover whatever the user is trying to capture. The
-    // window is restored below on every path, including cancellation.
-    if let Some(window) = &main {
-        let _ = window.hide();
+    // A visible editor would cover whatever the user is trying to capture.
+    // Hiding it here is temporary, so the Dock icon stays until the shot ends.
+    // A window that was already hidden is left hidden unless a file is produced.
+    if was_visible {
+        if let Some(window) = &main {
+            let _ = window.hide();
+        }
     }
 
     let captured = run_screencapture(&path);
+    let produced = matches!(captured, Ok(true));
 
-    if let Some(window) = &main {
-        let _ = window.show();
-        let _ = window.set_focus();
+    if was_visible || produced {
+        crate::window::show_main(&app);
     }
 
     if !captured? {

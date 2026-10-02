@@ -15,7 +15,6 @@ import { Toolbar } from '@/components/toolbar/Toolbar'
 import { Toaster } from '@/components/ui/sonner'
 import { useCaptureShortcut } from '@/hooks/useCaptureShortcut'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
-import { useCloseGuard } from '@/hooks/useCloseGuard'
 import { useEditorSettings } from '@/hooks/useEditorSettings'
 import { useFileDrop } from '@/hooks/useFileDrop'
 import { useImageSession } from '@/hooks/useImageSession'
@@ -80,9 +79,9 @@ export const App = () => {
   useWindowTitle({ path: session.path, hasImage, dirty: session.dirty })
   useTrayRequests({
     onCaptureScreen: session.captureScreen,
+    onHide: session.requestHide,
     onQuit: session.requestClose,
   })
-  useCloseGuard(session.requestClose)
   useClipboardPaste({
     onOpenDataUrl: session.openFromDataUrl,
     onReject: session.reportError,

@@ -2,6 +2,7 @@ mod capture;
 mod clipboard;
 mod dialog;
 mod image;
+mod login;
 mod shortcut;
 mod tray;
 mod window;
@@ -9,6 +10,7 @@ mod window;
 use std::thread;
 use std::time::Duration;
 
+use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{Builder as ShortcutBuilder, ShortcutState};
 
 /// If the frontend never reports that it is ready — a bundle that failed to
@@ -53,11 +55,23 @@ pub fn run() {
             shortcut::set_capture_shortcut,
             shortcut::suspend_capture_shortcut,
             window::finish_launch,
+            window::hide_main_window,
             window::quit_app,
             window::show_about_window,
         ])
         .setup(|app| {
+            // Clip before show or destroy, so a normal launch never flashes
+            // square corners and a login launch does not round a window it
+            // is about to drop.
             window::round_splash_corners(app.handle());
+
+            // The splash is created hidden. A login launch never shows it;
+            // a normal launch does, before the editor is ready.
+            if login::launched_as_login_item() {
+                window::enter_background(app.handle());
+            } else if let Some(splash) = app.get_webview_window(window::SPLASH_WINDOW_LABEL) {
+                let _ = splash.show();
+            }
 
             let handle = app.handle().clone();
 
@@ -73,6 +87,43 @@ pub fn run() {
 
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running Pixen");
+        .on_window_event(|window, event| {
+            if window.label() != window::MAIN_WINDOW_LABEL {
+                return;
+            }
+
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // Keep the window up until the webview saves, discards, or
+                // cancels. Hiding here would drop that prompt. Emit on the
+                // webview, the same way Quit does, so the listener is the one
+                // `getCurrentWindow().listen` registered.
+                api.prevent_close();
+                let app = window.app_handle();
+
+                if let Some(main) = app.get_webview_window(window::MAIN_WINDOW_LABEL) {
+                    let _ = main.emit(window::HIDE_REQUESTED_EVENT, ());
+                }
+            }
+        })
+        .build(tauri::generate_context!())
+        .expect("error while building Pixen")
+        .run(|app, event| match event {
+            tauri::RunEvent::ExitRequested { api, .. } => {
+                if window::should_keep_running() {
+                    api.prevent_exit();
+                }
+            }
+            #[cfg(target_os = "macos")]
+            tauri::RunEvent::Reopen {
+                has_visible_windows,
+                ..
+            } => {
+                // Finder or the Dock relaunching an already-running app. A
+                // click while the editor is already up should not steal focus.
+                if !has_visible_windows {
+                    window::show_main(app);
+                }
+            }
+            _ => {}
+        });
 }

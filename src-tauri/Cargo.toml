@@ -1,6 +1,6 @@
 [package]
 name = "pixen"
-version = "1.0.1"
+version = "1.1.0"
 description = "Pixen - The Fast, Simple Screenshot Editor"
 authors = ["Breno Polanski <breno.polanski@gmail.com>"]
 edition = "2021"
@@ -41,6 +41,14 @@ image = { version = "0.25", default-features = false, features = [
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# SMAppService and the login-launch Apple event. A sandboxed app cannot write
+# the LaunchAgent that tauri-plugin-autostart uses.
+objc2-foundation = { version = "0.3", features = [
+  "NSAppleEventDescriptor",
+  "NSAppleEventManager",
+  "objc2-core-services",
+] }
+objc2-service-management = "0.3"
 # Public AppKit, used only to clip the splash window. Tauri's transparent
 # window flag needs a private macOS API, which this does not. `cornerRadius`
 # needs CoreFoundation types, which AppKit does not turn on for CALayer.
