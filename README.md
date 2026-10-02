@@ -144,9 +144,9 @@ Copy your edited screenshot directly to the system clipboard with `⌘⇧C`.
 
 ## Supported Platforms
 
-| Platform | Status                                                        |
-| -------- | ------------------------------------------------------------- |
-| macOS    | 13.0+ on Apple Silicon, unsigned `.dmg` from the tag workflow |
+| Platform | Status                 |
+| -------- | ---------------------- |
+| macOS    | 13.0+ on Apple Silicon |
 
 ## Requirements
 
@@ -210,9 +210,21 @@ src-tauri/target/release/bundle/
 
 The output includes a macOS `.app` and `.dmg`.
 
-Builds are unsigned, so macOS may require you to right-click the app and choose **Open** on first launch.
+### Opening it the first time
 
-Pushing a `v*` tag runs the release workflow on macOS and attaches a universal `.dmg` to the GitHub Release.
+A copy you build from this repository isn't signed with an Apple Developer ID or notarized by Apple. The [Mac App Store](https://apps.apple.com/app/id6814540472) build is. The first time you open a local build, macOS says it "could not verify Pixen is free of malware". Click **Done**, then allow it in one of two ways.
+
+In System Settings, open **Privacy & Security** and scroll down to the message about Pixen. Click **Open Anyway**, confirm, and open the app again. The button shows up for about an hour after you try to open the app.
+
+In Terminal, remove the quarantine flag macOS adds to downloaded files, then open the app:
+
+```sh
+xattr -dr com.apple.quarantine "/Applications/Pixen.app"
+```
+
+The same command fixes a message saying Pixen is damaged. You don't need to turn off Gatekeeper for either option.
+
+On a work laptop you might not be able to install apps in `/Applications`. You can keep Pixen in the `Applications` folder inside your home folder, and run the command on `~/Applications/Pixen.app`. If your company blocks apps that aren't notarized, ask your IT team.
 
 ## How it Works
 
