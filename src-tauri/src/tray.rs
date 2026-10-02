@@ -24,10 +24,10 @@ const QUIT_REQUESTED_EVENT: &str = "pixen-quit-requested";
 /// Left-click captures, like Lightshot. The menu is the right-click, which is
 /// what `show_menu_on_left_click(false)` buys.
 pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
-    // Release builds opt in once so a fresh install starts at login. Dev builds
-    // skip it so `tauri dev` does not register the debug binary.
+    // Start at Login stays off until the user checks it. This only moves a
+    // LaunchAgent that an older build already turned on.
     #[cfg(not(debug_assertions))]
-    enable_autostart_on_first_launch(app);
+    migrate_legacy_launch_agent(app);
 
     // Whatever the recorder last stored, so the menu is not left advertising
     // a combo that no longer fires.
@@ -142,30 +142,14 @@ fn toggle_launch_at_login(item: &CheckMenuItem<tauri::Wry>) {
     let _ = item.set_checked(enabled);
 }
 
-/// Registers login launch the first time a packaged build runs. A marker file
-/// keeps later launches from turning it back on after the user unchecks it.
-///
-/// An older build may already have a LaunchAgent. That is turned off here and
-/// replaced with `SMAppService`, which is what the check item uses from now on.
+/// Moves an already-enabled LaunchAgent onto `SMAppService` and turns the agent
+/// off. A fresh install has no agent, so nothing is registered. Once the agent
+/// is gone, later launches leave the checkbox alone, including after the user
+/// turns Start at Login off.
 #[cfg(not(debug_assertions))]
-fn enable_autostart_on_first_launch(app: &AppHandle) {
+fn migrate_legacy_launch_agent(app: &AppHandle) {
     if app.autolaunch().is_enabled().unwrap_or(false) {
         let _ = app.autolaunch().disable();
         let _ = login::set_enabled(true);
-    }
-
-    let Ok(config_dir) = app.path().app_config_dir() else {
-        return;
-    };
-    let marker = config_dir.join("autostart-initialized");
-
-    if marker.exists() {
-        return;
-    }
-
-    let _ = std::fs::create_dir_all(&config_dir);
-
-    if login::set_enabled(true) {
-        let _ = std::fs::write(marker, []);
     }
 }

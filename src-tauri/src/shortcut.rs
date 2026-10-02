@@ -11,7 +11,7 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, Modifiers, Shortcut};
 /// front, which is the whole point of the tray.
 pub const DEFAULT_CAPTURE_SHORTCUT: &str = "CommandOrControl+Shift+9";
 
-/// Survives a relaunch next to the autostart marker rather than in the
+/// Survives a relaunch in the app config directory rather than in the
 /// webview's storage: the shortcut has to be registered during `setup`, long
 /// before there is a webview to ask.
 const CONFIG_FILE: &str = "capture-shortcut.json";

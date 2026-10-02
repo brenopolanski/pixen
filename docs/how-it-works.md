@@ -110,8 +110,8 @@ offers it. The field is a key recorder, not a text input: it reads `event.code` 
 again elsewhere — the physical key is the only stable answer.
 
 - **`src-tauri/src/shortcut.rs` owns it, not `localStorage`.** The combo has to be registered
-  during `setup`, before there is a webview to ask, so it lives in `capture-shortcut.json` beside
-  the autostart marker. The plugin is built with no shortcut of its own and one handler that covers
+  during `setup`, before there is a webview to ask, so it lives in `capture-shortcut.json` in
+  the app config directory. The plugin is built with no shortcut of its own and one handler that covers
   every later registration.
 - **A refused rebind leaves capture working.** `set_capture_shortcut` only releases the old combo
   once the new one parses, and puts it back if the system will not take it — usually another app
@@ -127,14 +127,16 @@ again elsewhere — the physical key is the only stable answer.
 
 ### Start at Login
 
-The check item registers the main app with `SMAppService.mainApp`. A sandboxed Mac App Store app
-cannot write `~/Library/LaunchAgents`, which is what `tauri-plugin-autostart` does, and registering
-the main app needs no extra entitlement. The plugin stays so a LaunchAgent left by an older build
-can be turned off once and replaced. It stays driven from Rust only, so it is not granted
-anything in `capabilities/default.json`. A packaged build still opts in on first launch and drops a
-marker file in the app config directory, so unchecking it stays unchecked. Debug builds skip that
-entirely — otherwise `tauri dev` would register the debug binary to launch at login. The checkmark
-follows what the system reports, including when registration is waiting on System Settings.
+The check item registers the main app with `SMAppService.mainApp`, and only when the user checks
+it. A fresh install does not register a login item. macOS keeps that registration across launches
+and updates, so Pixen does not store a second copy of the choice and does not turn it back on
+after the user unchecks it. A sandboxed Mac App Store app cannot write `~/Library/LaunchAgents`,
+which is what `tauri-plugin-autostart` does, and registering the main app needs no extra
+entitlement. The plugin stays so a LaunchAgent an older build already enabled can be turned off
+once and replaced with the same choice. It stays driven from Rust only, so it is not granted
+anything in `capabilities/default.json`. That replacement runs only in a packaged build — otherwise
+`tauri dev` could register the debug binary. The checkmark follows what the system reports,
+including when registration is waiting on System Settings.
 
 A login launch is a normal open unless the current Apple event is `kAEOpenApplication` marked
 `kAELaunchedAsLogInItem` (or carries that `'lgit'` parameter itself). In that case Pixen does not
