@@ -30,7 +30,12 @@ import { composeStamps } from '@/lib/image/increment'
 import type { Rect } from '@/lib/image/pixelize'
 import { pixelizeImage } from '@/lib/image/pixelize'
 import type { OverlayDraft, OverlayKind } from '@/lib/overlay'
-import { overlayNeedsPrompt } from '@/lib/overlay'
+import {
+  commitDiscardedOverlay,
+  ignoresRepeatedSave,
+  overlayNeedsPrompt,
+  planSave,
+} from '@/lib/overlay'
 import { readRecent, withoutRecent, withRecent, writeRecent } from '@/lib/recent'
 import type { ImageTab } from '@/lib/tabs'
 import { decideOpenAction, nextTabAfterClose } from '@/lib/tabs'
@@ -262,7 +267,7 @@ export const useImageSession = (): ImageSession => {
   }, [])
 
   const run = useCallback((action: () => Promise<void>) => {
-    if (busyRef.current) {
+    if (ignoresRepeatedSave(busyRef.current)) {
       return
     }
 
@@ -825,6 +830,52 @@ export const useImageSession = (): ImageSession => {
     [cutoutPreview, patchTab, run],
   )
 
+  /**
+   * Resolve unapplied tool marks before any file dialog or write. Save and
+   * Save As share this so a second click during the prompt cannot start
+   * another one: both run inside `run`.
+   */
+  const writeActive = useCallback(
+    async (destination: string | null) => {
+      const active = activeTabOf(sessionRef.current)
+
+      if (!active) {
+        return
+      }
+
+      const draft = currentOverlayDraft()
+      const needsPrompt = overlayOpenRef.current && overlayNeedsPrompt(draft)
+      const decision = needsPrompt ? await askToApplyOverlay() : null
+      const step = planSave(needsPrompt, decision)
+
+      if (step === 'abort') {
+        return
+      }
+
+      if (step === 'apply-then-write') {
+        const baked = await bakePending(draft)
+
+        if (!baked) {
+          return
+        }
+
+        clearOverlays()
+        await persistTab(active, baked, destination)
+        return
+      }
+
+      if (step === 'discard-then-write') {
+        await commitDiscardedOverlay(async () => {
+          return persistTab(active, readTabImage(active.id), destination)
+        }, clearOverlays)
+        return
+      }
+
+      await persistTab(active, readTabImage(active.id), destination)
+    },
+    [bakePending, clearOverlays, currentOverlayDraft, persistTab, readTabImage],
+  )
+
   const save = useCallback(() => {
     run(async () => {
       const active = activeTabOf(sessionRef.current)
@@ -833,21 +884,15 @@ export const useImageSession = (): ImageSession => {
         return
       }
 
-      await persistTab(active, readTabImage(active.id), active.path)
+      await writeActive(active.path)
     })
-  }, [persistTab, readTabImage, run])
+  }, [run, writeActive])
 
   const saveAs = useCallback(() => {
     run(async () => {
-      const active = activeTabOf(sessionRef.current)
-
-      if (!active) {
-        return
-      }
-
-      await persistTab(active, readTabImage(active.id), null)
+      await writeActive(null)
     })
-  }, [persistTab, readTabImage, run])
+  }, [run, writeActive])
 
   const revertTab = useCallback(
     async (tabId: string) => {
