@@ -60,6 +60,25 @@ export const commitDiscardedOverlay = async (
   return wrote
 }
 
+/**
+ * Quit and the red close button settle an open tool before they look for
+ * unsaved document changes, the same order Save uses. Applying the marks
+ * makes the document dirty, so the unsaved prompt then sees them; discarding
+ * them leaves the document as it was. False means stay: either prompt was
+ * cancelled.
+ */
+export const settleBeforeLeaving = async (
+  overlayOpen: boolean,
+  settleOverlay: () => Promise<string | false>,
+  settleDocument: () => Promise<boolean>,
+): Promise<boolean> => {
+  if (overlayOpen && (await settleOverlay()) === false) {
+    return false
+  }
+
+  return settleDocument()
+}
+
 /** True when leaving would drop marks that have not been baked yet. */
 export const overlayNeedsPrompt = (draft: OverlayDraft): boolean => {
   switch (draft.type) {

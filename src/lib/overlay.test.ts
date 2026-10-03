@@ -1,10 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import type { OverlayDecision } from '@/lib/desktop'
+
 import {
   commitDiscardedOverlay,
   ignoresRepeatedSave,
   overlayNeedsPrompt,
   planSave,
+  settleBeforeLeaving,
 } from './overlay'
 
 describe('overlayNeedsPrompt', () => {
@@ -91,5 +94,94 @@ describe('commitDiscardedOverlay', () => {
       }, clear),
     ).rejects.toThrow('disk full')
     expect(clear).not.toHaveBeenCalled()
+  })
+})
+
+// Quit (`requestClose`) and the red close button (`requestHide`) both leave
+// through `settleUnsaved`, which is this helper, so one set covers both.
+describe('settleBeforeLeaving', () => {
+  type Answer = 'save' | 'discard' | 'cancel'
+
+  /**
+   * Stands in for the session: `settleOverlay` behaves like the hook's
+   * (apply bakes and dirties, discard only clears, cancel changes nothing),
+   * and `settleDocument` records whether it found anything to ask about.
+   */
+  const session = (dirty: boolean, overlay: OverlayDecision, unsaved: Answer = 'save') => {
+    const state = { dirty, marks: true, prompts: [] as string[] }
+
+    const settleOverlay = vi.fn(async (): Promise<string | false> => {
+      state.prompts.push(`overlay:${overlay}`)
+
+      if (overlay === 'cancel') {
+        return false
+      }
+
+      if (overlay === 'apply') {
+        state.dirty = true
+      }
+
+      state.marks = false
+      return 'image'
+    })
+
+    const settleDocument = vi.fn(async (): Promise<boolean> => {
+      if (!state.dirty) {
+        return true
+      }
+
+      state.prompts.push(`unsaved:${unsaved}`)
+      return unsaved !== 'cancel'
+    })
+
+    return { settleDocument, settleOverlay, state }
+  }
+
+  it('applies pending overlay before quit evaluates unsaved changes', async () => {
+    const { settleDocument, settleOverlay, state } = session(false, 'apply')
+
+    await expect(settleBeforeLeaving(true, settleOverlay, settleDocument)).resolves.toBe(true)
+    // Only overlay marks existed; applying them is what makes the unsaved prompt appear.
+    expect(state.prompts).toEqual(['overlay:apply', 'unsaved:save'])
+    expect(state.marks).toBe(false)
+  })
+
+  it('stays when the unsaved prompt is cancelled after applying the overlay', async () => {
+    const { settleDocument, settleOverlay, state } = session(false, 'apply', 'cancel')
+
+    await expect(settleBeforeLeaving(true, settleOverlay, settleDocument)).resolves.toBe(false)
+    expect(state.prompts).toEqual(['overlay:apply', 'unsaved:cancel'])
+    expect(state.dirty).toBe(true)
+  })
+
+  it('does not count discarded overlay marks as a document change', async () => {
+    const { settleDocument, settleOverlay, state } = session(false, 'discard')
+
+    await expect(settleBeforeLeaving(true, settleOverlay, settleDocument)).resolves.toBe(true)
+    expect(state.prompts).toEqual(['overlay:discard'])
+    expect(state).toMatchObject({ dirty: false, marks: false })
+  })
+
+  it('still asks about committed changes after discarding the overlay', async () => {
+    const { settleDocument, settleOverlay, state } = session(true, 'discard', 'discard')
+
+    await expect(settleBeforeLeaving(true, settleOverlay, settleDocument)).resolves.toBe(true)
+    expect(state.prompts).toEqual(['overlay:discard', 'unsaved:discard'])
+  })
+
+  it('cancelling quit leaves pending overlay untouched', async () => {
+    const { settleDocument, settleOverlay, state } = session(false, 'cancel')
+
+    await expect(settleBeforeLeaving(true, settleOverlay, settleDocument)).resolves.toBe(false)
+    expect(settleDocument).not.toHaveBeenCalled()
+    expect(state).toMatchObject({ dirty: false, marks: true })
+  })
+
+  it('goes straight to the unsaved check when no tool is open', async () => {
+    const { settleDocument, settleOverlay } = session(true, 'apply')
+
+    await expect(settleBeforeLeaving(false, settleOverlay, settleDocument)).resolves.toBe(true)
+    expect(settleOverlay).not.toHaveBeenCalled()
+    expect(settleDocument).toHaveBeenCalledOnce()
   })
 })

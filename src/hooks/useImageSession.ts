@@ -35,6 +35,7 @@ import {
   ignoresRepeatedSave,
   overlayNeedsPrompt,
   planSave,
+  settleBeforeLeaving,
 } from '@/lib/overlay'
 import { readRecent, withoutRecent, withRecent, writeRecent } from '@/lib/recent'
 import type { ImageTab } from '@/lib/tabs'
@@ -1015,7 +1016,7 @@ export const useImageSession = (): ImageSession => {
    * to leave: nothing was dirty, every save succeeded, or the user discarded.
    * Cancel, a failed write, and a dismissed save panel all return false.
    */
-  const settleUnsaved = useCallback(async (): Promise<boolean> => {
+  const settleUnsavedTabs = useCallback(async (): Promise<boolean> => {
     snapshotActiveDirty()
 
     if (!anyUnsaved()) {
@@ -1046,6 +1047,11 @@ export const useImageSession = (): ImageSession => {
 
     return true
   }, [anyUnsaved, isTabUnsaved, persistTab, readTabImage, revertTab, snapshotActiveDirty])
+
+  /** Quit and the red close button: an open tool first, then the tabs. */
+  const settleUnsaved = useCallback((): Promise<boolean> => {
+    return settleBeforeLeaving(overlayOpenRef.current, settleOverlay, settleUnsavedTabs)
+  }, [settleOverlay, settleUnsavedTabs])
 
   const requestClose = useCallback(() => {
     run(async () => {

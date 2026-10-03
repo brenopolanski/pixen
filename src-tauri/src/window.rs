@@ -407,6 +407,24 @@ fn fullscreen_exit_allowed(request_epoch: u64, current_epoch: u64, quitting: boo
     !quitting && request_epoch == current_epoch
 }
 
+/// A wait that failed without its notification leaves the tracker wherever
+/// the animation started. The style mask is what the window is now, so a
+/// later hide is not stuck waiting for an enter or exit that already ended.
+fn phase_after_failure(mask_fullscreen: bool) -> FullscreenPhase {
+    if mask_fullscreen {
+        FullscreenPhase::Fullscreen
+    } else {
+        FullscreenPhase::Normal
+    }
+}
+
+/// A notification or the backstop acts on a wait only while that exact wait
+/// is still pending. Ids are never reused, so a late callback cannot reach a
+/// newer wait.
+fn wait_matches(pending_wait_id: Option<u64>, wait_id: u64) -> bool {
+    pending_wait_id == Some(wait_id)
+}
+
 fn hide_window_safely<F>(window: WebviewWindow, epoch: u64, on_done: F)
 where
     F: FnOnce(HideEnd) + Send + 'static,
@@ -467,8 +485,9 @@ mod fullscreen_hide {
     use tauri::{Manager, WebviewWindow};
 
     use super::{
-        decide_hide, outcome_if_join_target_gone, toggle_allowed, FullscreenPhase, HideAction,
-        HideEnd, MAIN_WINDOW_LABEL, QUITTING, SHOW_EPOCH,
+        decide_hide, outcome_if_join_target_gone, phase_after_failure, toggle_allowed,
+        wait_matches, FullscreenPhase, HideAction, HideEnd, MAIN_WINDOW_LABEL, QUITTING,
+        SHOW_EPOCH,
     };
 
     /// Apple posts these when a fullscreen animation cannot finish.
@@ -920,7 +939,10 @@ mod fullscreen_hide {
     }
 
     fn wait_is_current(wait_id: u64) -> bool {
-        pending_lock().as_ref().map(|pending| pending.wait_id) == Some(wait_id)
+        wait_matches(
+            pending_lock().as_ref().map(|pending| pending.wait_id),
+            wait_id,
+        )
     }
 
     fn finish(end: HideEnd) {
@@ -947,10 +969,22 @@ mod fullscreen_hide {
         }
     }
 
-    fn expire(wait_id: u64) {
+    /// Runs on the main thread, where the style mask can be read. Fails the
+    /// wait without hiding or toggling.
+    fn expire(window: &WebviewWindow, wait_id: u64) {
+        let mask_fullscreen = native_window(window).map(|ns_window| {
+            ns_window
+                .styleMask()
+                .contains(NSWindowStyleMask::FullScreen)
+        });
+        expire_with_mask(wait_id, mask_fullscreen);
+    }
+
+    /// `None` means the window could not be read, so the phase is left as it is.
+    fn expire_with_mask(wait_id: u64, mask_fullscreen: Option<bool>) {
         let pending = {
             let mut guard = pending_lock();
-            if guard.as_ref().map(|pending| pending.wait_id) != Some(wait_id) {
+            if !wait_matches(guard.as_ref().map(|pending| pending.wait_id), wait_id) {
                 return;
             }
             guard.take()
@@ -958,6 +992,10 @@ mod fullscreen_hide {
         let Some(pending) = pending else {
             return;
         };
+
+        if let Some(mask_fullscreen) = mask_fullscreen {
+            set_phase(phase_after_failure(mask_fullscreen));
+        }
 
         drop_hide_observers();
         for callback in pending.callbacks {
@@ -970,7 +1008,7 @@ mod fullscreen_hide {
     fn fail_wait_without_observers(wait_id: u64) {
         let pending = {
             let mut guard = pending_lock();
-            if guard.as_ref().map(|pending| pending.wait_id) != Some(wait_id) {
+            if !wait_matches(guard.as_ref().map(|pending| pending.wait_id), wait_id) {
                 return;
             }
             guard.take()
@@ -989,11 +1027,15 @@ mod fullscreen_hide {
             return;
         };
         let app = window.app_handle().clone();
+        let expired = window.clone();
         let spawned = std::thread::Builder::new()
             .name("pixen-fullscreen-hide".to_owned())
             .spawn(move || {
                 std::thread::sleep(HIDE_BACKSTOP);
-                if app.run_on_main_thread(move || expire(wait_id)).is_err() {
+                if app
+                    .run_on_main_thread(move || expire(&expired, wait_id))
+                    .is_err()
+                {
                     fail_wait_without_observers(wait_id);
                 }
             });
@@ -1091,6 +1133,100 @@ mod fullscreen_hide {
             // `PendingHide` is the shared state. It compiles as `Send` only
             // because it holds callbacks and integers, not observer tokens.
             assert_send::<super::PendingHide>();
+        }
+    }
+
+    /// Drives the shared pending state and the phase tracker without AppKit.
+    /// Off the main thread `drop_hide_observers` returns early, so no token is
+    /// created or released here.
+    #[cfg(test)]
+    mod expiry {
+        use std::sync::{Arc, Mutex};
+
+        use super::{
+            current_phase, expire_with_mask, pending_lock, set_phase, wait_is_current,
+            FullscreenPhase, HideEnd, PendingHide,
+        };
+
+        /// `PENDING` and `PHASE` are process-wide, so these tests take turns.
+        static SERIAL: Mutex<()> = Mutex::new(());
+
+        fn pend(wait_id: u64) -> Arc<Mutex<Vec<HideEnd>>> {
+            let ends = Arc::new(Mutex::new(Vec::new()));
+            let record = Arc::clone(&ends);
+            *pending_lock() = Some(PendingHide {
+                callbacks: vec![Box::new(move |end| record.lock().unwrap().push(end))],
+                epoch: 0,
+                wait_id,
+                toggled: true,
+            });
+            ends
+        }
+
+        fn serial() -> std::sync::MutexGuard<'static, ()> {
+            SERIAL.lock().unwrap_or_else(|error| error.into_inner())
+        }
+
+        #[test]
+        fn restores_fullscreen_phase_from_style_mask_when_an_enter_times_out() {
+            let _serial = serial();
+            set_phase(FullscreenPhase::Entering);
+            let ends = pend(101);
+
+            expire_with_mask(101, Some(true));
+
+            assert_eq!(*ends.lock().unwrap(), vec![HideEnd::Failed]);
+            assert_eq!(current_phase(), FullscreenPhase::Fullscreen);
+            assert!(pending_lock().is_none());
+        }
+
+        #[test]
+        fn restores_normal_phase_from_style_mask_when_an_exit_times_out() {
+            let _serial = serial();
+            set_phase(FullscreenPhase::Exiting);
+            let ends = pend(102);
+
+            expire_with_mask(102, Some(false));
+
+            assert_eq!(*ends.lock().unwrap(), vec![HideEnd::Failed]);
+            assert_eq!(current_phase(), FullscreenPhase::Normal);
+            assert!(pending_lock().is_none());
+        }
+
+        #[test]
+        fn a_late_expiry_does_not_complete_or_change_a_newer_wait() {
+            let _serial = serial();
+            set_phase(FullscreenPhase::Exiting);
+            let first = pend(103);
+            expire_with_mask(103, Some(false));
+
+            set_phase(FullscreenPhase::Entering);
+            let second = pend(104);
+
+            // The old id is what a late DidEnter / DidExit block checks.
+            assert!(!wait_is_current(103));
+            assert!(wait_is_current(104));
+
+            expire_with_mask(103, Some(true));
+
+            assert_eq!(*first.lock().unwrap(), vec![HideEnd::Failed]);
+            assert!(second.lock().unwrap().is_empty());
+            assert_eq!(current_phase(), FullscreenPhase::Entering);
+            assert!(wait_is_current(104));
+
+            *pending_lock() = None;
+        }
+
+        #[test]
+        fn leaves_the_phase_alone_when_the_window_cannot_be_read() {
+            let _serial = serial();
+            set_phase(FullscreenPhase::Exiting);
+            let ends = pend(105);
+
+            expire_with_mask(105, None);
+
+            assert_eq!(*ends.lock().unwrap(), vec![HideEnd::Failed]);
+            assert_eq!(current_phase(), FullscreenPhase::Exiting);
         }
     }
 }
