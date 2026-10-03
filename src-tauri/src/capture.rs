@@ -90,10 +90,16 @@ pub async fn capture_screen(app: AppHandle) -> Result<Option<String>, String> {
 
     // A visible editor would cover whatever the user is trying to capture.
     // Hiding it here is temporary, so the Dock icon stays until the shot ends.
-    // A window that was already hidden is left hidden unless a file is produced.
+    // A fullscreen window leaves that space before it is ordered out, or the
+    // next show lands on a null fullscreen tile. A window that was already
+    // hidden is left hidden unless a file is produced.
     if was_visible {
         if let Some(window) = &main {
-            let _ = window.hide();
+            // Not hidden, or the exit was cancelled: capturing now would run
+            // during a fullscreen transition. Leave the window visible.
+            if !crate::window::hide_for_capture(window) {
+                return Ok(None);
+            }
         }
     }
 

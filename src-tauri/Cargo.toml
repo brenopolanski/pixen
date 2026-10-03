@@ -46,8 +46,13 @@ serde_json = "1"
 objc2-foundation = { version = "0.3", features = [
   "NSAppleEventDescriptor",
   "NSAppleEventManager",
+  "NSNotification",
+  "NSOperation",
+  "NSString",
+  "block2",
   "objc2-core-services",
 ] }
+block2 = "0.6"
 objc2-service-management = "0.3"
 # Public AppKit, used only to clip the splash window. Tauri's transparent
 # window flag needs a private macOS API, which this does not. `cornerRadius`
