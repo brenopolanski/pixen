@@ -480,10 +480,12 @@ pub(crate) enum CaptureWindowPlan {
     /// A fullscreen transition is already running. Leave the window alone and
     /// do not start a shot, so capture cannot toggle on top of close or enter.
     Unavailable,
-    /// Fullscreen on a Space the user is not looking at. Hiding or focusing it
-    /// before the shot switches Spaces and the shot is lost, so this plan does
-    /// not move the window. A produced shot later activates that existing
-    /// Space from `reveal_fullscreen_capture`, without exiting fullscreen.
+    /// Visible on a Space the user is not looking at, whether normal,
+    /// maximized, or fullscreen. Hiding or focusing it before the shot
+    /// switches Spaces, so this plan does not move the window. A produced
+    /// shot later activates that existing Space from
+    /// `reveal_fullscreen_capture`, after the image is in the editor.
+    /// Fullscreen is not exited.
     LeaveUntouched,
     /// The editor is already hidden. Show it only when a shot was produced.
     ShowIfCaptured,
@@ -527,7 +529,9 @@ fn plan_capture_window(
     // and a stale `Normal` phase must not hide a window that is fullscreen.
     let fullscreen = mask_fullscreen;
 
-    if visible && fullscreen && !on_active_space {
+    // Another Space is not covering the shot. Hiding or showing the window
+    // there is what switches Spaces, including after Escape.
+    if visible && !on_active_space {
         return CaptureWindowPlan::LeaveUntouched;
     }
 
@@ -672,9 +676,9 @@ pub fn cancel_capture_restore(app: &AppHandle, quit: bool) {
     let _ = app;
 }
 
-/// The image is already in the editor. If that editor is fullscreen on another
-/// Space, activate the app first and then make the window key, so macOS
-/// switches to the existing fullscreen Space.
+/// The image is already in the editor. If that editor is on another Space,
+/// activate the app first and then make the window key, so macOS switches to
+/// the Space it is already on. A fullscreen window stays fullscreen.
 ///
 /// `show_main` is not used here. It orders the window front before the app is
 /// active, which can collect a fullscreen window onto the current Space.
@@ -777,17 +781,16 @@ fn restore_shows_or_focuses(action: CaptureRestore) -> bool {
     )
 }
 
-/// After a produced shot, switch to a fullscreen window that is already on
-/// another Space. Escape, failure, Quit, red close, and a window that is
-/// already on this Space do not. This never exits or enters fullscreen.
-fn should_reveal_offspace_fullscreen(
+/// After a produced shot, switch to a window that is already on another
+/// Space. Escape, failure, Quit, red close, and a window that is already on
+/// this Space do not. This never exits or enters fullscreen.
+fn should_reveal_offspace_window(
     produced: bool,
-    mask_fullscreen: bool,
     on_active_space: bool,
     quitting: bool,
     close_requested: bool,
 ) -> bool {
-    produced && mask_fullscreen && !on_active_space && !quitting && !close_requested
+    produced && !on_active_space && !quitting && !close_requested
 }
 
 /// The shot itself runs only when it cannot collide with a fullscreen
@@ -1627,14 +1630,10 @@ mod fullscreen_hide {
                 return;
             };
 
-            let mask_fullscreen = ns_window
-                .styleMask()
-                .contains(NSWindowStyleMask::FullScreen);
             let on_active_space = ns_window.isOnActiveSpace();
 
-            if !super::should_reveal_offspace_fullscreen(
+            if !super::should_reveal_offspace_window(
                 true,
-                mask_fullscreen,
                 on_active_space,
                 QUITTING.load(Ordering::SeqCst),
                 super::CAPTURE_RESTORE_CANCELLED.load(Ordering::SeqCst),
@@ -2160,7 +2159,7 @@ mod tests {
         fullscreen_exit_allowed, keep_process_alive, outcome_if_join_target_gone,
         phase_matching_window, plan_capture_window, restore_action, restore_action_observing_leave,
         restore_enters_fullscreen, restore_notification_applies, restore_shows_or_focuses,
-        should_reveal_offspace_fullscreen, should_toggle_fullscreen_restore, toggle_allowed,
+        should_reveal_offspace_window, should_toggle_fullscreen_restore, toggle_allowed,
         window_change_allowed, CaptureEnterEnd, CaptureLeave, CaptureRestore, CaptureWindowPlan,
         FullscreenPhase, HideAction, HideEnd, HideFinish,
     };
@@ -2434,9 +2433,7 @@ mod tests {
         // The capture itself still does not show or focus. Switching to the
         // existing Space happens only after the image is in the editor.
         assert_eq!(restore_action(plan, false, true), CaptureRestore::Leave);
-        assert!(should_reveal_offspace_fullscreen(
-            true, true, false, false, false
-        ));
+        assert!(should_reveal_offspace_window(true, false, false, false));
     }
 
     #[test]
@@ -2680,29 +2677,49 @@ mod tests {
             plan, false, true
         )));
 
-        // Produced, fullscreen, and on another Space: activate that Space.
-        assert!(should_reveal_offspace_fullscreen(
-            true, true, false, false, false
-        ));
-        // Escape or a failed shot does not switch Spaces.
-        assert!(!should_reveal_offspace_fullscreen(
-            false, true, false, false, false
-        ));
-        // Already on this Space, or not fullscreen: the other restore paths
-        // own those windows.
-        assert!(!should_reveal_offspace_fullscreen(
-            true, true, true, false, false
-        ));
-        assert!(!should_reveal_offspace_fullscreen(
-            true, false, false, false, false
-        ));
-        // Quit or red close keeps the window where it is.
-        assert!(!should_reveal_offspace_fullscreen(
-            true, true, false, true, false
-        ));
-        assert!(!should_reveal_offspace_fullscreen(
-            true, true, false, false, true
-        ));
+        // Produced and on another Space: activate that Space after insert.
+        // Finish itself still does not show or focus.
+        assert!(should_reveal_offspace_window(true, false, false, false));
+        // Escape, failure, this Space, Quit, and red close do not.
+        assert!(!should_reveal_offspace_window(false, false, false, false));
+        assert!(!should_reveal_offspace_window(true, true, false, false));
+        assert!(!should_reveal_offspace_window(true, false, true, false));
+        assert!(!should_reveal_offspace_window(true, false, false, true));
+    }
+
+    #[test]
+    fn escape_on_another_space_does_not_show_focus_or_toggle() {
+        for (fullscreen, zoomed, phase) in [
+            (false, false, FullscreenPhase::Normal),
+            (false, true, FullscreenPhase::Normal),
+            (true, false, FullscreenPhase::Fullscreen),
+        ] {
+            let plan = plan_capture_window(true, fullscreen, false, zoomed, phase);
+
+            assert_eq!(plan, CaptureWindowPlan::LeaveUntouched);
+            assert!(!capture_hides_window(plan));
+
+            let cancelled = restore_action(plan, false, false);
+            assert_eq!(cancelled, CaptureRestore::Leave);
+            assert!(!restore_shows_or_focuses(cancelled));
+            assert!(!restore_enters_fullscreen(cancelled));
+
+            // A produced shot is still not shown here. Reveal runs only after
+            // the image is inserted.
+            let produced = restore_action(plan, false, true);
+            assert_eq!(produced, CaptureRestore::Leave);
+            assert!(!restore_shows_or_focuses(produced));
+            assert!(!restore_enters_fullscreen(produced));
+        }
+
+        assert!(!should_reveal_offspace_window(false, false, false, false));
+        assert!(should_reveal_offspace_window(true, false, false, false));
+
+        // This Space hid the window to take the shot, so Escape puts it back
+        // where the user already is. That show is not a Space switch.
+        let here = plan_capture_window(true, false, true, false, FullscreenPhase::Normal);
+        assert_eq!(restore_action(here, true, false), CaptureRestore::Show);
+        assert!(!should_reveal_offspace_window(false, true, false, false));
     }
 
     #[test]

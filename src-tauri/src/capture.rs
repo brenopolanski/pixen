@@ -99,8 +99,8 @@ pub async fn capture_screen(app: AppHandle) -> Result<Option<String>, String> {
 
     // A visible editor on this Space would cover the shot. Fullscreen still
     // leaves that Space before it is ordered out — the same rule as red close —
-    // and is entered again when the shot ends. A fullscreen window on another
-    // Space is not hidden: exiting it switches Spaces and the shot is lost.
+    // and is entered again when the shot ends. A window on another Space is
+    // not hidden: moving it switches Spaces, including when the shot is cancelled.
     let mut hid = false;
     if crate::window::capture_hides_window(plan) {
         if let Some(window) = &main {
