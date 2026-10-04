@@ -57,6 +57,7 @@ pub fn run() {
             window::cancel_capture_restore_command,
             window::clear_unconfirmed_leave,
             window::release_provisional_quit,
+            window::reveal_fullscreen_capture,
             window::finish_launch,
             window::hide_main_window,
             window::quit_app,

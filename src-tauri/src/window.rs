@@ -480,8 +480,10 @@ pub(crate) enum CaptureWindowPlan {
     /// A fullscreen transition is already running. Leave the window alone and
     /// do not start a shot, so capture cannot toggle on top of close or enter.
     Unavailable,
-    /// Fullscreen on a Space the user is not looking at. Hiding it switches
-    /// Spaces and the shot is lost, so the window is not touched at all.
+    /// Fullscreen on a Space the user is not looking at. Hiding or focusing it
+    /// before the shot switches Spaces and the shot is lost, so this plan does
+    /// not move the window. A produced shot later activates that existing
+    /// Space from `reveal_fullscreen_capture`, without exiting fullscreen.
     LeaveUntouched,
     /// The editor is already hidden. Show it only when a shot was produced.
     ShowIfCaptured,
@@ -670,6 +672,24 @@ pub fn cancel_capture_restore(app: &AppHandle, quit: bool) {
     let _ = app;
 }
 
+/// The image is already in the editor. If that editor is fullscreen on another
+/// Space, activate the app first and then make the window key, so macOS
+/// switches to the existing fullscreen Space.
+///
+/// `show_main` is not used here. It orders the window front before the app is
+/// active, which can collect a fullscreen window onto the current Space.
+/// This path does not hide, and it does not call `toggleFullScreen:`.
+#[tauri::command]
+pub fn reveal_fullscreen_capture(app: AppHandle) {
+    #[cfg(target_os = "macos")]
+    if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+        fullscreen_hide::reveal_existing_fullscreen(&window);
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    let _ = app;
+}
+
 /// The user backed out of the unsaved-changes prompt. The shot's leave must
 /// not keep quit latched.
 #[tauri::command]
@@ -755,6 +775,19 @@ fn restore_shows_or_focuses(action: CaptureRestore) -> bool {
             | CaptureRestore::ShowZoomed
             | CaptureRestore::ShowThenEnterFullscreen
     )
+}
+
+/// After a produced shot, switch to a fullscreen window that is already on
+/// another Space. Escape, failure, Quit, red close, and a window that is
+/// already on this Space do not. This never exits or enters fullscreen.
+fn should_reveal_offspace_fullscreen(
+    produced: bool,
+    mask_fullscreen: bool,
+    on_active_space: bool,
+    quitting: bool,
+    close_requested: bool,
+) -> bool {
+    produced && mask_fullscreen && !on_active_space && !quitting && !close_requested
 }
 
 /// The shot itself runs only when it cannot collide with a fullscreen
@@ -922,9 +955,9 @@ mod fullscreen_hide {
     use objc2::runtime::{AnyObject, ProtocolObject};
     use objc2::MainThreadMarker;
     use objc2_app_kit::{
-        NSWindow, NSWindowDidEnterFullScreenNotification, NSWindowDidExitFullScreenNotification,
-        NSWindowStyleMask, NSWindowWillEnterFullScreenNotification,
-        NSWindowWillExitFullScreenNotification,
+        NSApplication, NSWindow, NSWindowDidEnterFullScreenNotification,
+        NSWindowDidExitFullScreenNotification, NSWindowStyleMask,
+        NSWindowWillEnterFullScreenNotification, NSWindowWillExitFullScreenNotification,
     };
     use objc2_foundation::{
         NSNotification, NSNotificationCenter, NSObjectProtocol, NSOperationQueue, NSString,
@@ -1585,6 +1618,50 @@ mod fullscreen_hide {
         unsafe { Retained::retain(raw.cast()) }
     }
 
+    /// Switches to a fullscreen window's existing Space. Activate the app
+    /// before ordering the window front: the other order can pull the window
+    /// onto the Space the user is on and drop native fullscreen.
+    pub(super) fn reveal_existing_fullscreen(window: &WebviewWindow) {
+        let reveal = |window: &WebviewWindow| {
+            let Some(ns_window) = native_window(window) else {
+                return;
+            };
+
+            let mask_fullscreen = ns_window
+                .styleMask()
+                .contains(NSWindowStyleMask::FullScreen);
+            let on_active_space = ns_window.isOnActiveSpace();
+
+            if !super::should_reveal_offspace_fullscreen(
+                true,
+                mask_fullscreen,
+                on_active_space,
+                QUITTING.load(Ordering::SeqCst),
+                super::CAPTURE_RESTORE_CANCELLED.load(Ordering::SeqCst),
+            ) {
+                return;
+            }
+
+            let Some(marker) = MainThreadMarker::new() else {
+                return;
+            };
+
+            // Public AppKit. `activate` is macOS 14+, so the older call stays
+            // for the macOS 13 deployment target. It does not toggle fullscreen.
+            #[allow(deprecated)]
+            NSApplication::sharedApplication(marker).activateIgnoringOtherApps(true);
+            ns_window.makeKeyAndOrderFront(None);
+        };
+
+        if MainThreadMarker::new().is_some() {
+            reveal(window);
+            return;
+        }
+
+        let target = window.clone();
+        let _ = window.run_on_main_thread(move || reveal(&target));
+    }
+
     pub(super) fn capture_plan_on_main(window: &WebviewWindow) -> super::CaptureWindowPlan {
         // Observers first, so a transition that starts during the read is
         // visible to the plan. Installing them does not move the window.
@@ -2083,9 +2160,9 @@ mod tests {
         fullscreen_exit_allowed, keep_process_alive, outcome_if_join_target_gone,
         phase_matching_window, plan_capture_window, restore_action, restore_action_observing_leave,
         restore_enters_fullscreen, restore_notification_applies, restore_shows_or_focuses,
-        should_toggle_fullscreen_restore, toggle_allowed, window_change_allowed, CaptureEnterEnd,
-        CaptureLeave, CaptureRestore, CaptureWindowPlan, FullscreenPhase, HideAction, HideEnd,
-        HideFinish,
+        should_reveal_offspace_fullscreen, should_toggle_fullscreen_restore, toggle_allowed,
+        window_change_allowed, CaptureEnterEnd, CaptureLeave, CaptureRestore, CaptureWindowPlan,
+        FullscreenPhase, HideAction, HideEnd, HideFinish,
     };
 
     // These tests cover the decisions the hide path makes. They do not create
@@ -2354,8 +2431,12 @@ mod tests {
         assert_eq!(plan, CaptureWindowPlan::LeaveUntouched);
         assert!(capture_may_start(plan));
         assert!(!capture_hides_window(plan));
-        // A produced shot must not call show or set_focus either.
+        // The capture itself still does not show or focus. Switching to the
+        // existing Space happens only after the image is in the editor.
         assert_eq!(restore_action(plan, false, true), CaptureRestore::Leave);
+        assert!(should_reveal_offspace_fullscreen(
+            true, true, false, false, false
+        ));
     }
 
     #[test]
@@ -2586,6 +2667,42 @@ mod tests {
         assert!(!restore_notification_applies(None, 7, false));
         assert!(restore_notification_applies(Some(7), 7, false));
         assert!(!restore_notification_applies(Some(7), 8, false));
+    }
+
+    #[test]
+    fn a_successful_shot_on_another_space_activates_without_a_fullscreen_toggle() {
+        let plan = plan_capture_window(true, true, false, false, FullscreenPhase::Fullscreen);
+
+        assert_eq!(plan, CaptureWindowPlan::LeaveUntouched);
+        assert!(!capture_hides_window(plan));
+        assert_eq!(restore_action(plan, false, true), CaptureRestore::Leave);
+        assert!(!restore_enters_fullscreen(restore_action(
+            plan, false, true
+        )));
+
+        // Produced, fullscreen, and on another Space: activate that Space.
+        assert!(should_reveal_offspace_fullscreen(
+            true, true, false, false, false
+        ));
+        // Escape or a failed shot does not switch Spaces.
+        assert!(!should_reveal_offspace_fullscreen(
+            false, true, false, false, false
+        ));
+        // Already on this Space, or not fullscreen: the other restore paths
+        // own those windows.
+        assert!(!should_reveal_offspace_fullscreen(
+            true, true, true, false, false
+        ));
+        assert!(!should_reveal_offspace_fullscreen(
+            true, false, false, false, false
+        ));
+        // Quit or red close keeps the window where it is.
+        assert!(!should_reveal_offspace_fullscreen(
+            true, true, false, true, false
+        ));
+        assert!(!should_reveal_offspace_fullscreen(
+            true, true, false, false, true
+        ));
     }
 
     #[test]

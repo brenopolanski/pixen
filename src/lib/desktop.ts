@@ -63,6 +63,14 @@ export const releaseProvisionalQuit = (): Promise<void> => {
   return invoke('release_provisional_quit')
 }
 
+/**
+ * After a shot taken while Pixen is fullscreen on another Workspace, switch
+ * to that existing fullscreen Space. Does nothing in every other case.
+ */
+export const revealFullscreenCapture = (): Promise<void> => {
+  return invoke('reveal_fullscreen_capture')
+}
+
 /** Hides the editor after unsaved work has been saved or discarded. */
 export const hideMainWindow = (): Promise<void> => {
   return invoke('hide_main_window')
