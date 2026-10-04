@@ -55,6 +55,14 @@ export const clearUnconfirmedLeave = (): Promise<void> => {
   return invoke('clear_unconfirmed_leave')
 }
 
+/**
+ * Red close replaced a quit that was only remembered for the current shot.
+ * Drops that latch so the confirmed hide is not treated as process teardown.
+ */
+export const releaseProvisionalQuit = (): Promise<void> => {
+  return invoke('release_provisional_quit')
+}
+
 /** Hides the editor after unsaved work has been saved or discarded. */
 export const hideMainWindow = (): Promise<void> => {
   return invoke('hide_main_window')

@@ -83,20 +83,20 @@ pub fn hide_main(app: &AppHandle) {
     let main_to_hide = main.clone();
     let epoch = SHOW_EPOCH.load(Ordering::SeqCst);
     hide_window_safely(main, epoch, move |end| {
-        // Quit has already started teardown. Do not touch the window.
-        if !window_change_allowed(QUITTING.load(Ordering::SeqCst)) {
-            return;
+        match finish_hide(
+            QUITTING.load(Ordering::SeqCst),
+            end,
+            fullscreen_exit_allowed(epoch, SHOW_EPOCH.load(Ordering::SeqCst), false),
+        ) {
+            // Quit has already started teardown. Do not touch the window,
+            // and do not clear `PARKED` out from under that exit.
+            HideFinish::BlockedByQuit => {}
+            HideFinish::Hidden => {
+                let _ = main_to_hide.hide();
+                set_accessory(&app);
+            }
+            HideFinish::ClearParked => PARKED.store(false, Ordering::SeqCst),
         }
-
-        if end == HideEnd::Hidden
-            && fullscreen_exit_allowed(epoch, SHOW_EPOCH.load(Ordering::SeqCst), false)
-        {
-            let _ = main_to_hide.hide();
-            set_accessory(&app);
-            return;
-        }
-
-        PARKED.store(false, Ordering::SeqCst);
     });
 }
 
@@ -413,6 +413,44 @@ fn window_change_allowed(quitting: bool) -> bool {
     !quitting
 }
 
+/// What `hide_main` does once the fullscreen wait has an answer.
+/// `BlockedByQuit` leaves `PARKED` as the hide set it, without ordering the
+/// window out. A finished hide stays parked because the editor is hidden.
+/// Anything else clears `PARKED` so a still-visible window is not stuck.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum HideFinish {
+    BlockedByQuit,
+    Hidden,
+    ClearParked,
+}
+
+fn finish_hide(quitting: bool, end: HideEnd, epoch_matches: bool) -> HideFinish {
+    if !window_change_allowed(quitting) {
+        return HideFinish::BlockedByQuit;
+    }
+
+    if end == HideEnd::Hidden && epoch_matches {
+        return HideFinish::Hidden;
+    }
+
+    HideFinish::ClearParked
+}
+
+/// Close or Quit remembered for the shot that is running. `None` means no
+/// shot is active, so this must not latch or clear `QUITTING`: a normal quit
+/// still belongs to `quit_app`.
+///
+/// `quit == false` is red close. It replaces a quit latched for this same
+/// shot, which is the only `QUITTING` value this function is allowed to clear.
+fn apply_shot_leave(capture_active: bool, quit: bool) -> Option<(bool, bool)> {
+    if !capture_active {
+        return None;
+    }
+
+    // Restore stays cancelled either way. Only a quit latches teardown.
+    Some((true, quit))
+}
+
 fn fullscreen_exit_allowed(request_epoch: u64, current_epoch: u64, quitting: bool) -> bool {
     !quitting && request_epoch == current_epoch
 }
@@ -604,18 +642,18 @@ impl Drop for CaptureAttempt {
 
 /// Remember Close or Quit while a shot is in progress, and drop a fullscreen
 /// enter that has not been accepted yet. A toggle that has already been sent
-/// is not undone here. Normal Close and Quit, with no shot running, are
-/// unchanged: `QUITTING` stays unset until `quit_app`.
+/// is not undone here. With no shot running this does nothing, so a normal
+/// quit still waits for `quit_app` to set `QUITTING`. Red close during a shot
+/// clears a quit that was latched only for that shot.
 pub fn cancel_capture_restore(app: &AppHandle, quit: bool) {
-    if !CAPTURE_ACTIVE.load(Ordering::SeqCst) {
+    let Some((restore_cancelled, quitting)) =
+        apply_shot_leave(CAPTURE_ACTIVE.load(Ordering::SeqCst), quit)
+    else {
         return;
-    }
+    };
 
-    CAPTURE_RESTORE_CANCELLED.store(true, Ordering::SeqCst);
-
-    if quit {
-        QUITTING.store(true, Ordering::SeqCst);
-    }
+    CAPTURE_RESTORE_CANCELLED.store(restore_cancelled, Ordering::SeqCst);
+    QUITTING.store(quitting, Ordering::SeqCst);
 
     #[cfg(target_os = "macos")]
     {
@@ -637,6 +675,16 @@ pub fn cancel_capture_restore(app: &AppHandle, quit: bool) {
 #[tauri::command]
 pub fn clear_unconfirmed_leave() {
     CAPTURE_RESTORE_CANCELLED.store(false, Ordering::SeqCst);
+    QUITTING.store(false, Ordering::SeqCst);
+}
+
+/// Red close replaced a quit that was only remembered for this shot.
+/// Called after that shot has returned, before the hide is confirmed, so a
+/// quit command that arrived late cannot leave `QUITTING` set.
+/// A quit that is still the pending action never calls this. `quit_app` sets
+/// the flag again when a real quit is confirmed.
+#[tauri::command]
+pub fn release_provisional_quit() {
     QUITTING.store(false, Ordering::SeqCst);
 }
 
@@ -2030,13 +2078,14 @@ mod fullscreen_hide {
 #[cfg(test)]
 mod tests {
     use super::{
-        capture_hides_window, capture_may_start, capture_should_start, decide_hide,
-        enter_end_from_mask, fullscreen_enter_allowed, fullscreen_exit_allowed, keep_process_alive,
-        outcome_if_join_target_gone, phase_matching_window, plan_capture_window, restore_action,
-        restore_action_observing_leave, restore_enters_fullscreen, restore_notification_applies,
-        restore_shows_or_focuses, should_toggle_fullscreen_restore, toggle_allowed,
-        window_change_allowed, CaptureEnterEnd, CaptureLeave, CaptureRestore, CaptureWindowPlan,
-        FullscreenPhase, HideAction, HideEnd,
+        apply_shot_leave, capture_hides_window, capture_may_start, capture_should_start,
+        decide_hide, enter_end_from_mask, finish_hide, fullscreen_enter_allowed,
+        fullscreen_exit_allowed, keep_process_alive, outcome_if_join_target_gone,
+        phase_matching_window, plan_capture_window, restore_action, restore_action_observing_leave,
+        restore_enters_fullscreen, restore_notification_applies, restore_shows_or_focuses,
+        should_toggle_fullscreen_restore, toggle_allowed, window_change_allowed, CaptureEnterEnd,
+        CaptureLeave, CaptureRestore, CaptureWindowPlan, FullscreenPhase, HideAction, HideEnd,
+        HideFinish,
     };
 
     // These tests cover the decisions the hide path makes. They do not create
@@ -2083,6 +2132,87 @@ mod tests {
     fn failed_capture_does_not_start() {
         assert!(!capture_should_start(HideEnd::Failed));
         assert!(capture_should_start(HideEnd::Hidden));
+    }
+
+    #[test]
+    fn quit_during_a_shot_stays_latched_until_that_quit_finishes() {
+        let (cancelled, quitting) = apply_shot_leave(true, true).expect("a shot is active");
+
+        assert!(cancelled);
+        assert!(quitting);
+        assert_eq!(
+            finish_hide(quitting, HideEnd::Hidden, true),
+            HideFinish::BlockedByQuit
+        );
+        // The shot has ended. Neither a late quit command nor a stray hide
+        // command may change the latch. `quit_app` still owns a real quit.
+        assert!(apply_shot_leave(false, true).is_none());
+        assert!(apply_shot_leave(false, false).is_none());
+    }
+
+    #[test]
+    fn red_close_after_quit_during_a_shot_may_hide() {
+        let (_cancelled, after_quit) = apply_shot_leave(true, true).expect("quit latches");
+        assert!(after_quit);
+
+        // A quit command that was already queued can set the latch again
+        // while the shot is still active. Red close is the later request.
+        let (cancelled, after_late_quit) = apply_shot_leave(true, true).expect("still active");
+        assert!(after_late_quit);
+
+        let (cancelled_again, after_hide) = apply_shot_leave(true, false).expect("red close");
+        assert!(cancelled);
+        assert!(cancelled_again);
+        assert!(!after_hide);
+        // The replay drops the latch once more, after the shot, before hide.
+        let quitting = false;
+        assert_eq!(
+            finish_hide(quitting, HideEnd::Hidden, true),
+            HideFinish::Hidden
+        );
+        // Hidden stays parked because the window was ordered out. The stuck
+        // state was BlockedByQuit: parked, and the window still visible.
+        assert_ne!(
+            finish_hide(quitting, HideEnd::Hidden, true),
+            HideFinish::BlockedByQuit
+        );
+        assert_eq!(
+            finish_hide(quitting, HideEnd::Failed, true),
+            HideFinish::ClearParked
+        );
+        // After the shot, a quit command cannot put the latch back.
+        assert!(apply_shot_leave(false, true).is_none());
+    }
+
+    #[test]
+    fn red_close_during_a_shot_hides_without_a_quit_latch() {
+        let (cancelled, quitting) = apply_shot_leave(true, false).expect("red close");
+
+        assert!(cancelled);
+        assert!(!quitting);
+        assert_eq!(
+            finish_hide(quitting, HideEnd::Hidden, true),
+            HideFinish::Hidden
+        );
+    }
+
+    #[test]
+    fn cancelling_the_red_close_prompt_leaves_the_editor_usable() {
+        let (_cancelled, after_quit) = apply_shot_leave(true, true).expect("quit");
+        let (_cancelled, after_hide) = apply_shot_leave(true, false).expect("red close");
+        assert!(after_quit);
+        assert!(!after_hide);
+
+        // The hide prompt was cancelled. `clear_unconfirmed_leave` stores both
+        // flags false, and `hide_main` never ran, so the editor is not parked
+        // and a later red close is not blocked.
+        let quitting_after_cancel = false;
+        assert!(window_change_allowed(quitting_after_cancel));
+        assert!(!keep_process_alive(false, quitting_after_cancel));
+        assert_eq!(
+            finish_hide(quitting_after_cancel, HideEnd::Hidden, true),
+            HideFinish::Hidden
+        );
     }
 
     #[test]

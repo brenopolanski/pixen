@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import type { LeaveRequest } from '@/lib/captureLeave'
-import { leaveWhileCaptureIsBusy } from '@/lib/captureLeave'
+import { leaveWhileCaptureIsBusy, noteLeaveDuringCapture } from '@/lib/captureLeave'
 import {
   COPIED_FEEDBACK_MS,
   SCREENSHOT_NAME,
@@ -19,6 +19,7 @@ import {
   clearUnconfirmedLeave,
   hideMainWindow,
   quitApp,
+  releaseProvisionalQuit,
 } from '@/lib/desktop'
 import { hasUnsavedEdits } from '@/lib/editor/engine'
 import { PixenError, toUserMessage } from '@/lib/errors'
@@ -156,6 +157,7 @@ export const useImageSession = (): ImageSession => {
   const bakedRef = useRef(new Map<string, boolean>())
   const busyRef = useRef(false)
   const pendingLeaveRef = useRef<LeaveRequest | null>(null)
+  const shotQuitSupersededRef = useRef(false)
   const requestHideRef = useRef<() => void>(() => {})
   const requestCloseRef = useRef<() => void>(() => {})
   const pixelizePreviewRef = useRef<string | null>(null)
@@ -1077,7 +1079,13 @@ export const useImageSession = (): ImageSession => {
     void cancelCaptureRestore(true)
 
     if (leaveWhileCaptureIsBusy(busyRef.current, 'quit')) {
-      pendingLeaveRef.current = 'quit'
+      const next = noteLeaveDuringCapture(
+        pendingLeaveRef.current,
+        shotQuitSupersededRef.current,
+        'quit',
+      )
+      pendingLeaveRef.current = next.pending
+      shotQuitSupersededRef.current = next.shotQuitSuperseded
       return
     }
 
@@ -1087,6 +1095,9 @@ export const useImageSession = (): ImageSession => {
         return
       }
 
+      // This quit is confirmed. A hide replayed after `quit_app` must not
+      // clear `QUITTING` out from under process teardown.
+      shotQuitSupersededRef.current = false
       await quitApp()
     })
   }, [run, settleUnsaved])
@@ -1095,11 +1106,26 @@ export const useImageSession = (): ImageSession => {
     void cancelCaptureRestore(false)
 
     if (leaveWhileCaptureIsBusy(busyRef.current, 'hide')) {
-      pendingLeaveRef.current = 'hide'
+      const next = noteLeaveDuringCapture(
+        pendingLeaveRef.current,
+        shotQuitSupersededRef.current,
+        'hide',
+      )
+      pendingLeaveRef.current = next.pending
+      shotQuitSupersededRef.current = next.shotQuitSuperseded
       return
     }
 
+    const releaseShotQuit = shotQuitSupersededRef.current
+    shotQuitSupersededRef.current = false
+
     run(async () => {
+      // The shot has finished. Drop a quit that red close already replaced,
+      // including one a late quit command latched before this replay.
+      if (releaseShotQuit) {
+        await releaseProvisionalQuit()
+      }
+
       if (!(await settleUnsaved())) {
         await clearUnconfirmedLeave()
         return

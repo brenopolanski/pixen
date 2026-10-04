@@ -56,6 +56,7 @@ pub fn run() {
             shortcut::suspend_capture_shortcut,
             window::cancel_capture_restore_command,
             window::clear_unconfirmed_leave,
+            window::release_provisional_quit,
             window::finish_launch,
             window::hide_main_window,
             window::quit_app,
