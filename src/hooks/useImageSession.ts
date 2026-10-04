@@ -624,6 +624,7 @@ export const useImageSession = (): ImageSession => {
         await runCapture(),
         (image) => placeImage(image, SCREENSHOT_NAME),
         revealFullscreenCapture,
+        () => pendingLeaveRef.current !== null,
       )
     })
   }, [placeImage, run])
