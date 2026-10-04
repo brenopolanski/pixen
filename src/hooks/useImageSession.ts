@@ -2,6 +2,8 @@ import type { ImageEditorRef } from '@unlayer/react-image-editor'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
+import type { LeaveRequest } from '@/lib/captureLeave'
+import { leaveWhileCaptureIsBusy } from '@/lib/captureLeave'
 import {
   COPIED_FEEDBACK_MS,
   SCREENSHOT_NAME,
@@ -13,6 +15,8 @@ import {
   askAboutUnsavedChanges,
   askToApplyOverlay,
   askToDiscardChanges,
+  cancelCaptureRestore,
+  clearUnconfirmedLeave,
   hideMainWindow,
   quitApp,
 } from '@/lib/desktop'
@@ -151,6 +155,9 @@ export const useImageSession = (): ImageSession => {
   const baselinesRef = useRef(new Map<string, string | null>())
   const bakedRef = useRef(new Map<string, boolean>())
   const busyRef = useRef(false)
+  const pendingLeaveRef = useRef<LeaveRequest | null>(null)
+  const requestHideRef = useRef<() => void>(() => {})
+  const requestCloseRef = useRef<() => void>(() => {})
   const pixelizePreviewRef = useRef<string | null>(null)
   const incrementPreviewRef = useRef<string | null>(null)
   const arrowPreviewRef = useRef<string | null>(null)
@@ -282,6 +289,19 @@ export const useImageSession = (): ImageSession => {
       .finally(() => {
         busyRef.current = false
         setBusy(false)
+
+        const leave = pendingLeaveRef.current
+        pendingLeaveRef.current = null
+
+        if (leave === 'hide') {
+          queueMicrotask(() => {
+            requestHideRef.current()
+          })
+        } else if (leave === 'quit') {
+          queueMicrotask(() => {
+            requestCloseRef.current()
+          })
+        }
       })
   }, [])
 
@@ -1054,8 +1074,16 @@ export const useImageSession = (): ImageSession => {
   }, [settleOverlay, settleUnsavedTabs])
 
   const requestClose = useCallback(() => {
+    void cancelCaptureRestore(true)
+
+    if (leaveWhileCaptureIsBusy(busyRef.current, 'quit')) {
+      pendingLeaveRef.current = 'quit'
+      return
+    }
+
     run(async () => {
       if (!(await settleUnsaved())) {
+        await clearUnconfirmedLeave()
         return
       }
 
@@ -1064,14 +1092,27 @@ export const useImageSession = (): ImageSession => {
   }, [run, settleUnsaved])
 
   const requestHide = useCallback(() => {
+    void cancelCaptureRestore(false)
+
+    if (leaveWhileCaptureIsBusy(busyRef.current, 'hide')) {
+      pendingLeaveRef.current = 'hide'
+      return
+    }
+
     run(async () => {
       if (!(await settleUnsaved())) {
+        await clearUnconfirmedLeave()
         return
       }
 
       await hideMainWindow()
     })
   }, [run, settleUnsaved])
+
+  useEffect(() => {
+    requestCloseRef.current = requestClose
+    requestHideRef.current = requestHide
+  }, [requestClose, requestHide])
 
   const refreshUnsavedState = useCallback(() => {
     snapshotActiveDirty()

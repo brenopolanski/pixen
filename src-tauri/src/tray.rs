@@ -114,6 +114,10 @@ pub fn request_capture(app: &AppHandle) {
 /// Quit goes through the frontend for the same reason the native menu's does:
 /// `app.exit` would drop unsaved edits without asking.
 fn request_quit(app: &AppHandle) {
+    // While a shot is restoring fullscreen, this stops the enter. The
+    // webview still asks about unsaved work before `quit_app`.
+    window::cancel_capture_restore(app, true);
+
     if !emit_to_main(app, QUIT_REQUESTED_EVENT) {
         window::quit_app(app.clone());
     }

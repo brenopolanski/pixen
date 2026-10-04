@@ -41,6 +41,20 @@ export const quitApp = (): Promise<void> => {
   return invoke('quit_app')
 }
 
+/**
+ * While a screenshot is restoring fullscreen, Close or Quit invalidates that
+ * enter. Outside a shot this does nothing, so a normal quit still waits for
+ * `quit_app` to set the quitting flag.
+ */
+export const cancelCaptureRestore = (quit: boolean): Promise<void> => {
+  return invoke('cancel_capture_restore_command', { quit })
+}
+
+/** The user cancelled the unsaved-changes prompt, so a shot's leave is dropped. */
+export const clearUnconfirmedLeave = (): Promise<void> => {
+  return invoke('clear_unconfirmed_leave')
+}
+
 /** Hides the editor after unsaved work has been saved or discarded. */
 export const hideMainWindow = (): Promise<void> => {
   return invoke('hide_main_window')

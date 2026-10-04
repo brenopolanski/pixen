@@ -15,6 +15,10 @@ static BACKGROUND_LAUNCH: AtomicBool = AtomicBool::new(false);
 static PARKED: AtomicBool = AtomicBool::new(false);
 /// Set before `app.exit`, so a quit from the hidden state is not swallowed.
 static QUITTING: AtomicBool = AtomicBool::new(false);
+/// True for the whole of `capture_screen`, including fullscreen restore.
+static CAPTURE_ACTIVE: AtomicBool = AtomicBool::new(false);
+/// Close or Quit arrived during that shot. The fullscreen enter must not start.
+static CAPTURE_RESTORE_CANCELLED: AtomicBool = AtomicBool::new(false);
 /// Bumped when the editor is shown, so a hide queued earlier does not run.
 static SHOW_EPOCH: AtomicU64 = AtomicU64::new(0);
 
@@ -98,6 +102,12 @@ pub fn hide_main(app: &AppHandle) {
 
 /// Hides a visible editor before a screenshot, once it is safe to leave
 /// fullscreen. Returns whether the window was actually ordered out.
+///
+/// This only steps the window aside. It uses the same exit-then-hide rule as
+/// the red close button, so a fullscreen window is never ordered out while it
+/// is still attached to its Space. Putting fullscreen or zoom back is
+/// `finish_capture_presentation`, and a fullscreen window on another Space
+/// must not be passed here: exiting that Space is what drops the shot.
 ///
 /// Failure and cancellation leave the window visible and must not start a
 /// capture. The wait runs on the capture command's worker, never the main
@@ -425,6 +435,395 @@ fn wait_matches(pending_wait_id: Option<u64>, wait_id: u64) -> bool {
     pending_wait_id == Some(wait_id)
 }
 
+/// How a screenshot should treat the editor. Close and quit do not use this:
+/// they still exit fullscreen and stay out.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CaptureWindowPlan {
+    /// A fullscreen transition is already running. Leave the window alone and
+    /// do not start a shot, so capture cannot toggle on top of close or enter.
+    Unavailable,
+    /// Fullscreen on a Space the user is not looking at. Hiding it switches
+    /// Spaces and the shot is lost, so the window is not touched at all.
+    LeaveUntouched,
+    /// The editor is already hidden. Show it only when a shot was produced.
+    ShowIfCaptured,
+    /// Hide, then show. `zoomed` is the green-button maximize, put back after.
+    HideThenShow { zoomed: bool },
+    /// Fullscreen on the active Space covers the screen. Exit, hide, capture,
+    /// then enter fullscreen again. The exit still goes through the safe hide.
+    HideThenRestoreFullscreen,
+}
+
+/// What to do with the window once the shot has succeeded, failed, or been
+/// cancelled. A fullscreen capture always comes back to fullscreen, including
+/// when the hide itself failed and the window was left out of that Space.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CaptureRestore {
+    Leave,
+    ShowIfProduced,
+    Show,
+    ShowZoomed,
+    ShowThenEnterFullscreen,
+    /// The hide did not order the window out. Enter only if it has actually
+    /// left fullscreen, and do not call `show` or `set_focus` first: focusing
+    /// a fullscreen window on another Space is what pulls it out.
+    EnterFullscreenIfNeeded,
+}
+
+fn plan_capture_window(
+    visible: bool,
+    mask_fullscreen: bool,
+    on_active_space: bool,
+    zoomed: bool,
+    phase: FullscreenPhase,
+) -> CaptureWindowPlan {
+    // An enter or exit already owns `toggleFullScreen:`. Starting a capture
+    // hide here would be a second toggle, including against the red close.
+    if matches!(phase, FullscreenPhase::Entering | FullscreenPhase::Exiting) {
+        return CaptureWindowPlan::Unavailable;
+    }
+
+    // The style mask is the window. A stale `Fullscreen` phase must not count,
+    // and a stale `Normal` phase must not hide a window that is fullscreen.
+    let fullscreen = mask_fullscreen;
+
+    if visible && fullscreen && !on_active_space {
+        return CaptureWindowPlan::LeaveUntouched;
+    }
+
+    if !visible {
+        return CaptureWindowPlan::ShowIfCaptured;
+    }
+
+    if fullscreen {
+        return CaptureWindowPlan::HideThenRestoreFullscreen;
+    }
+
+    CaptureWindowPlan::HideThenShow { zoomed }
+}
+
+fn restore_action(plan: CaptureWindowPlan, hid: bool, produced: bool) -> CaptureRestore {
+    match plan {
+        CaptureWindowPlan::Unavailable | CaptureWindowPlan::LeaveUntouched => CaptureRestore::Leave,
+        CaptureWindowPlan::ShowIfCaptured => {
+            if produced {
+                CaptureRestore::ShowIfProduced
+            } else {
+                CaptureRestore::Leave
+            }
+        }
+        CaptureWindowPlan::HideThenShow { zoomed } => {
+            if !hid {
+                CaptureRestore::Leave
+            } else if zoomed {
+                CaptureRestore::ShowZoomed
+            } else {
+                CaptureRestore::Show
+            }
+        }
+        CaptureWindowPlan::HideThenRestoreFullscreen => {
+            if hid {
+                CaptureRestore::ShowThenEnterFullscreen
+            } else {
+                CaptureRestore::EnterFullscreenIfNeeded
+            }
+        }
+    }
+}
+
+/// Close or Quit remembered while a shot is still running.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CaptureLeave {
+    None,
+    Hide,
+    Quit,
+}
+
+/// How `enter_fullscreen_after_capture` ended. Callers must not treat `Failed`
+/// or `Cancelled` as a restored fullscreen window.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CaptureEnterEnd {
+    Restored,
+    Failed,
+    Cancelled,
+}
+
+/// Close or Quit wins over putting the window back into fullscreen. The window
+/// is still shown when it was hidden for the shot, so the normal close path
+/// can run. That path exits fullscreen before hiding. This one does not enter.
+fn restore_action_observing_leave(
+    plan: CaptureWindowPlan,
+    hid: bool,
+    produced: bool,
+    leave: CaptureLeave,
+) -> CaptureRestore {
+    let action = restore_action(plan, hid, produced);
+
+    if leave == CaptureLeave::None {
+        return action;
+    }
+
+    match action {
+        CaptureRestore::ShowThenEnterFullscreen => CaptureRestore::Show,
+        CaptureRestore::EnterFullscreenIfNeeded => CaptureRestore::Leave,
+        other => other,
+    }
+}
+
+fn active_capture_leave() -> CaptureLeave {
+    if QUITTING.load(Ordering::SeqCst) {
+        CaptureLeave::Quit
+    } else if CAPTURE_RESTORE_CANCELLED.load(Ordering::SeqCst) {
+        CaptureLeave::Hide
+    } else {
+        CaptureLeave::None
+    }
+}
+
+/// Held for the whole shot. A new shot clears a previous leave unless quit
+/// has already started.
+pub(crate) struct CaptureAttempt;
+
+impl CaptureAttempt {
+    pub(crate) fn begin() -> Self {
+        CAPTURE_ACTIVE.store(true, Ordering::SeqCst);
+
+        if !QUITTING.load(Ordering::SeqCst) {
+            CAPTURE_RESTORE_CANCELLED.store(false, Ordering::SeqCst);
+        }
+
+        Self
+    }
+}
+
+impl Drop for CaptureAttempt {
+    fn drop(&mut self) {
+        CAPTURE_ACTIVE.store(false, Ordering::SeqCst);
+    }
+}
+
+/// Remember Close or Quit while a shot is in progress, and drop a fullscreen
+/// enter that has not been accepted yet. A toggle that has already been sent
+/// is not undone here. Normal Close and Quit, with no shot running, are
+/// unchanged: `QUITTING` stays unset until `quit_app`.
+pub fn cancel_capture_restore(app: &AppHandle, quit: bool) {
+    if !CAPTURE_ACTIVE.load(Ordering::SeqCst) {
+        return;
+    }
+
+    CAPTURE_RESTORE_CANCELLED.store(true, Ordering::SeqCst);
+
+    if quit {
+        QUITTING.store(true, Ordering::SeqCst);
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        if objc2::MainThreadMarker::new().is_some() {
+            fullscreen_hide::invalidate_capture_restore();
+            return;
+        }
+
+        let app = app.clone();
+        let _ = app.run_on_main_thread(fullscreen_hide::invalidate_capture_restore);
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    let _ = app;
+}
+
+/// The user backed out of the unsaved-changes prompt. The shot's leave must
+/// not keep quit latched.
+#[tauri::command]
+pub fn clear_unconfirmed_leave() {
+    CAPTURE_RESTORE_CANCELLED.store(false, Ordering::SeqCst);
+    QUITTING.store(false, Ordering::SeqCst);
+}
+
+#[tauri::command]
+pub fn cancel_capture_restore_command(app: AppHandle, quit: bool) {
+    cancel_capture_restore(&app, quit);
+}
+
+/// After a failed enter, phase matches the style mask. An enter or exit that
+/// is still in progress is left alone. This never requests another toggle.
+fn phase_matching_window(mask_fullscreen: bool, phase: FullscreenPhase) -> FullscreenPhase {
+    if matches!(phase, FullscreenPhase::Entering | FullscreenPhase::Exiting) {
+        return phase;
+    }
+
+    if mask_fullscreen {
+        FullscreenPhase::Fullscreen
+    } else {
+        FullscreenPhase::Normal
+    }
+}
+
+fn enter_end_from_mask(mask_fullscreen: Option<bool>, leave_requested: bool) -> CaptureEnterEnd {
+    if leave_requested {
+        CaptureEnterEnd::Cancelled
+    } else if mask_fullscreen == Some(true) {
+        CaptureEnterEnd::Restored
+    } else {
+        CaptureEnterEnd::Failed
+    }
+}
+
+/// A late `DidEnter` applies only to the wait that is still pending, and not
+/// after Close or Quit has taken over.
+fn restore_notification_applies(
+    pending_wait_id: Option<u64>,
+    wait_id: u64,
+    leave_requested: bool,
+) -> bool {
+    !leave_requested && wait_matches(pending_wait_id, wait_id)
+}
+
+fn fullscreen_enter_allowed(
+    mask_fullscreen: bool,
+    already_toggled: bool,
+    phase: FullscreenPhase,
+    quitting: bool,
+    leave_requested: bool,
+) -> bool {
+    !leave_requested
+        && should_toggle_fullscreen_restore(mask_fullscreen, already_toggled, phase, quitting)
+}
+
+#[cfg(test)]
+fn restore_enters_fullscreen(action: CaptureRestore) -> bool {
+    matches!(
+        action,
+        CaptureRestore::ShowThenEnterFullscreen | CaptureRestore::EnterFullscreenIfNeeded
+    )
+}
+
+#[cfg(test)]
+fn restore_shows_or_focuses(action: CaptureRestore) -> bool {
+    matches!(
+        action,
+        CaptureRestore::Show
+            | CaptureRestore::ShowIfProduced
+            | CaptureRestore::ShowZoomed
+            | CaptureRestore::ShowThenEnterFullscreen
+    )
+}
+
+/// The shot itself runs only when it cannot collide with a fullscreen
+/// animation. A window on another Space still captures: it is not in the way.
+pub(crate) fn capture_may_start(plan: CaptureWindowPlan) -> bool {
+    !matches!(plan, CaptureWindowPlan::Unavailable)
+}
+
+/// True when the editor is on the active Space and would cover the shot.
+/// Fullscreen on another Space is deliberately false.
+pub(crate) fn capture_hides_window(plan: CaptureWindowPlan) -> bool {
+    matches!(
+        plan,
+        CaptureWindowPlan::HideThenShow { .. } | CaptureWindowPlan::HideThenRestoreFullscreen
+    )
+}
+
+/// One enter, and only from a settled window that is not already fullscreen.
+/// A notification handler must not call this: `already_toggled` is how a late
+/// `DidEnter` or `DidExit` is stopped from issuing a second `toggleFullScreen:`.
+fn should_toggle_fullscreen_restore(
+    mask_fullscreen: bool,
+    already_toggled: bool,
+    phase: FullscreenPhase,
+    quitting: bool,
+) -> bool {
+    !quitting
+        && !already_toggled
+        && !mask_fullscreen
+        && !matches!(
+            phase,
+            FullscreenPhase::Entering | FullscreenPhase::Exiting | FullscreenPhase::Fullscreen
+        )
+}
+
+/// Reads the editor on the main thread and decides the capture plan.
+pub(crate) fn plan_for_capture(window: &WebviewWindow) -> CaptureWindowPlan {
+    #[cfg(target_os = "macos")]
+    {
+        if objc2::MainThreadMarker::new().is_some() {
+            return fullscreen_hide::capture_plan_on_main(window);
+        }
+
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let target = window.clone();
+        let queued = window.clone().run_on_main_thread(move || {
+            let _ = sender.send(fullscreen_hide::capture_plan_on_main(&target));
+        });
+
+        if queued.is_err() {
+            return CaptureWindowPlan::Unavailable;
+        }
+
+        receiver
+            .recv_timeout(std::time::Duration::from_secs(2))
+            .unwrap_or(CaptureWindowPlan::Unavailable)
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let visible = window.is_visible().unwrap_or(false);
+        plan_capture_window(visible, false, true, false, FullscreenPhase::Normal)
+    }
+}
+
+/// Puts the editor back after a shot. Runs for success, cancellation, and
+/// failure. Never hides, and never uses the close path's "stay normal".
+pub(crate) fn finish_capture_presentation(
+    app: &AppHandle,
+    plan: CaptureWindowPlan,
+    hid: bool,
+    produced: bool,
+) {
+    match restore_action_observing_leave(plan, hid, produced, active_capture_leave()) {
+        CaptureRestore::Leave => {}
+        CaptureRestore::Show | CaptureRestore::ShowIfProduced => show_main(app),
+        CaptureRestore::ShowZoomed => {
+            show_main(app);
+            #[cfg(target_os = "macos")]
+            if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+                fullscreen_hide::zoom_after_capture(&window);
+            }
+        }
+        CaptureRestore::ShowThenEnterFullscreen => {
+            show_main(app);
+
+            // Close or Quit can land while the window is being shown.
+            if active_capture_leave() == CaptureLeave::None {
+                note_fullscreen_enter(app);
+            }
+        }
+        CaptureRestore::EnterFullscreenIfNeeded => {
+            if active_capture_leave() == CaptureLeave::None {
+                note_fullscreen_enter(app);
+            }
+        }
+    }
+}
+
+/// Enters fullscreen once. A failure reconciles `PHASE` with the style mask
+/// and does not toggle again. Cancelled means Close or Quit won.
+fn note_fullscreen_enter(app: &AppHandle) {
+    #[cfg(target_os = "macos")]
+    {
+        let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) else {
+            return;
+        };
+
+        if fullscreen_hide::enter_fullscreen_after_capture(&window) == CaptureEnterEnd::Failed {
+            fullscreen_hide::reconcile_settled_phase(&window);
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    let _ = app;
+}
+
 fn hide_window_safely<F>(window: WebviewWindow, epoch: u64, on_done: F)
 where
     F: FnOnce(HideEnd) + Send + 'static,
@@ -521,10 +920,23 @@ mod fullscreen_hide {
     static NEXT_WAIT_ID: AtomicU64 = AtomicU64::new(1);
     static PHASE: AtomicU8 = AtomicU8::new(0);
 
+    /// Capture's fullscreen enter. Separate from `PENDING` so a restore wait
+    /// cannot be completed as a hide, and a hide cannot join it and order the
+    /// window out when `DidEnter` arrives.
+    struct PendingRestore {
+        wait_id: u64,
+        toggled: bool,
+        callback: Box<dyn FnOnce(super::CaptureEnterEnd) + Send>,
+    }
+
+    static RESTORE: Mutex<Option<PendingRestore>> = Mutex::new(None);
+
     thread_local! {
         static PHASE_OBSERVERS: RefCell<Vec<Retained<ProtocolObject<dyn NSObjectProtocol>>>> =
             RefCell::new(Vec::new());
         static HIDE_OBSERVERS: RefCell<Vec<Retained<ProtocolObject<dyn NSObjectProtocol>>>> =
+            RefCell::new(Vec::new());
+        static RESTORE_OBSERVERS: RefCell<Vec<Retained<ProtocolObject<dyn NSObjectProtocol>>>> =
             RefCell::new(Vec::new());
         static PHASE_INSTALLED: Cell<bool> = const { Cell::new(false) };
     }
@@ -1125,6 +1537,389 @@ mod fullscreen_hide {
         unsafe { Retained::retain(raw.cast()) }
     }
 
+    pub(super) fn capture_plan_on_main(window: &WebviewWindow) -> super::CaptureWindowPlan {
+        // Observers first, so a transition that starts during the read is
+        // visible to the plan. Installing them does not move the window.
+        install_phase_from_window(window);
+
+        let Some(ns_window) = native_window(window) else {
+            return super::CaptureWindowPlan::Unavailable;
+        };
+
+        let mask_fullscreen = ns_window
+            .styleMask()
+            .contains(NSWindowStyleMask::FullScreen);
+        let phase = current_phase();
+
+        // Settled phase follows the mask. Entering and Exiting are left alone.
+        if !matches!(phase, FullscreenPhase::Entering | FullscreenPhase::Exiting) {
+            let matched = super::phase_matching_window(mask_fullscreen, phase);
+
+            if matched != phase {
+                set_phase(matched);
+            }
+        }
+
+        super::plan_capture_window(
+            ns_window.isVisible(),
+            mask_fullscreen,
+            ns_window.isOnActiveSpace(),
+            ns_window.isZoomed(),
+            current_phase(),
+        )
+    }
+
+    pub(super) fn zoom_after_capture(window: &WebviewWindow) {
+        if MainThreadMarker::new().is_some() {
+            zoom_on_main(window);
+            return;
+        }
+
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let target = window.clone();
+        let queued = window.clone().run_on_main_thread(move || {
+            zoom_on_main(&target);
+            let _ = sender.send(());
+        });
+
+        if queued.is_ok() {
+            let _ = receiver.recv_timeout(std::time::Duration::from_secs(2));
+        }
+    }
+
+    fn zoom_on_main(window: &WebviewWindow) {
+        let Some(ns_window) = native_window(window) else {
+            return;
+        };
+
+        // `zoom:` toggles. Calling it on a window that is still zoomed would
+        // undo the maximize the capture is supposed to keep.
+        if !ns_window.isZoomed() {
+            ns_window.zoom(None);
+        }
+    }
+
+    /// Blocks the capture worker until the editor is fullscreen again, the
+    /// backstop gives up, or Close/Quit cancels the wait. Does not hide the
+    /// window. Must not be called on the main thread: the notification that
+    /// completes the wait is delivered there.
+    pub(super) fn enter_fullscreen_after_capture(window: &WebviewWindow) -> super::CaptureEnterEnd {
+        if MainThreadMarker::new().is_some() {
+            return super::CaptureEnterEnd::Failed;
+        }
+
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let target = window.clone();
+        let queued = window.clone().run_on_main_thread(move || {
+            enter_fullscreen_on_main(&target, move |end| {
+                let _ = sender.send(end);
+            });
+        });
+
+        if queued.is_err() {
+            return super::CaptureEnterEnd::Failed;
+        }
+
+        // Completed by `DidEnter`, the main-thread backstop, or cancellation.
+        // A silent `toggleFullScreen:` cannot park the capture worker.
+        receiver.recv().unwrap_or(super::CaptureEnterEnd::Failed)
+    }
+
+    /// Drops a restore wait without toggling. A `toggleFullScreen:` that has
+    /// already been sent keeps running; this only stops the wait from treating
+    /// a later notification as a successful restore.
+    pub(super) fn invalidate_capture_restore() {
+        let pending = restore_lock().take();
+        let Some(pending) = pending else {
+            return;
+        };
+
+        drop_restore_observers();
+        (pending.callback)(super::CaptureEnterEnd::Cancelled);
+    }
+
+    /// Reads the style mask and stores that phase, unless a transition owns it.
+    pub(super) fn reconcile_settled_phase(window: &WebviewWindow) {
+        let apply = |window: &WebviewWindow| {
+            let Some(ns_window) = native_window(window) else {
+                return;
+            };
+            let mask_fullscreen = ns_window
+                .styleMask()
+                .contains(NSWindowStyleMask::FullScreen);
+            let next = super::phase_matching_window(mask_fullscreen, current_phase());
+
+            if next != current_phase() {
+                set_phase(next);
+            }
+        };
+
+        if MainThreadMarker::new().is_some() {
+            apply(window);
+            return;
+        }
+
+        let (sender, receiver) = std::sync::mpsc::channel();
+        let target = window.clone();
+        let queued = window.clone().run_on_main_thread(move || {
+            apply(&target);
+            let _ = sender.send(());
+        });
+
+        if queued.is_ok() {
+            let _ = receiver.recv_timeout(std::time::Duration::from_secs(2));
+        }
+    }
+
+    fn leave_requested() -> bool {
+        super::CAPTURE_RESTORE_CANCELLED.load(Ordering::SeqCst) || QUITTING.load(Ordering::SeqCst)
+    }
+
+    fn enter_fullscreen_on_main<F>(window: &WebviewWindow, on_done: F)
+    where
+        F: FnOnce(super::CaptureEnterEnd) + Send + 'static,
+    {
+        if leave_requested() {
+            on_done(super::CaptureEnterEnd::Cancelled);
+            return;
+        }
+
+        install_phase_from_window(window);
+
+        let Some(ns_window) = native_window(window) else {
+            on_done(super::CaptureEnterEnd::Failed);
+            return;
+        };
+
+        let mask = ns_window
+            .styleMask()
+            .contains(NSWindowStyleMask::FullScreen);
+        let phase = current_phase();
+
+        // The mask is the window. A stale `Fullscreen` phase is not a reason
+        // to toggle, and a stale `Normal` phase is not a reason to ignore a
+        // mask that still has `FullScreen` (toggling then would exit).
+        if mask {
+            if !matches!(phase, FullscreenPhase::Entering | FullscreenPhase::Exiting) {
+                set_phase(FullscreenPhase::Fullscreen);
+            }
+
+            on_done(super::CaptureEnterEnd::Restored);
+            return;
+        }
+
+        // A restore is already waiting. Toggling again would exit the enter
+        // that notification is about to finish.
+        if restore_lock().is_some() {
+            on_done(super::CaptureEnterEnd::Failed);
+            return;
+        }
+
+        let toggle = super::fullscreen_enter_allowed(
+            mask,
+            false,
+            phase,
+            QUITTING.load(Ordering::SeqCst),
+            leave_requested(),
+        );
+
+        // Exiting belongs to whoever started it, usually the red close button.
+        // Waiting it out and then toggling back would undo that close.
+        // A stale `Fullscreen` phase also lands here: the mask is clear, so
+        // this returns failed and the caller reconciles. It does not toggle.
+        if !toggle && phase != FullscreenPhase::Entering {
+            on_done(super::enter_end_from_mask(Some(false), leave_requested()));
+            return;
+        }
+
+        let wait_id = NEXT_WAIT_ID.fetch_add(1, Ordering::SeqCst);
+        *restore_lock() = Some(PendingRestore {
+            wait_id,
+            toggled: false,
+            callback: Box::new(on_done),
+        });
+
+        listen_for_restore_enter(&ns_window, wait_id);
+
+        if !arm_restore_watchdog(window, wait_id) {
+            return;
+        }
+
+        if !toggle {
+            return;
+        }
+
+        let Some(ns_window) = native_window(window) else {
+            complete_restore(super::CaptureEnterEnd::Failed);
+            return;
+        };
+
+        let mask = ns_window
+            .styleMask()
+            .contains(NSWindowStyleMask::FullScreen);
+
+        if !restore_is_current(wait_id)
+            || !super::fullscreen_enter_allowed(
+                mask,
+                false,
+                current_phase(),
+                QUITTING.load(Ordering::SeqCst),
+                leave_requested(),
+            )
+        {
+            // Close, quit, a stale fullscreen phase, or a mask that is already
+            // fullscreen. Not a second toggle.
+            if restore_is_current(wait_id) && current_phase() != FullscreenPhase::Entering {
+                if mask && !leave_requested() {
+                    set_phase(FullscreenPhase::Fullscreen);
+                }
+
+                complete_restore(super::enter_end_from_mask(Some(mask), leave_requested()));
+            }
+
+            return;
+        }
+
+        if let Some(pending) = restore_lock().as_mut() {
+            pending.toggled = true;
+        }
+
+        ns_window.toggleFullScreen(None);
+    }
+
+    fn listen_for_restore_enter(ns_window: &NSWindow, wait_id: u64) {
+        watch_restore(
+            ns_window,
+            unsafe { NSWindowDidEnterFullScreenNotification },
+            move || {
+                let pending_id = restore_lock().as_ref().map(|pending| pending.wait_id);
+
+                if !super::restore_notification_applies(pending_id, wait_id, leave_requested()) {
+                    // Close or Quit owns the wait. Unblock the shot as cancelled.
+                    // Do not toggle, and do not report a restored fullscreen.
+                    if restore_is_current(wait_id) && leave_requested() {
+                        complete_restore(super::CaptureEnterEnd::Cancelled);
+                    }
+
+                    return;
+                }
+
+                // Completion only. A late notification must not toggle.
+                set_phase(FullscreenPhase::Fullscreen);
+                complete_restore(super::CaptureEnterEnd::Restored);
+            },
+        );
+    }
+
+    fn restore_lock() -> std::sync::MutexGuard<'static, Option<PendingRestore>> {
+        RESTORE.lock().unwrap_or_else(|error| error.into_inner())
+    }
+
+    fn restore_is_current(wait_id: u64) -> bool {
+        wait_matches(
+            restore_lock().as_ref().map(|pending| pending.wait_id),
+            wait_id,
+        )
+    }
+
+    fn complete_restore(end: super::CaptureEnterEnd) {
+        let pending = restore_lock().take();
+        let Some(pending) = pending else {
+            return;
+        };
+
+        drop_restore_observers();
+        (pending.callback)(end);
+    }
+
+    fn expire_restore(window: &WebviewWindow, wait_id: u64) {
+        let mask_fullscreen = native_window(window).map(|ns_window| {
+            ns_window
+                .styleMask()
+                .contains(NSWindowStyleMask::FullScreen)
+        });
+
+        let pending = {
+            let mut guard = restore_lock();
+            if !wait_matches(guard.as_ref().map(|pending| pending.wait_id), wait_id) {
+                return;
+            }
+            guard.take()
+        };
+        let Some(pending) = pending else {
+            return;
+        };
+
+        // The enter did not report completion. Record the mask and stop.
+        // Do not toggle again, and do not hide. A clear mask is Failed, not
+        // Restored, even if PHASE still said Fullscreen.
+        if let Some(mask_fullscreen) = mask_fullscreen {
+            set_phase(super::phase_after_failure(mask_fullscreen));
+        }
+
+        drop_restore_observers();
+        (pending.callback)(super::enter_end_from_mask(
+            mask_fullscreen,
+            leave_requested(),
+        ));
+    }
+
+    fn fail_restore_without_observers(wait_id: u64) {
+        let pending = {
+            let mut guard = restore_lock();
+            if !wait_matches(guard.as_ref().map(|pending| pending.wait_id), wait_id) {
+                return;
+            }
+            guard.take()
+        };
+        let Some(pending) = pending else {
+            return;
+        };
+
+        (pending.callback)(super::enter_end_from_mask(None, leave_requested()));
+    }
+
+    fn arm_restore_watchdog(window: &WebviewWindow, wait_id: u64) -> bool {
+        let app = window.app_handle().clone();
+        let expired = window.clone();
+        let spawned = std::thread::Builder::new()
+            .name("pixen-fullscreen-restore".to_owned())
+            .spawn(move || {
+                std::thread::sleep(HIDE_BACKSTOP);
+                if app
+                    .run_on_main_thread(move || expire_restore(&expired, wait_id))
+                    .is_err()
+                {
+                    fail_restore_without_observers(wait_id);
+                }
+            });
+
+        if spawned.is_err() {
+            complete_restore(super::enter_end_from_mask(None, leave_requested()));
+            return false;
+        }
+
+        true
+    }
+
+    fn watch_restore(ns_window: &NSWindow, name: &NSString, handler: impl Fn() + Send + 'static) {
+        let block = RcBlock::new(move |_note: NonNull<NSNotification>| handler());
+        let token = add_observer(ns_window, name, &block);
+        RESTORE_OBSERVERS.with(|cell| cell.borrow_mut().push(token));
+    }
+
+    fn drop_restore_observers() {
+        if MainThreadMarker::new().is_none() {
+            return;
+        }
+
+        let tokens = RESTORE_OBSERVERS.with(|cell| std::mem::take(&mut *cell.borrow_mut()));
+        let center = NSNotificationCenter::defaultCenter();
+        for token in tokens {
+            unsafe { center.removeObserver(token.as_ref()) };
+        }
+    }
+
     #[cfg(test)]
     mod ownership {
         #[test]
@@ -1133,6 +1928,7 @@ mod fullscreen_hide {
             // `PendingHide` is the shared state. It compiles as `Send` only
             // because it holds callbacks and integers, not observer tokens.
             assert_send::<super::PendingHide>();
+            assert_send::<super::PendingRestore>();
         }
     }
 
@@ -1234,9 +2030,13 @@ mod fullscreen_hide {
 #[cfg(test)]
 mod tests {
     use super::{
-        capture_should_start, decide_hide, fullscreen_exit_allowed, keep_process_alive,
-        outcome_if_join_target_gone, toggle_allowed, window_change_allowed, FullscreenPhase,
-        HideAction, HideEnd,
+        capture_hides_window, capture_may_start, capture_should_start, decide_hide,
+        enter_end_from_mask, fullscreen_enter_allowed, fullscreen_exit_allowed, keep_process_alive,
+        outcome_if_join_target_gone, phase_matching_window, plan_capture_window, restore_action,
+        restore_action_observing_leave, restore_enters_fullscreen, restore_notification_applies,
+        restore_shows_or_focuses, should_toggle_fullscreen_restore, toggle_allowed,
+        window_change_allowed, CaptureEnterEnd, CaptureLeave, CaptureRestore, CaptureWindowPlan,
+        FullscreenPhase, HideAction, HideEnd,
     };
 
     // These tests cover the decisions the hide path makes. They do not create
@@ -1394,5 +2194,278 @@ mod tests {
         assert_eq!(end, HideEnd::Cancelled);
         assert!(!capture_should_start(end));
         assert!(!window_change_allowed(true));
+    }
+
+    #[test]
+    fn capture_puts_each_window_state_back() {
+        let normal = plan_capture_window(true, false, true, false, FullscreenPhase::Normal);
+        assert_eq!(normal, CaptureWindowPlan::HideThenShow { zoomed: false });
+        assert_eq!(restore_action(normal, true, true), CaptureRestore::Show);
+
+        let zoomed = plan_capture_window(true, false, true, true, FullscreenPhase::Normal);
+        assert_eq!(zoomed, CaptureWindowPlan::HideThenShow { zoomed: true });
+        assert_eq!(
+            restore_action(zoomed, true, true),
+            CaptureRestore::ShowZoomed
+        );
+
+        let fullscreen = plan_capture_window(true, true, true, false, FullscreenPhase::Fullscreen);
+        assert_eq!(fullscreen, CaptureWindowPlan::HideThenRestoreFullscreen);
+        assert_eq!(
+            restore_action(fullscreen, true, true),
+            CaptureRestore::ShowThenEnterFullscreen
+        );
+    }
+
+    #[test]
+    fn fullscreen_on_another_space_captures_without_hiding_or_focusing() {
+        let plan = plan_capture_window(true, true, false, false, FullscreenPhase::Fullscreen);
+
+        assert_eq!(plan, CaptureWindowPlan::LeaveUntouched);
+        assert!(capture_may_start(plan));
+        assert!(!capture_hides_window(plan));
+        // A produced shot must not call show or set_focus either.
+        assert_eq!(restore_action(plan, false, true), CaptureRestore::Leave);
+    }
+
+    #[test]
+    fn fullscreen_capture_failure_and_cancellation_still_restore_fullscreen() {
+        let plan = plan_capture_window(true, true, true, false, FullscreenPhase::Fullscreen);
+
+        assert_eq!(
+            restore_action(plan, true, false),
+            CaptureRestore::ShowThenEnterFullscreen
+        );
+        // The hide was cancelled or failed before the window was ordered out.
+        assert_eq!(
+            restore_action(plan, false, false),
+            CaptureRestore::EnterFullscreenIfNeeded
+        );
+    }
+
+    #[test]
+    fn a_delayed_transition_does_not_toggle_fullscreen_again() {
+        assert!(should_toggle_fullscreen_restore(
+            false,
+            false,
+            FullscreenPhase::Normal,
+            false
+        ));
+        // The style mask already says fullscreen: toggling would exit.
+        assert!(!should_toggle_fullscreen_restore(
+            true,
+            false,
+            FullscreenPhase::Normal,
+            false
+        ));
+        // The one allowed toggle has been issued. A late notification stops here.
+        assert!(!should_toggle_fullscreen_restore(
+            false,
+            true,
+            FullscreenPhase::Normal,
+            false
+        ));
+        assert!(!should_toggle_fullscreen_restore(
+            false,
+            true,
+            FullscreenPhase::Exiting,
+            false
+        ));
+        assert!(!should_toggle_fullscreen_restore(
+            false,
+            false,
+            FullscreenPhase::Entering,
+            false
+        ));
+        assert!(!should_toggle_fullscreen_restore(
+            false,
+            false,
+            FullscreenPhase::Exiting,
+            false
+        ));
+        assert!(!should_toggle_fullscreen_restore(
+            false,
+            false,
+            FullscreenPhase::Fullscreen,
+            false
+        ));
+        // Quit owns the window. Capture must not enter fullscreen underneath it.
+        assert!(!should_toggle_fullscreen_restore(
+            false,
+            false,
+            FullscreenPhase::Normal,
+            true
+        ));
+    }
+
+    #[test]
+    fn a_fullscreen_transition_does_not_start_a_capture() {
+        for phase in [FullscreenPhase::Entering, FullscreenPhase::Exiting] {
+            let plan = plan_capture_window(true, true, true, false, phase);
+            assert_eq!(plan, CaptureWindowPlan::Unavailable);
+            assert!(!capture_may_start(plan));
+            assert!(!capture_hides_window(plan));
+            assert_eq!(restore_action(plan, false, false), CaptureRestore::Leave);
+        }
+    }
+
+    #[test]
+    fn screenshot_does_not_follow_the_close_path() {
+        // Red close exits fullscreen and the next Open Pixen stays normal.
+        assert_eq!(
+            decide_hide(FullscreenPhase::Fullscreen, true, false, 1, 1, false),
+            HideAction::BeginExit
+        );
+
+        // The same window, captured, comes back to fullscreen. The off-space
+        // case never takes the hide path at all.
+        let active = plan_capture_window(true, true, true, false, FullscreenPhase::Fullscreen);
+        assert_eq!(
+            restore_action(active, true, true),
+            CaptureRestore::ShowThenEnterFullscreen
+        );
+        assert_ne!(restore_action(active, true, true), CaptureRestore::Show);
+
+        let elsewhere = plan_capture_window(true, true, false, false, FullscreenPhase::Fullscreen);
+        assert!(!capture_hides_window(elsewhere));
+        assert_eq!(
+            restore_action(elsewhere, false, true),
+            CaptureRestore::Leave
+        );
+    }
+
+    #[test]
+    fn a_hidden_editor_stays_hidden_when_the_shot_is_cancelled() {
+        let plan = plan_capture_window(false, false, true, false, FullscreenPhase::Normal);
+
+        assert_eq!(plan, CaptureWindowPlan::ShowIfCaptured);
+        assert!(!capture_hides_window(plan));
+        assert_eq!(restore_action(plan, false, false), CaptureRestore::Leave);
+        assert_eq!(
+            restore_action(plan, false, true),
+            CaptureRestore::ShowIfProduced
+        );
+    }
+
+    #[test]
+    fn a_failed_fullscreen_restore_follows_the_style_mask() {
+        assert_eq!(
+            enter_end_from_mask(Some(true), false),
+            CaptureEnterEnd::Restored
+        );
+        assert_eq!(
+            phase_matching_window(true, FullscreenPhase::Normal),
+            FullscreenPhase::Fullscreen
+        );
+
+        // Watchdog: the mask is clear, so this is not a restored fullscreen,
+        // and it is not a request to toggle again.
+        assert_eq!(
+            enter_end_from_mask(Some(false), false),
+            CaptureEnterEnd::Failed
+        );
+        assert_eq!(
+            phase_matching_window(false, FullscreenPhase::Fullscreen),
+            FullscreenPhase::Normal
+        );
+        assert!(!should_toggle_fullscreen_restore(
+            false,
+            true,
+            FullscreenPhase::Normal,
+            false
+        ));
+        assert_eq!(
+            phase_matching_window(false, FullscreenPhase::Entering),
+            FullscreenPhase::Entering
+        );
+        assert_eq!(
+            phase_matching_window(true, FullscreenPhase::Exiting),
+            FullscreenPhase::Exiting
+        );
+    }
+
+    #[test]
+    fn a_stale_fullscreen_phase_does_not_enter_fullscreen() {
+        let plan = plan_capture_window(true, false, true, false, FullscreenPhase::Fullscreen);
+
+        assert_eq!(plan, CaptureWindowPlan::HideThenShow { zoomed: false });
+        assert!(!restore_enters_fullscreen(restore_action(plan, true, true)));
+        assert!(!fullscreen_enter_allowed(
+            false,
+            false,
+            FullscreenPhase::Fullscreen,
+            false,
+            false
+        ));
+    }
+
+    #[test]
+    fn a_fullscreen_style_mask_wins_over_a_stale_normal_phase() {
+        let on_this_space = plan_capture_window(true, true, true, false, FullscreenPhase::Normal);
+        assert_eq!(on_this_space, CaptureWindowPlan::HideThenRestoreFullscreen);
+
+        // Same mask, another Space: still fullscreen, so the window is not touched.
+        let elsewhere = plan_capture_window(true, true, false, false, FullscreenPhase::Normal);
+        assert_eq!(elsewhere, CaptureWindowPlan::LeaveUntouched);
+        assert!(!capture_hides_window(elsewhere));
+        assert!(!restore_shows_or_focuses(restore_action(
+            elsewhere, false, true
+        )));
+    }
+
+    #[test]
+    fn close_or_quit_during_restore_does_not_enter_fullscreen() {
+        let plan = plan_capture_window(true, true, true, false, FullscreenPhase::Fullscreen);
+
+        let closed = restore_action_observing_leave(plan, true, true, CaptureLeave::Hide);
+        assert_eq!(closed, CaptureRestore::Show);
+        assert!(!restore_enters_fullscreen(closed));
+
+        let quit = restore_action_observing_leave(plan, true, true, CaptureLeave::Quit);
+        assert_eq!(quit, CaptureRestore::Show);
+        assert!(!restore_enters_fullscreen(quit));
+
+        // The hide never ordered the window out. Do not toggle it into fullscreen.
+        assert_eq!(
+            restore_action_observing_leave(plan, false, false, CaptureLeave::Hide),
+            CaptureRestore::Leave
+        );
+        assert!(!fullscreen_enter_allowed(
+            false,
+            false,
+            FullscreenPhase::Normal,
+            false,
+            true
+        ));
+        assert!(!fullscreen_enter_allowed(
+            false,
+            false,
+            FullscreenPhase::Normal,
+            true,
+            false
+        ));
+        assert_eq!(
+            enter_end_from_mask(Some(true), true),
+            CaptureEnterEnd::Cancelled
+        );
+    }
+
+    #[test]
+    fn a_late_enter_after_close_or_quit_is_ignored() {
+        assert!(!restore_notification_applies(Some(7), 7, true));
+        assert!(!restore_notification_applies(None, 7, false));
+        assert!(restore_notification_applies(Some(7), 7, false));
+        assert!(!restore_notification_applies(Some(7), 8, false));
+    }
+
+    #[test]
+    fn leaving_fullscreen_on_another_space_is_still_untouched_when_close_is_pending() {
+        let plan = plan_capture_window(true, true, false, false, FullscreenPhase::Fullscreen);
+        let action = restore_action_observing_leave(plan, false, true, CaptureLeave::Hide);
+
+        assert_eq!(action, CaptureRestore::Leave);
+        assert!(!restore_enters_fullscreen(action));
+        assert!(!restore_shows_or_focuses(action));
+        assert!(!capture_hides_window(plan));
     }
 }

@@ -81,34 +81,43 @@ pub async fn capture_screen(app: AppHandle) -> Result<Option<String>, String> {
         return Ok(None);
     };
 
+    // Cleared when this function returns, including while fullscreen is restored.
+    let _attempt = crate::window::CaptureAttempt::begin();
+
     let path = screenshot_path();
     let main = app.get_webview_window(MAIN_WINDOW_LABEL);
-    let was_visible = main
-        .as_ref()
-        .and_then(|window| window.is_visible().ok())
-        .unwrap_or(false);
+    // Recorded before anything moves. Close and quit keep their own path:
+    // they leave fullscreen and do not enter it again. A shot puts the editor back.
+    let plan = match &main {
+        Some(window) => crate::window::plan_for_capture(window),
+        None => crate::window::CaptureWindowPlan::ShowIfCaptured,
+    };
 
-    // A visible editor would cover whatever the user is trying to capture.
-    // Hiding it here is temporary, so the Dock icon stays until the shot ends.
-    // A fullscreen window leaves that space before it is ordered out, or the
-    // next show lands on a null fullscreen tile. A window that was already
-    // hidden is left hidden unless a file is produced.
-    if was_visible {
+    if !crate::window::capture_may_start(plan) {
+        return Ok(None);
+    }
+
+    // A visible editor on this Space would cover the shot. Fullscreen still
+    // leaves that Space before it is ordered out — the same rule as red close —
+    // and is entered again when the shot ends. A fullscreen window on another
+    // Space is not hidden: exiting it switches Spaces and the shot is lost.
+    let mut hid = false;
+    if crate::window::capture_hides_window(plan) {
         if let Some(window) = &main {
-            // Not hidden, or the exit was cancelled: capturing now would run
-            // during a fullscreen transition. Leave the window visible.
             if !crate::window::hide_for_capture(window) {
+                crate::window::finish_capture_presentation(&app, plan, false, false);
                 return Ok(None);
             }
+            hid = true;
         }
     }
 
     let captured = run_screencapture(&path);
     let produced = matches!(captured, Ok(true));
 
-    if was_visible || produced {
-        crate::window::show_main(&app);
-    }
+    // Success, Escape, and a failed launch all come through here, so a shot
+    // cannot leave the editor unfullscreened or hidden.
+    crate::window::finish_capture_presentation(&app, plan, hid, produced);
 
     if !captured? {
         return Ok(None);
