@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 
 import type { LeaveRequest } from '@/lib/captureLeave'
 import { leaveWhileCaptureIsBusy, noteLeaveDuringCapture } from '@/lib/captureLeave'
-import { shouldRevealCapturedImage } from '@/lib/captureReveal'
+import { presentCapturedScreenshot } from '@/lib/captureReveal'
 import {
   COPIED_FEEDBACK_MS,
   SCREENSHOT_NAME,
@@ -620,19 +620,11 @@ export const useImageSession = (): ImageSession => {
 
   const captureScreen = useCallback(() => {
     run(async () => {
-      const dataUrl = await runCapture()
-
-      if (!dataUrl) {
-        return
-      }
-
-      const placed = await placeImage(dataUrl, SCREENSHOT_NAME)
-
-      // The image is in the editor first. A cancelled insert does not switch
-      // Spaces. Only then activate a fullscreen Space left alone during the shot.
-      if (shouldRevealCapturedImage(placed)) {
-        await revealFullscreenCapture()
-      }
+      await presentCapturedScreenshot(
+        await runCapture(),
+        (image) => placeImage(image, SCREENSHOT_NAME),
+        revealFullscreenCapture,
+      )
     })
   }, [placeImage, run])
 
