@@ -54,6 +54,10 @@ pub fn run() {
             shortcut::restore_capture_shortcut,
             shortcut::set_capture_shortcut,
             shortcut::suspend_capture_shortcut,
+            window::cancel_capture_restore_command,
+            window::clear_unconfirmed_leave,
+            window::release_provisional_quit,
+            window::reveal_fullscreen_capture,
             window::finish_launch,
             window::hide_main_window,
             window::quit_app,
@@ -99,6 +103,10 @@ pub fn run() {
                 // `getCurrentWindow().listen` registered.
                 api.prevent_close();
                 let app = window.app_handle();
+                // Before the webview hears it, so a shot cannot enter
+                // fullscreen after the red button. The hide itself still
+                // waits for the unsaved-changes prompt.
+                window::cancel_capture_restore(app, false);
 
                 if let Some(main) = app.get_webview_window(window::MAIN_WINDOW_LABEL) {
                     let _ = main.emit(window::HIDE_REQUESTED_EVENT, ());

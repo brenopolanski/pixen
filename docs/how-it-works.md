@@ -70,8 +70,9 @@ the red close button go through the same unsaved-changes prompt. Quit then calls
 red button keeps the process running: Rust intercepts `CloseRequested`, prevents the close, and
 emits `pixen-hide-requested`. The webview saves or discards, and only then calls
 `hide_main_window`. Cancel, a failed save, or a cancelled save panel leaves the window up. A clean
-editor hides immediately. About is hidden with the editor, so it cannot be left as the only
-visible window.
+editor that is not fullscreen hides immediately. A fullscreen window leaves the native fullscreen
+space first and is hidden only after `NSWindowDidExitFullScreenNotification`. About is hidden with
+the editor, so it cannot be left as the only visible window.
 
 Showing the window again switches back to Regular, which restores the Dock icon. That happens from
 **Open Pixen** in the tray menu, from opening Pixen in Finder while the process is already running
